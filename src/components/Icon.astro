@@ -1,0 +1,62 @@
+---
+/**
+ * Icon —— 内联 SVG 图标
+ * ---------------------------------------------------------------------------
+ * 原版 Fluid 依赖 alicdn 的 iconfont（一份 200KB+ 的字体文件 + 外部 CDN）。
+ * 这里换成内联 SVG：零请求、可继承 currentColor、随文字大小缩放。
+ *
+ * 用法：<Icon name="home" />，尺寸由 font-size 决定（1em）。
+ */
+interface Props {
+  name: string;
+  class?: string;
+  /** 装饰性图标不朗读；给了 title 才会被读屏当作有意义的图形 */
+  title?: string;
+}
+
+const { name, class: cls = '', title } = Astro.props;
+
+/* 统一 24×24 视框、2px 描边（Feather 风格），跟正文的线条粗细一致 */
+const PATHS: Record<string, string> = {
+  home: '<path d="M3 9.5 12 2l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+  archive: '<path d="M21 8v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M2 3h20v5H2z"/><path d="M10 12h4"/>',
+  category:
+    '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  tag: '<path d="M20.6 13.4 12 22l-9-9V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+  link: '<path d="M10.5 13.5a4.5 4.5 0 0 0 6.4 0l2.6-2.6a4.5 4.5 0 0 0-6.4-6.4L11.7 6"/><path d="M13.5 10.5a4.5 4.5 0 0 0-6.4 0l-2.6 2.6a4.5 4.5 0 0 0 6.4 6.4l1.3-1.3"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21v-1a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v1"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  sun: '<circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
+  menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  close: '<path d="M18 6 6 18M6 6l12 12"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="m13 5 7 7-7 7"/>',
+  'arrow-left': '<path d="M19 12H5"/><path d="m11 19-7-7 7-7"/>',
+  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+  date: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  chart: '<path d="M18 20V10M12 20V4M6 20v-6"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  star: '<path d="m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 21l1.1-6.5L2.6 9.8l6.5-.9z"/>',
+  'arrow-up': '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  rss: '<path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1.5"/>',
+  folder: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 16-5-5-9 9"/>',
+};
+
+const path = PATHS[name] ?? PATHS.star;
+---
+
+<svg
+  class:list={['icon', cls]}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.9"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden={title ? undefined : 'true'}
+  role={title ? 'img' : undefined}
+  set:html={path}
+/>
+{title && <span class="sr-only">{title}</span>}

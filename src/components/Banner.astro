@@ -1,0 +1,50 @@
+---
+/**
+ * Banner —— 全屏（或固定高度）头图 + 大标题
+ *
+ * 原版支持视差、typed 打字机副标题、随机图。这里保留「背景图 + 蒙版 + 居中
+ * 标题 + 底部滚动箭头」这套核心观感；视差与打字机属于锦上添花且有额外 JS
+ * 依赖，暂不引入。
+ */
+import Icon from './Icon.astro';
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  /** 背景图地址；留空则用顶栏色作纯色底 */
+  img?: string;
+  height?: string;
+  maskAlpha?: number;
+  /** 底部滚动提示箭头（通常只在首页） */
+  scrollDown?: boolean;
+}
+
+const {
+  title,
+  subtitle,
+  img,
+  height = '60vh',
+  maskAlpha = 0.3,
+  scrollDown = false,
+} = Astro.props;
+
+const style = [
+  `height:${height}`,
+  img ? `background-image:url('${img}')` : '',
+].filter(Boolean).join(';');
+---
+
+<header class="banner" style={style}>
+  <div class="banner-mask" style={`opacity:${maskAlpha}`}></div>
+  <div class="banner-text">
+    <h1 class="banner-title">{title}</h1>
+    {subtitle && <p class="banner-subtitle">{subtitle}</p>}
+  </div>
+  {
+    scrollDown && (
+      <a class="scroll-down-bar" href="#board" aria-label="向下滚动">
+        <Icon name="chevron-down" />
+      </a>
+    )
+  }
+</header>

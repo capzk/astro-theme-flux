@@ -1,0 +1,42 @@
+---
+/**
+ * 单个分类 —— /categories/<名称>/
+ *
+ * 动态段用 `[name]` 而不是 `[...page]`：这里不做分页（分类内的文章通常不多），
+ * 换来更直的 URL 与更简单的路径生成。中文分类名直接进 URL，与 Hexo 版一致。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Banner from '../../components/Banner.astro';
+import Board from '../../components/Board.astro';
+import PostList from '../../components/PostList.astro';
+import { SITE } from '../../config';
+import { getPosts, categoryCounts } from '../../utils/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return categoryCounts(posts).map(({ name, count }) => ({
+    params: { name },
+    props: {
+      name,
+      count,
+      posts: posts.filter((p) => p.data.categories.includes(name)),
+    },
+  }));
+}
+
+const { name, count, posts } = Astro.props;
+---
+
+<BaseLayout title={name} description={`分类「${name}」下的 ${count} 篇文章`}>
+  <Banner
+    title={name}
+    subtitle={`${count} 篇文章`}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
+
+  <Board>
+    <PostList posts={posts} currentPage={1} lastPage={1} />
+  </Board>
+</BaseLayout>

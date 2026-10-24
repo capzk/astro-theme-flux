@@ -1,0 +1,203 @@
+---
+/**
+ * 文章页 —— /posts/<文件名>/
+ *
+ * 对应原版 post.ejs：banner + 白卡片（正文居中，右侧跟随滚动的目录）。
+ * 剪掉了评论、分享、浏览量、mathjax/mermaid 等插件，保留阅读本身需要的部分：
+ * 元信息、目录、标签、版权、上一篇/下一篇。
+ */
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Banner from '../../components/Banner.astro';
+import Board from '../../components/Board.astro';
+import Toc from '../../components/Toc.astro';
+import Icon from '../../components/Icon.astro';
+import { SITE } from '../../config';
+import { T } from '../../i18n';
+import { getPosts, neighbours, postUrl, readingStats, termUrl } from '../../utils/posts';
+import { buildToc } from '../../utils/toc';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post, posts },
+  }));
+}
+
+const { post, posts } = Astro.props;
+const { Content, headings } = await render(post);
+
+const { title, date, updated, tags, categories, toc: tocEnabled } = post.data;
+const stats = readingStats(post, SITE.post.wpm);
+const toc = buildToc(headings);
+const showToc = SITE.post.toc && tocEnabled && toc.length > 0;
+
+const { prev, next } = neighbours(posts, post);
+
+/* banner：单篇封面优先，其次站点默认图 */
+const bannerImg = post.data.bannerImg || SITE.postBanner.img;
+
+const dateText = date.toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+const updatedText = updated
+  ? updated.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
+  : null;
+
+const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+---
+
+<BaseLayout title={title} description={post.data.description} ogType="article">
+  <Banner
+    title={title}
+    img={bannerImg}
+    height={SITE.postBanner.height}
+    maskAlpha={post.data.bannerMaskAlpha ?? SITE.postBanner.maskAlpha}
+  />
+
+  <Board wide>
+    <div class:list={['post-layout', { 'no-toc': !showToc }]}>
+      <article class="post-content">
+        <header class="post-header">
+          <h1 class="post-title">{title}</h1>
+
+          {
+            SITE.post.meta && (
+              <div class="post-meta-row">
+                {SITE.post.meta.author && (
+                  <span class="post-meta">
+                    <Icon name="user" />
+                    {SITE.author}
+                  </span>
+                )}
+                {SITE.post.meta.date && (
+                  <span class="post-meta">
+                    <Icon name="date" />
+                    <time datetime={date.toISOString()}>{dateText}</time>
+                  </span>
+                )}
+                {SITE.post.meta.wordcount && (
+                  <span class="post-meta">
+                    <Icon name="chart" />
+                    {stats.words} {T.words}
+                  </span>
+                )}
+                {SITE.post.meta.min2read && (
+                  <span class="post-meta">
+                    <Icon name="clock" />
+                    {stats.minutes} {T.minRead}
+                  </span>
+                )}
+              </div>
+            )
+          }
+
+          {
+            updatedText && (
+              <p class="post-meta" style="margin:0.35rem 0 0">
+                <Icon name="clock" />
+                {T.updatedPrefix} {updatedText}
+              </p>
+            )
+          }
+        </header>
+
+        <div class="markdown-body">
+          <Content />
+        </div>
+
+        <footer class="post-footer">
+          {
+            (tags.length > 0 || categories.length > 0) && (
+              <div class="post-tags">
+                {categories.length > 0 && (
+                  <>
+                    <span class="post-tags-label">
+                      <Icon name="folder" />
+                      分类
+                    </span>
+                    {categories.map((c) => (
+                      <a class="tag-chip" href={termUrl('categories', c)}>
+                        {c}
+                      </a>
+                    ))}
+                  </>
+                )}
+                {tags.length > 0 && (
+                  <>
+                    <span class="post-tags-label">
+                      <Icon name="tag" />
+                      标签
+                    </span>
+                    {tags.map((t) => (
+                      <a class="tag-chip" href={termUrl('tags', t)}>
+                        #{t}
+                      </a>
+                    ))}
+                  </>
+                )}
+              </div>
+            )
+          }
+
+          {
+            SITE.post.copyright && (
+              <div class="copyright">
+                <strong>{T.copyrightHeading}</strong>
+                <br />
+                {T.copyrightAuthor}：{SITE.author}
+                <br />
+                {T.copyrightLink}：
+                <a href={permalink}>{permalink}</a>
+                <br />
+                {T.copyrightLicense}：{T.copyrightLicenseValue}
+              </div>
+            )
+          }
+
+          {
+            SITE.post.prevNext && (
+              <nav class="post-prevnext" aria-label="上一篇 / 下一篇">
+                {prev ? (
+                  <a href={postUrl(prev)}>
+                    <Icon name="arrow-left" />
+                    <span class="label">
+                      {T.prevPost}：{prev.data.title}
+                    </span>
+                  </a>
+                ) : (
+                  <span />
+                )}
+                {next ? (
+                  <a href={postUrl(next)} class="post-next">
+                    <span class="label">
+                      {T.nextPost}：{next.data.title}
+                    </span>
+                    <Icon name="arrow-right" />
+                  </a>
+                ) : (
+                  <span />
+                )}
+              </nav>
+            )
+          }
+        </footer>
+      </article>
+
+      {
+        showToc && (
+          <aside class="toc" aria-label={T.toc}>
+            <p class="toc-header">
+              <Icon name="list" />
+              <span>{T.toc}</span>
+            </p>
+            <Toc items={toc} />
+          </aside>
+        )
+      }
+    </div>
+  </Board>
+</BaseLayout>

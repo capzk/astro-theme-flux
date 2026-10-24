@@ -1,0 +1,28 @@
+---
+/**
+ * PostList —— 卡片流 + 分页
+ *
+ * 首页与 `/page/N/` 共用这一份（差异只在页码）。
+ */
+import Pagination from './Pagination.astro';
+import PostCard from './PostCard.astro';
+import type { Post } from '../utils/posts';
+
+interface Props {
+  posts: Post[];
+  currentPage: number;
+  lastPage: number;
+  /** 页码前缀：首页用 '/page'，归档页用 '/archives/page' */
+  base?: string;
+}
+
+const { posts, currentPage, lastPage, base = '/page' } = Astro.props;
+---
+
+<div class="index-list">
+  {posts.map((post) => <PostCard post={post} />)}
+</div>
+
+{posts.length === 0 && <p class="search-empty">还没有文章。在 src/content/posts/ 里放一篇 Markdown 就会出现。</p>}
+
+<Pagination currentPage={currentPage} lastPage={lastPage} base={base} />

@@ -1,0 +1,39 @@
+---
+/**
+ * 友链 —— /links/
+ *
+ * 原版是卡片网格（头像 + 站名 + 一句话）。数据在 src/data/links.ts。
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Banner from '../components/Banner.astro';
+import Board from '../components/Board.astro';
+import { SITE } from '../config';
+import { LINKS } from '../data/links';
+
+const title = '友链';
+---
+
+<BaseLayout title={title}>
+  <Banner title={title} subtitle={`${LINKS.length} 个站点`} img={SITE.postBanner.img} height="40vh" maskAlpha={SITE.postBanner.maskAlpha} />
+
+  <Board>
+    <div class="link-grid">
+      {
+        LINKS.map((item) => (
+          <a class="link-card" href={item.url} target="_blank" rel="noopener noreferrer">
+            {item.avatar ? (
+              <img class="link-avatar" src={item.avatar} alt="" width="44" height="44" loading="lazy" />
+            ) : (
+              <span class="link-avatar" aria-hidden="true" />
+            )}
+            <span class="link-meta">
+              <span class="link-name">{item.name}</span>
+              {item.desc && <span class="link-desc">{item.desc}</span>}
+            </span>
+          </a>
+        ))
+      }
+    </div>
+    {LINKS.length === 0 && <p class="search-empty">还没有友链，在 src/data/links.ts 里加一条即可。</p>}
+  </Board>
+</BaseLayout>

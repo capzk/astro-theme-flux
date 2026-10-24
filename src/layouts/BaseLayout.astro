@@ -1,0 +1,105 @@
+---
+/**
+ * BaseLayout —— 全站骨架
+ *
+ * 结构对应原版 layout.ejs：head + 顶栏 + main + 页脚 + 脚本。
+ * 深色模式与首帧防闪在这里处理（内联脚本，阻塞渲染但只有几行）。
+ */
+import { SITE } from '../config';
+import { T } from '../i18n';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+import SearchModal from '../components/SearchModal.astro';
+import Icon from '../components/Icon.astro';
+import '../styles/main.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** 页面自身 URL，用于 canonical / og:url */
+  ogType?: 'website' | 'article';
+  /** 首页：顶栏透明 */
+  isHome?: boolean;
+}
+
+const {
+  title,
+  description = SITE.description,
+  ogType = 'website',
+  isHome = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const path = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang={SITE.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE.title} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!--
+      深色模式：首帧就把 data-user-color-scheme 写到 html 上，避免闪白。
+      优先级：用户手动选择（localStorage）> 站点默认值 > 系统偏好。
+      必须是内联脚本（外链脚本会晚一帧），代价只有几行。
+    -->
+    <script is:inline define:vars={{ darkDefault: SITE.darkMode.enable ? SITE.darkMode.default : 'light' }}>
+      (function () {
+        try {
+          var saved = localStorage.getItem('flux-color-scheme');
+          var mode = saved;
+          if (!mode || mode === 'auto') {
+            if (darkDefault === 'auto') {
+              mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            } else {
+              mode = darkDefault;
+            }
+          }
+          document.documentElement.dataset.userColorScheme = mode;
+        } catch (e) {
+          document.documentElement.dataset.userColorScheme = 'light';
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">{T.skipToContent}</a>
+
+    <Navbar isHome={isHome} path={path} />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+
+    {SITE.search && <SearchModal />}
+
+    <button id="scroll-top" type="button" aria-label={T.backTop}>
+      <Icon name="arrow-up" />
+    </button>
+
+    <script>
+      import '../scripts/theme.js';
+      /* 搜索只在站点开启时打包进页面（未开启时这段引用会被摇掉） */
+      import '../scripts/search.js';
+    </script>
+  </body>
+</html>

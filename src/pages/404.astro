@@ -1,0 +1,21 @@
+---
+/**
+ * 404 —— 信号丢失
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Board from '../components/Board.astro';
+import { T } from '../i18n';
+import { SITE } from '../config';
+---
+
+<BaseLayout title="404">
+  <div style={`height:${SITE.postBanner.height};min-height:24rem`}></div>
+
+  <Board>
+    <div class="empty-state">
+      <p class="empty-title">{T.notFound}</p>
+      <p class="empty-desc">{T.notFoundDesc}</p>
+      <a class="term-chip" href="/">{T.backHome}</a>
+    </div>
+  </Board>
+</BaseLayout>

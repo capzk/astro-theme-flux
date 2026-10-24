@@ -1,0 +1,16 @@
+# 仓库内统一 LF，避免 Windows 提交把 CRLF 带进历史
+* text=auto eol=lf
+
+# 二进制资源不做行尾转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+# 避免 diff 噪声
+package-lock.json linguist-generated=true
+pnpm-lock.yaml linguist-generated=true

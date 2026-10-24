@@ -1,0 +1,39 @@
+---
+/**
+ * 单个标签 —— /tags/<名称>/
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Banner from '../../components/Banner.astro';
+import Board from '../../components/Board.astro';
+import PostList from '../../components/PostList.astro';
+import { SITE } from '../../config';
+import { getPosts, tagCounts } from '../../utils/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return tagCounts(posts).map(({ name, count }) => ({
+    params: { name },
+    props: {
+      name,
+      count,
+      posts: posts.filter((p) => p.data.tags.includes(name)),
+    },
+  }));
+}
+
+const { name, count, posts } = Astro.props;
+---
+
+<BaseLayout title={`#${name}`} description={`标签「${name}」下的 ${count} 篇文章`}>
+  <Banner
+    title={`#${name}`}
+    subtitle={`${count} 篇文章`}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
+
+  <Board>
+    <PostList posts={posts} currentPage={1} lastPage={1} />
+  </Board>
+</BaseLayout>

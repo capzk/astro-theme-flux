@@ -1,0 +1,111 @@
+---
+/**
+ * Navbar —— 固定顶栏
+ *
+ * 原版行为：首页顶部透明（让 banner 透出来），滚动或离开首页后变实色 + 阴影；
+ * 移动端用九宫格菜单（这里保留「抽屉 + 图标」的思路，实现更简单）。
+ */
+import { SITE } from '../config';
+import { T } from '../i18n';
+import Icon from './Icon.astro';
+
+interface Props {
+  isHome?: boolean;
+  /** 当前路径，用于菜单高亮 */
+  path: string;
+}
+
+const { isHome = false, path } = Astro.props;
+
+const isActive = (href: string) =>
+  href === '/' ? path === '/' : path === href || path.startsWith(href);
+
+const nav = SITE.nav;
+---
+
+<header>
+  <nav class:list={['navbar', { 'is-solid': !isHome }]} id="navbar" data-home={String(isHome)}>
+    <div class="container nav-inner">
+      <a class="navbar-brand" href="/">{SITE.title}</a>
+
+      <ul class="nav-links">
+        {
+          nav.map((item) => (
+            <li>
+              <a
+                class:list={['nav-link', { 'is-active': isActive(item.href) }]}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+              >
+                {item.icon && <Icon name={item.icon} />}
+                <span>{item.label}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="nav-actions">
+        {
+          SITE.search && (
+            <button class="icon-btn" id="search-toggle" type="button" aria-label={T.searchOpen}>
+              <Icon name="search" />
+            </button>
+          )
+        }
+        {
+          SITE.darkMode.enable && (
+            <button class="icon-btn" id="theme-toggle" type="button" aria-label={T.toggleTheme}>
+              <Icon name="moon" class="icon-moon" />
+              <Icon name="sun" class="icon-sun" />
+            </button>
+          )
+        }
+        <button
+          class="icon-btn nav-toggle"
+          id="menu-toggle"
+          type="button"
+          aria-label={T.openMenu}
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+        >
+          <Icon name="menu" />
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="mobile-menu" id="mobile-menu" hidden>
+    <ul>
+      {
+        nav.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              class:list={{ 'is-active': isActive(item.href) }}
+              target={item.external ? '_blank' : undefined}
+              rel={item.external ? 'noopener noreferrer' : undefined}
+            >
+              {item.icon && <Icon name={item.icon} />}
+              <span>{item.label}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</header>
+
+<style>
+  /* 主题切换按钮：图标按当前模式择一显示（纯 CSS，无需 JS 改 DOM） */
+  .icon-sun {
+    display: none;
+  }
+  :global([data-user-color-scheme='dark']) .icon-moon {
+    display: none;
+  }
+  :global([data-user-color-scheme='dark']) .icon-sun {
+    display: inline-block;
+  }
+</style>

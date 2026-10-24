@@ -1,0 +1,59 @@
+---
+/**
+ * 关于 —— /about/
+ *
+ * 原版 about 页有个头像浮在白卡片上方。这里保留「头像 + 简介 + 正文」三段。
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Banner from '../components/Banner.astro';
+import Board from '../components/Board.astro';
+import { SITE } from '../config';
+
+const title = '关于';
+---
+
+<BaseLayout title={title} description={`关于 ${SITE.title}`}>
+  <Banner title={title} subtitle={SITE.subtitle} img={SITE.postBanner.img} height="40vh" maskAlpha={SITE.postBanner.maskAlpha} />
+
+  <Board>
+    <div class="about">
+      <img class="about-avatar" src={SITE.avatar} alt={SITE.author} width="112" height="112" />
+      <h1 class="about-name">{SITE.author}</h1>
+      <p class="about-bio">{SITE.description}</p>
+
+      <div class="markdown-body">
+        <h2>关于这个主题</h2>
+        <p>
+          这是 <strong>Flux</strong>（流变）——
+          <a href="https://github.com/capzk/astro-theme-flux" target="_blank" rel="noopener noreferrer">
+            astro-theme-flux
+          </a>
+          ，一套 Material Design 风格的 Astro 博客主题。名字取自拉丁语 <em>fluxus</em>（流动），
+          设计概念与视觉语言迁移自
+          <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="noopener noreferrer">
+            hexo-theme-fluid
+          </a>
+          ：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深色模式。
+        </p>
+        <p>和原版相比，技术栈换了一整套，依赖却少了很多：</p>
+        <ul>
+          <li>不依赖 jQuery、tocbot、clipboard.js、nprogress、fancybox</li>
+          <li>不依赖 CDN 上的 Bootstrap 与 iconfont（栅格自己写、图标是内联 SVG）</li>
+          <li>代码高亮从 highlight.js 换成构建期的 Shiki，两侧主题随深浅色切换</li>
+          <li>样式从 Stylus 编译改为手写 CSS（一份文件、用 CSS 变量分亮暗两套）</li>
+        </ul>
+        <h2>保留了哪些</h2>
+        <p>
+          首页卡片流、文章页版式、归档时间线、分类与标签、友链、关于、站内搜索、目录跟随、
+          代码块工具栏、返回顶部、移动端菜单 —— 这些是让观感对齐原版的部分，都在。
+        </p>
+        <h2>去掉了哪些</h2>
+        <p>
+          评论系统（十几种第三方服务）、浏览量统计、文章加密、数学公式与流程图、
+          打字机副标题、图片缩放插件、多语言包（先内置中文）。
+          它们要么是外部服务依赖，要么需要额外的运行时库，与「静态、零依赖」的目标冲突。
+        </p>
+      </div>
+    </div>
+  </Board>
+</BaseLayout>

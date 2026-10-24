@@ -1,0 +1,36 @@
+---
+/**
+ * 首页 —— banner + 卡片流
+ *
+ * 原版 index.ejs 就是这个结构：全屏 banner（站名 + 副标题 + 滚动箭头），
+ * 下面一张白卡片里排着文章卡片。
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Banner from '../components/Banner.astro';
+import Board from '../components/Board.astro';
+import PostList from '../components/PostList.astro';
+import { SITE } from '../config';
+import { getPosts, stickyFirst } from '../utils/posts';
+
+const all = await getPosts();
+const ordered = stickyFirst(all);
+
+const pageSize = SITE.pageSize;
+const posts = ordered.slice(0, pageSize);
+const lastPage = Math.max(1, Math.ceil(ordered.length / pageSize));
+---
+
+<BaseLayout isHome>
+  <Banner
+    title={SITE.title}
+    subtitle={SITE.banner.slogan || SITE.subtitle}
+    img={SITE.banner.img}
+    height={SITE.banner.height}
+    maskAlpha={SITE.banner.maskAlpha}
+    scrollDown={SITE.banner.scrollDown}
+  />
+
+  <Board>
+    <PostList posts={posts} currentPage={1} lastPage={lastPage} />
+  </Board>
+</BaseLayout>

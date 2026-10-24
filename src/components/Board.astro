@@ -1,0 +1,22 @@
+---
+/**
+ * Board —— 内容面板
+ *
+ * 原版的 #board 是那张「叠在 banner 上、带大阴影的白卡片」—— 整个主题的
+ * 视觉锚点。宽屏居中 820px，内部左右留白由 .board-inner 控制。
+ */
+interface Props {
+  /** 文章页用更宽的版式（正文 + 目录），列表页用窄版 */
+  wide?: boolean;
+}
+
+const { wide = false } = Astro.props;
+---
+
+<section class="board-wrap">
+  <div class="container">
+    <div id="board">
+      {wide ? <slot /> : <div class="board-inner"><slot /></div>}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,40 @@
+---
+/**
+ * Footer —— 页脚
+ *
+ * 原版的页脚有统计行（文章数 / 运行天数）、备案号、主题信息。这里保留前三样，
+ * 全部在构建期算好，零 JS。
+ */
+import { SITE } from '../config';
+import { T } from '../i18n';
+import { getPosts, tagCounts } from '../utils/posts';
+
+const posts = await getPosts();
+const tags = tagCounts(posts);
+const year = new Date().getFullYear();
+const since = SITE.since && SITE.since !== year ? `${SITE.since}–${year}` : String(year);
+---
+
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div class="footer-stats">
+        <span>{posts.length} 篇文章</span>
+        <span>{tags.length} 个标签</span>
+      </div>
+
+      <div>
+        © {since} <a href="/">{SITE.title}</a>
+      </div>
+
+      <div>
+        {T.footerPowered}
+        <a href="https://astro.build/" target="_blank" rel="noopener noreferrer">Astro</a>
+        · {T.footerTheme}
+        <a href="https://github.com/capzk/astro-theme-flux" target="_blank" rel="noopener noreferrer">Flux</a>
+      </div>
+
+      {SITE.beian && <div>{SITE.beian}</div>}
+    </div>
+  </div>
+</footer>

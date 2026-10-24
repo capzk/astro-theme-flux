@@ -1,0 +1,29 @@
+---
+/**
+ * SearchModal —— 站内搜索弹层
+ *
+ * 原版依赖 hexo-generator-searchdb 生成 XML/JSON 索引 + 一段 jQuery 脚本。
+ * 这里：构建期生成 /searchindex.json，前端线性扫描（十行逻辑），零依赖。
+ * 快捷键：/ 或 Ctrl/⌘+K 打开，Esc 关闭，↑↓ 选择，Enter 进入。
+ */
+import { T } from '../i18n';
+import Icon from './Icon.astro';
+---
+
+<div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label={T.search}>
+  <div class="search-box" role="search">
+    <div class="search-field">
+      <Icon name="search" />
+      <input
+        type="search"
+        id="search-input"
+        placeholder={T.searchPlaceholder}
+        autocomplete="off"
+        spellcheck="false"
+        aria-label={T.searchPlaceholder}
+      />
+      <span class="search-kbd">ESC</span>
+    </div>
+    <ul class="search-results" id="search-results" aria-live="polite"></ul>
+  </div>
+</div>

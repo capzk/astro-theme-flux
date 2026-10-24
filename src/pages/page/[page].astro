@@ -1,0 +1,49 @@
+---
+/**
+ * /page/2/ …… 首页的分页
+ *
+ * 为什么手写而不是用官方 paginate()：`index.astro` 要保留首页的 banner 版式，
+ * 而 paginate() 需要 `[...page]` 动态段来承载所有页码（第 1 页也在里面）。
+ * 这里让第 1 页留在 `/`，第 2 页起走 `/page/N/` —— URL 形态与 Hexo 一致。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Banner from '../../components/Banner.astro';
+import Board from '../../components/Board.astro';
+import PostList from '../../components/PostList.astro';
+import { SITE } from '../../config';
+import { getPosts, stickyFirst } from '../../utils/posts';
+
+export async function getStaticPaths() {
+  const ordered = stickyFirst(await getPosts());
+  const pageSize = SITE.pageSize;
+  const lastPage = Math.max(1, Math.ceil(ordered.length / pageSize));
+
+  return Array.from({ length: Math.max(0, lastPage - 1) }, (_, i) => {
+    const page = i + 2;
+    return {
+      params: { page: String(page) },
+      props: {
+        page,
+        lastPage,
+        posts: ordered.slice((page - 1) * pageSize, page * pageSize),
+      },
+    };
+  });
+}
+
+const { page, lastPage, posts } = Astro.props;
+---
+
+<BaseLayout title={`第 ${page} 页`} isHome>
+  <Banner
+    title={SITE.title}
+    subtitle={SITE.banner.slogan || SITE.subtitle}
+    img={SITE.banner.img}
+    height="50vh"
+    maskAlpha={SITE.banner.maskAlpha}
+  />
+
+  <Board>
+    <PostList posts={posts} currentPage={page} lastPage={lastPage} />
+  </Board>
+</BaseLayout>

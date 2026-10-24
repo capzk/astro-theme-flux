@@ -1,0 +1,46 @@
+---
+/**
+ * 分类总览 —— /categories/
+ *
+ * 原版是「分类名 + 条目数 + 该分类下前几篇文章」的分组列表。这里保留分组，
+ * 每篇给日期链接，点分类名进详情页。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Banner from '../../components/Banner.astro';
+import Board from '../../components/Board.astro';
+import { SITE } from '../../config';
+import { T } from '../../i18n';
+import { categoryCounts, getPosts, postUrl, termUrl } from '../../utils/posts';
+
+const posts = await getPosts();
+const cats = categoryCounts(posts);
+---
+
+<BaseLayout title={T.categories}>
+  <Banner title={T.categories} subtitle={T.totalCategories(cats.length)} img={SITE.postBanner.img} height="40vh" maskAlpha={SITE.postBanner.maskAlpha} />
+
+  <Board>
+    {cats.map(({ name, count }) => (
+      <section class="category-group">
+        <h2>
+          <a href={termUrl('categories', name)}>{name}</a>
+          <span class="term-count">{T.postsInCategory(count)}</span>
+        </h2>
+        <ul class="category-posts">
+          {posts
+            .filter((p) => p.data.categories.includes(name))
+            .slice(0, 5)
+            .map((post) => (
+              <li>
+                <time datetime={post.data.date.toISOString()}>
+                  {post.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                </time>
+                <a href={postUrl(post)}>{post.data.title}</a>
+              </li>
+            ))}
+        </ul>
+      </section>
+    ))}
+    {cats.length === 0 && <p class="search-empty">还没有分类。</p>}
+  </Board>
+</BaseLayout>

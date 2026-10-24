@@ -1,0 +1,50 @@
+{
+  "name": "astro-theme-flux",
+  "version": "1.0.0",
+  "description": "A Material Design blog theme for Astro — card grid, full-screen banner, dark mode, local search, sticky TOC.",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "author": {
+    "name": "capzk",
+    "url": "https://github.com/capzk"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/capzk/astro-theme-flux.git"
+  },
+  "bugs": {
+    "url": "https://github.com/capzk/astro-theme-flux/issues"
+  },
+  "homepage": "https://github.com/capzk/astro-theme-flux#readme",
+  "keywords": [
+    "astro",
+    "astro-theme",
+    "withastro",
+    "blog",
+    "theme",
+    "blog-theme",
+    "material-design",
+    "dark-mode",
+    "search",
+    "static-site"
+  ],
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "@astrojs/markdown-satteri": "^0.4.5",
+    "astro": "^7.4.2",
+    "github-slugger": "^2.0.0",
+    "sharp": "^0.35.5"
+  },
+  "engines": {
+    "node": ">=22.23.4"
+  }
+}
