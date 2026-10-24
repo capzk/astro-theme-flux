@@ -6,6 +6,14 @@
 
 > A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC.
 
+> [!NOTE]
+> **关于这个项目**
+> Flux 完全由 **AI 迁移并编写**（从 hexo-theme-fluid 移植到 Astro），主要目的是作者自用。
+> 作者**不承诺按需求做功能开发，也不承诺长期维护** —— issue 未必及时回复，PR 视情况合并。
+> 如果你有特定功能需求或想调整行为，最可靠的做法是 fork 一份自己改，或者直接让 AI 帮你改。
+>
+> *Built entirely by AI for personal use. No feature requests, no maintenance guarantee — please fork if you need changes.*
+
 **Flux（流变）** 是一套 Material Design 风格的 Astro 博客主题。名字取自拉丁语 *fluxus*（流动），设计概念与视觉语言迁移自 [hexo-theme-fluid](https://github.com/fluid-dev/hexo-theme-fluid)：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深浅色主题 —— 观感对齐原版，而运行时依赖归零。
 
 不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮用原生 `IntersectionObserver`，图标是内联 SVG，代码高亮在构建期由 Shiki 完成。
