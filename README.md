@@ -132,6 +132,14 @@ src/
 
 ## License
 
-**GPL-3.0-only**，见 [LICENSE](./LICENSE)。
+**GPL-3.0-only**，协议全文见 [LICENSE](./LICENSE)。
+
+```
+Copyright (C) 2026 capzk <https://github.com/capzk>
+
+Design concepts and visual language originate from hexo-theme-fluid
+https://github.com/fluid-dev/hexo-theme-fluid
+Copyright (C) Fluid-dev and contributors, licensed under GPL-3.0.
+```
 
 Flux 是 hexo-theme-fluid（GPL-3.0）的派生作品，因此沿用同一协议：分发修改后的版本时须同样以 GPL-3.0 开源，并保留上游署名。用 Flux 搭自己的博客不受影响 —— 你产出的站点内容归你。

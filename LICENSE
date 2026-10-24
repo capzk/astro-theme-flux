@@ -1,39 +1,3 @@
-Flux — a Material Design blog theme for Astro
-https://github.com/capzk/astro-theme-flux
-
-Copyright (C) 2026 capzk <https://github.com/capzk>
-
-This program is free software: you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Software
-Foundation, version 3.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with
-this program.  If not, see <https://www.gnu.org/licenses/>.
-
----------------------------------------------------------------------------
-UPSTREAM ATTRIBUTION
----------------------------------------------------------------------------
-
-Flux is a port of hexo-theme-fluid to the Astro framework. The design
-concepts, visual language, colour tokens and layout decisions originate from
-that project, which is licensed under the GNU General Public License v3.0:
-
-    hexo-theme-fluid — https://github.com/fluid-dev/hexo-theme-fluid
-    Copyright (C) Fluid-dev and contributors
-    Licensed under GPL-3.0
-
-Because Flux is a derivative work of hexo-theme-fluid, it is distributed under
-the same licence. Any redistribution of Flux, modified or not, must remain
-under GPL-3.0 and keep this attribution intact.
-
----------------------------------------------------------------------------
-
-The full text of the GNU General Public License version 3 follows.
-
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 
