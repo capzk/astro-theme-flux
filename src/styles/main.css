@@ -499,7 +499,12 @@ table {
    卡片封顶 1108 = 原版 .container 的 1140 减掉左右各 1rem 内边距。 */
 .board-shell.has-rails {
   display: grid;
-  grid-template-columns: 2fr 8fr 2fr;
+  /* 三列都必须包一层 minmax(0, …)。grid 子项默认 min-width: auto，
+     列宽会被内容的 min-content 顶开 —— 目录项是 white-space: nowrap，
+     一旦出现一个超长标题，第三列就涨过 2fr，把中间的正文挤窄；
+     滚动高亮时 is-active 加粗改变文字宽度，列宽再变一次，就成了左右抖。
+     包上 minmax(0, …) 后轨道宽度只由 fr 决定，内容再长也只在栏内 ellipsis。 */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 8fr) minmax(0, 2fr);
   align-items: start;
 }
 .board-shell.has-rails > #board {
@@ -507,6 +512,8 @@ table {
   width: 100%;
   max-width: 1108px;
   justify-self: center;
+  /* 同上：代码块、长 URL 之类也不该把中列顶宽 */
+  min-width: 0;
 }
 /* 原版这一层是 container-fluid（全宽），栅格按视口百分比铺开，不设上限 */
 .container:has(> .board-shell.has-rails) {
@@ -525,6 +532,8 @@ table {
   grid-column: 3;
   justify-self: start;
   width: 100%;
+  /* 让目录栏自己可收缩，长标题不会反过来把轨道顶宽 */
+  min-width: 0;
   /* 列宽本身已是视口的 2/12（约 320/240/200），右侧留 2rem 就是原版
      「col 的 15px 内边距」那个量级，再靠 -1rem 往卡片方向贴近一点 */
   padding-right: 2rem;
