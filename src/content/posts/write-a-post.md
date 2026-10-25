@@ -24,13 +24,30 @@ src/content/posts/
 ├── getting-started.md          →  /posts/getting-started/
 ├── 2026/
 │   └── yearly-review.md        →  /posts/2026/yearly-review/
+├── 年度总结.md                  →  /posts/nian-du-zong-jie/
 ```
 
-**路径去掉扩展名，就是 URL。** 带子目录时子目录也会进 URL。
+**默认规则：路径去掉扩展名就是 URL。** 带子目录时子目录也会进 URL。
 
-这个规则和 Hexo 的 `:title` 占位符一致，所以从 Hexo 迁过来的旧链接一般不会 404。但如果两篇文章出现在不同目录、文件名相同，路径不同所以不冲突 —— 这一点比 Hexo 宽松。
+想换一个更好记的地址，就在 front matter 里写 `slug`：
 
-<div class="note note-warning">改了文件名等于改了 URL，等于让已被收藏、被搜索引擎收录的链接失效。要换文件名，最好在静态托管侧配一条 301 重定向。</div>
+| front matter | 文件在哪 | 实际 URL |
+| --- | --- | --- |
+| 不写 | `getting-started.md` | `/posts/getting-started/` |
+| 不写 | `2026/yearly-review.md` | `/posts/2026/yearly-review/` |
+| `slug: hello` | `getting-started.md` | `/posts/hello/` |
+| `slug: year-review` | `2026/yearly-review.md` | `/posts/2026/year-review/` |
+| `slug: life/year-review` | `2026/yearly-review.md` | `/posts/life/year-review/` |
+
+`slug` 只写一段时只替换文件名那一段，子目录原样保留；写了 `/` 就由它接管整条路径。
+
+清洗细节、两篇撞车的处理、改了地址之后怎么配重定向，都在 [URL 与 slug](/posts/guide/post-url/) 里。
+
+不管走哪条路，地址里只会有小写字母、数字和 `-`：中文按词组转拼音（`重庆` → `chong-qing`），
+空格变 `-`，标点与 emoji 丢掉。两篇文章算出同一个 URL 时构建会**直接失败**并列出冲突的文件，
+不会静默让后一篇覆盖前一篇。
+
+<div class="note note-warning">改了文件名或 slug 等于改了 URL，等于让已被收藏、被搜索引擎收录的链接失效。要换地址，最好在静态托管侧配一条 301 重定向。</div>
 
 ## front matter 全字段
 
@@ -40,6 +57,7 @@ src/content/posts/
 ---
 title: 文章标题                  # 必填
 date: 2026-10-22 15:00:00        # 必填，同时决定排序
+slug: my-post-url                # 可选，自定义 URL；不写则按文件路径生成
 updated: 2026-10-24 09:30:00     # 可选，有值时正文顶部显示「最后更新于」
 description: 列表与 SEO 用的摘要   # 可选，建议写
 tags: [写作, Markdown]           # 可选，字符串数组

@@ -1,6 +1,9 @@
 ---
 /**
- * 文章页 —— /posts/<文件名>/
+ * 文章页 —— /posts/<slug>/
+ *
+ * `slug` 来自 front matter 的 `slug` 字段，没写就由文件路径生成
+ * （规则见 utils/slug.ts，一律小写 ASCII）。子目录会体现在路径里。
  *
  * 对应原版 post.ejs：banner + 白卡片（正文居中，右侧跟随滚动的目录）。
  * 剪掉了评论、分享、浏览量、mathjax/mermaid 等插件，保留阅读本身需要的部分：
@@ -14,12 +17,20 @@ import Icon from '../../components/Icon.astro';
 import Toc from '../../components/Toc.astro';
 import { SITE } from '../../config';
 import { T } from '../../i18n';
-import { getPosts, neighbours, postUrl, readingStats, termUrl } from '../../utils/posts';
+import {
+  getPosts,
+  neighbours,
+  postUrl,
+  postsBySlug,
+  readingStats,
+  termUrl,
+} from '../../utils/posts';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
-  return posts.map((post) => ({
-    params: { slug: post.id },
+  /* postsBySlug 会把 slug → 文章编好，并在两篇撞到同一个 URL 时直接构建失败 */
+  return [...postsBySlug(posts)].map(([slug, post]) => ({
+    params: { slug },
     props: { post, posts },
   }));
 }

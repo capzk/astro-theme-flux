@@ -5,6 +5,7 @@
  * 策略、增加相关文章算法，都不用翻每个页面。
  */
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { postSlug } from './slug';
 
 export type Post = CollectionEntry<'posts'>;
 
@@ -28,8 +29,67 @@ export function stickyFirst(posts: Post[]): Post[] {
   });
 }
 
-/** /posts/<id>/ —— id 默认取文件名，与 Hexo 的 :title 一致 */
-export const postUrl = (post: Post) => `/posts/${post.id}/`;
+/**
+ * 文章的 URL 路径段（相对 `/posts/`）。
+ * 规则见 utils/slug.ts：front matter 的 `slug` 优先，否则由文件路径生成。
+ *
+ * 拼音转换不便宜，而同一个 post 会在首页卡片、归档、上下篇里被问好几次，
+ * 所以按 id 缓存 —— 一篇文章的 slug 在一次构建里不会变。
+ */
+const slugCache = new Map<string, string>();
+
+export function slugOf(post: Post): string {
+  const cached = slugCache.get(post.id);
+  if (cached !== undefined) return cached;
+
+  const slug = postSlug(post.id, post.data.slug);
+  if (!slug) {
+    throw new Error(
+      `文章 \`${post.id}\` 生成不出合法的 URL：文件名和 slug 里没有任何能用的字母或数字。\n` +
+        `给它加一个 \`slug:\` 字段显式指定，例如 \`slug: my-post\`。`,
+    );
+  }
+  slugCache.set(post.id, slug);
+  return slug;
+}
+
+/** /posts/<slug>/ —— slug 由文件名或 front matter 的 `slug` 决定，全小写 ASCII */
+export const postUrl = (post: Post) => `/posts/${slugOf(post)}/`;
+
+/**
+ * 把文章列表编成 slug → post 的映射，顺带检查撞车。
+ *
+ * 撞车在主题里不是「后一篇覆盖前一篇」那么简单：两篇都会写进 sitemap、
+ * 都会出现在列表里，但只有一个页面文件，点进去总有一篇是错的。
+ * 与其上线后发现丢文章，不如在构建时就失败 —— 报错里直接给出冲突的文件。
+ */
+export function postsBySlug(posts: Post[]): Map<string, Post> {
+  const map = new Map<string, Post>();
+  const clashes = new Map<string, string[]>();
+
+  for (const post of posts) {
+    const slug = slugOf(post);
+    if (map.has(slug)) {
+      const ids = clashes.get(slug) ?? [map.get(slug)!.id];
+      ids.push(post.id);
+      clashes.set(slug, ids);
+    } else {
+      map.set(slug, post);
+    }
+  }
+
+  if (clashes.size > 0) {
+    const detail = [...clashes]
+      .map(([slug, ids]) => `  /posts/${slug}/\n${ids.map((id) => `    - ${id}`).join('\n')}`)
+      .join('\n');
+    throw new Error(
+      `以下文章生成了同一个 URL（后一篇会覆盖前一篇）：\n${detail}\n` +
+        `给其中一篇加 \`slug:\` 指定别的路径，或改掉重名的文件名。`,
+    );
+  }
+
+  return map;
+}
 
 /** 中文标签直接进 URL（/tags/前端/），与 Hexo 版一致 */
 export const termUrl = (kind: 'tags' | 'categories', name: string) =>

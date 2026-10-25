@@ -40,6 +40,7 @@
 | 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 |
 | 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
 | 分页 | `/page/2/`，与 Hexo 的 `page/2/` 一致 |
+| 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap` |
 
@@ -59,13 +60,14 @@ npm run build    # 产物在 dist/
 
 ## 示例文章
 
-`src/content/posts/` 自带 12 篇示例，其中「指南」分类的 6 篇就是这份主题的使用文档，同时也充当排版样例：
+`src/content/posts/` 自带 13 篇示例，其中「指南」分类的 7 篇就是这份主题的使用文档，同时也充当排版样例：
 
 | 文章 | 讲什么 |
 | --- | --- |
 | 快速开始 | 环境要求、三步启动、目录结构 |
 | 站点配置详解 | `config.ts` 每个字段的取值与效果 |
 | 写一篇文章 | front matter、分类与标签、正文可用语法 |
+| URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
 | 换成你自己的样子 | 配色、字体、版心与字号 |
 | 部署上线 | GitHub Pages / Vercel / nginx，以及常见坑 |
 | 改造与扩展 | 加页面、加图标、加语言、接评论、换搜索 |
@@ -90,6 +92,7 @@ fork 之后整批删掉即可，不影响任何功能。
 ---
 title: 文章标题
 date: 2026-10-20 10:00:00
+slug: my-post-url              # 可选，自定义 URL；不写则按文件路径生成
 updated: 2026-10-22 09:00:00   # 可选，有值时正文顶部显示「最后更新于」
 description: 摘要（列表与 SEO 用）
 tags: [Astro, 主题]
@@ -105,6 +108,27 @@ bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
 
 字段由 Zod 校验，写错会在构建期报错，并指出是哪一篇。`draft: true` 的文章不会进入列表、搜索索引与 RSS。
 
+### URL 怎么生成
+
+地址里只会出现小写字母、数字和 `-`：中文转拼音，空格转 `-`，标点与 emoji 丢掉。
+
+| 文件 | front matter | URL |
+| --- | --- | --- |
+| `posts/hello-flux.md` | — | `/posts/hello-flux/` |
+| `posts/2026/年度总结.md` | — | `/posts/2026/nian-du-zong-jie/` |
+| `posts/hello-flux.md` | `slug: hi` | `/posts/hi/` |
+| `posts/2026/年度总结.md` | `slug: year-review` | `/posts/2026/year-review/` |
+| `posts/2026/年度总结.md` | `slug: life/year-review` | `/posts/life/year-review/` |
+
+- **不写 `slug`**：照抄文件路径（含子目录），逐段规范化。
+- **写一段**：只替换文件名那一段，子目录保留。
+- **写多段（含 `/`）**：整条路径都由 `slug` 决定，文件所在目录不再参与。
+- `slug` 自己也会被清洗，写 `Hello World` 和写 `hello-world` 等价。
+- 两篇文章算出同一个 URL 时**构建直接失败**，报错里列出冲突的文件 —— 不会静默丢文章。
+
+多音字按词组取音（`重庆` → `chong-qing`），英文原样保留、只转小写（`Rust 2026` → `rust-2026`）。
+转不出任何字符的名字（纯 emoji、纯符号）会报错，需要显式写 `slug`。
+
 ## 从 Hexo / Fluid 迁移
 
 | Hexo | Flux |
@@ -117,6 +141,9 @@ bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
 | `hexo-generator-searchdb` | `src/pages/searchindex.json.ts` |
 
 URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`），旧链接不会 404。
+
+`slug` 字段也照搬 Hexo 的语义 —— 写了就替换文件名那一段。区别在于主题会把中文转成拼音（Hexo 原样保留中文），
+所以**从中文文件名的 Hexo 站迁过来，文章链接会变**，需要在新站配一批 301，或者给每篇补一个和旧链接一致的 `slug`。
 
 ## 取舍：原版有哪些，这里为什么没有
 
