@@ -10,6 +10,7 @@
  *   4. 目录：滚动高亮当前章节（目录 HTML 是构建期渲染的，这里只管高亮）
  *   5. 代码块复制
  *   6. 回到顶部
+ *   7. 正文图片放大
  *
  * 全部可选增强：脚本没加载时页面依然完整可读（导航是普通链接、正文是普通文本）。
  */
@@ -90,7 +91,7 @@ function initMobileMenu() {
   });
 }
 
-/* ---------- 5. 目录滚动高亮 ---------- */
+/* ---------- 4. 目录滚动高亮 ---------- */
 function initToc() {
   const links = Array.from(document.querySelectorAll('.toc-link'));
   if (!links.length) return;
@@ -155,7 +156,7 @@ function initToc() {
   sync();
 }
 
-/* ---------- 6. 代码复制 ---------- */
+/* ---------- 5. 代码复制 ---------- */
 function initCodeCopy() {
   const buttons = document.querySelectorAll('.code-copy');
   if (!buttons.length) return;
@@ -201,7 +202,7 @@ function initCodeCopy() {
   }
 }
 
-/* ---------- 7. 回到顶部 ---------- */
+/* ---------- 6. 回到顶部 ---------- */
 function initScrollTop() {
   const btn = document.getElementById('scroll-top');
   if (!btn) return;
@@ -214,7 +215,7 @@ function initScrollTop() {
   });
 }
 
-/* ---------- 8. 正文图片放大 ---------- */
+/* ---------- 7. 正文图片放大 ---------- */
 function initImageZoom() {
   const body = document.querySelector('.markdown-body');
   if (!body) return;

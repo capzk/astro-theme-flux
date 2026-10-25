@@ -7,7 +7,7 @@ tags:
   - CSS
 categories:
   - 实现
-indexImg: /img/cover-2.svg
+cover: ../../assets/covers/cover-2.webp
 ---
 
 深色模式最难的不是配色，是**不闪白**。

@@ -37,6 +37,8 @@ export const T = {
   copyrightLicenseValue: 'CC BY-NC-SA 4.0',
   prevPage: '上一页',
   nextPage: '下一页',
+  pageN: (n: number) => `第 ${n} 页`,
+  related: '相关文章',
   notFound: '404',
   notFoundDesc: '你要找的页面掉进流体里了。',
   backHome: '返回首页',

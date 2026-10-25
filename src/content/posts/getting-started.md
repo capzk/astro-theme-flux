@@ -8,7 +8,7 @@ tags:
   - Node
 categories:
   - 指南
-indexImg: /img/cover-1.svg
+cover: ../../assets/covers/cover-1.webp
 ---
 
 这篇是「指南」系列的第一篇。目标是：**从零到一个能在本地打开的站点，不超过十分钟。**

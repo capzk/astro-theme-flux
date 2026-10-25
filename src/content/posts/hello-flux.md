@@ -8,7 +8,8 @@ tags:
   - 迁移
 categories:
   - 公告
-indexImg: /img/cover-1.svg
+cover: ../../assets/covers/cover-1.webp
+banner: ../../assets/covers/cover-3.webp
 sticky: true
 ---
 

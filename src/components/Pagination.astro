@@ -3,21 +3,23 @@
  * Pagination —— 页码条
  *
  * 原版由 Hexo 的 paginator 生成，样式是「数字按钮 + 当前页高亮」。
- * 路径约定与 Hexo 一致：第 1 页是 base/，第 N 页是 base/N/。
+ * 路径约定与 Hexo 一致：第 1 页是 `<base>/`，第 N 页是 `<base>/page/N/`。
+ * 首页、归档、分类、标签都走同一份 —— 差别只在传进来的 base。
  */
 import { T } from '../i18n';
+import { pageUrlOf } from '../utils/posts';
 import Icon from './Icon.astro';
 
 interface Props {
   currentPage: number;
   lastPage: number;
-  /** 页码前缀，如 '/posts/page' → /posts/page/2/ */
-  base: string;
+  /** 列表首页地址，必须以 `/` 结尾：`/`、`/archives/`、`/categories/前端/` */
+  base?: string;
 }
 
-const { currentPage, lastPage, base } = Astro.props;
+const { currentPage, lastPage, base = '/' } = Astro.props;
 
-const pageUrl = (n: number) => (n <= 1 ? base.replace(/\/page$/, '/') : `${base}/${n}/`);
+const pageUrl = (n: number) => pageUrlOf(base, n);
 
 /** 页码窗口：首页、末页、当前页前后各 1 页，其余用省略号 */
 function windowPages(current: number, last: number): (number | '…')[] {

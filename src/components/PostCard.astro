@@ -6,10 +6,12 @@
  * 截图里的观感主要来自三件事，这里都保住了：封面有投影、摘要固定三行、
  * meta 用小号灰字排成一行。
  */
+import { Image } from 'astro:assets';
 import { SITE } from '../config';
 import { T } from '../i18n';
 import type { Post } from '../utils/posts';
 import { postUrl, termUrl } from '../utils/posts';
+import { isAsset, type ImageSource } from '../utils/image';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -17,9 +19,13 @@ interface Props {
 }
 
 const { post } = Astro.props;
-const { title, date, categories, tags, sticky, indexImg } = post.data;
+const { title, date, categories, tags, sticky, indexImg, cover } = post.data;
 const url = postUrl(post);
 const summary = SITE.index.excerptLength;
+
+/* 封面三级取用：front matter 的 cover（可优化）> indexImg（字符串）> 站点默认图。
+   默认图在 config.ts 里也可能是 import 进来的资源，所以统一按 ImageSource 处理。 */
+const coverSrc: ImageSource | undefined = cover ?? indexImg ?? SITE.index.defaultImg;
 
 /* 摘要：description 优先，否则取正文纯文本（构建期算好，无运行时开销） */
 const { plainText } = await import('../utils/posts');
@@ -35,10 +41,16 @@ const dateText = date.toLocaleDateString('zh-CN', {
 
 <article class="index-card">
   {
-    (indexImg || SITE.index.defaultImg) && (
+    coverSrc && (
       <div class="index-img">
         <a href={url} aria-hidden="true" tabindex="-1">
-          <img src={indexImg || SITE.index.defaultImg} alt={title} loading="lazy" width="480" height="320" />
+          {isAsset(coverSrc) ? (
+            /* 优化路径：按卡片实际显示宽度出 240/400/560 三档 webp。
+               封面是装饰性的（标题就是旁边的链接），所以 alt 留空。 */
+            <Image src={coverSrc} alt="" widths={[240, 400, 560]} sizes="(max-width: 767px) 100vw, 240px" loading="lazy" />
+          ) : (
+            <img src={coverSrc} alt={title} loading="lazy" width="480" height="320" />
+          )}
         </a>
       </div>
     )

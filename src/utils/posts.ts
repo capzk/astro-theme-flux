@@ -95,6 +95,10 @@ export function postsBySlug(posts: Post[]): Map<string, Post> {
 export const termUrl = (kind: 'tags' | 'categories', name: string) =>
   `/${kind}/${encodeURIComponent(name)}/`;
 
+/** 某个分类 / 标签下的文章（保持传入顺序，即时间倒序） */
+export const postsWithTerm = (posts: Post[], kind: 'tags' | 'categories', name: string) =>
+  posts.filter((post) => post.data[kind].includes(name));
+
 /** 按年份分组，给归档页 */
 export function groupByYear(posts: Post[]) {
   const map = new Map<number, Post[]>();
@@ -105,6 +109,24 @@ export function groupByYear(posts: Post[]) {
   }
   return [...map.entries()].sort((a, b) => b[0] - a[0]);
 }
+
+/**
+ * 切页。页码从 1 开始；`page(n)` 越界时返回空数组，所以路由生成阶段必须先用
+ * `lastPage` 兜住 —— 别指望这里替你把页码钳到合法范围，那会掩盖路由算错的问题。
+ */
+export function paginate<T>(items: T[], pageSize: number) {
+  const size = Math.max(1, pageSize);
+  return {
+    lastPage: Math.max(1, Math.ceil(items.length / size)),
+    page: (n: number) => items.slice((n - 1) * size, n * size),
+  };
+}
+
+/**
+ * 第 n 页的地址。`base` 是列表首页（以 `/` 结尾），第 1 页回到 base，
+ * 其余走 `${base}page/n/` —— 与 `/page/2/`、`/archives/page/2/` 两种形态统一。
+ */
+export const pageUrlOf = (base: string, n: number) => (n <= 1 ? base : `${base}page/${n}/`);
 
 /** 标签计数，按数量倒序 */
 export function tagCounts(posts: Post[]) {
@@ -129,6 +151,31 @@ export function neighbours(posts: Post[], current: Post) {
   const asc = [...posts].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
   const i = asc.findIndex((p) => p.id === current.id);
   return { prev: i > 0 ? asc[i - 1] : undefined, next: i < asc.length - 1 ? asc[i + 1] : undefined };
+}
+
+/**
+ * 相关文章：按标签 / 分类的重合度打分，取前几条。
+ *
+ * 权重是「标签 3 分、分类 2 分」—— 标签通常更具体（`Astro`、`slug`），
+ * 分类更宽泛（`随笔`），所以标签命中更能说明两篇在讲同一件事。
+ * 同分按时间倒序，避免每次构建挑出不同的文章。零分的直接丢弃：
+ * 与其拿「都发在这个博客」当相关性，不如整块不显示。
+ */
+export function relatedPosts(posts: Post[], current: Post, limit = 3): Post[] {
+  const tags = new Set(current.data.tags);
+  const categories = new Set(current.data.categories);
+
+  return posts
+    .filter((post) => post.id !== current.id)
+    .map((post) => {
+      const tagHits = post.data.tags.filter((tag) => tags.has(tag)).length;
+      const categoryHits = post.data.categories.filter((c) => categories.has(c)).length;
+      return { post, score: tagHits * 3 + categoryHits * 2 };
+    })
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score || byDateDesc(a.post, b.post))
+    .slice(0, limit)
+    .map((entry) => entry.post);
 }
 
 /** 正文纯文本（去 Markdown 标记），用于摘要与搜索索引 */

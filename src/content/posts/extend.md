@@ -8,7 +8,7 @@ tags:
   - i18n
 categories:
   - 指南
-indexImg: /img/cover-2.svg
+cover: ../../assets/covers/cover-2.webp
 ---
 
 前面几篇都是「用」，这一篇是「改」。主题的设计目标是**每一块功能都能单独拆走**，所以改造的路径基本都是：找到那个 `.astro`，加东西，或者在它旁边加个新文件。

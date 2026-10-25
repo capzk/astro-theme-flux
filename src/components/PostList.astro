@@ -12,11 +12,11 @@ interface Props {
   posts: Post[];
   currentPage: number;
   lastPage: number;
-  /** 页码前缀：首页用 '/page'，归档页用 '/archives/page' */
+  /** 列表首页地址（以 `/` 结尾）：首页 `/`、归档 `/archives/`、分类 `/categories/前端/` */
   base?: string;
 }
 
-const { posts, currentPage, lastPage, base = '/page' } = Astro.props;
+const { posts, currentPage, lastPage, base = '/' } = Astro.props;
 ---
 
 <div class="index-list">

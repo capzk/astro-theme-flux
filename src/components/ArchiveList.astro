@@ -1,0 +1,43 @@
+---
+/**
+ * ArchiveList —— 归档时间线 + 分页
+ *
+ * `/archives/` 与 `/archives/page/N/` 共用这一份。年份按当前页内的文章分组：
+ * 一页跨了两年时会出现两个年份标题，跨页时同一年的标题在下一页再出现一次 ——
+ * 这是「按条数切页」的必然结果，看年份标题仍然比看一串没有分组的标题清楚。
+ */
+import Pagination from './Pagination.astro';
+import { groupByYear, postUrl, type Post } from '../utils/posts';
+
+interface Props {
+  /** 当前页的文章（已切好） */
+  posts: Post[];
+  currentPage: number;
+  lastPage: number;
+}
+
+const { posts, currentPage, lastPage } = Astro.props;
+const years = groupByYear(posts);
+---
+
+{
+  years.map(([year, items]) => (
+    <>
+      <h2 class="archive-year">{year}</h2>
+      <ul class="archive-list">
+        {items.map((post) => (
+          <li class="archive-item">
+            <time datetime={post.data.date.toISOString()}>
+              {post.data.date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+            </time>
+            <a href={postUrl(post)}>{post.data.title}</a>
+          </li>
+        ))}
+      </ul>
+    </>
+  ))
+}
+
+{posts.length === 0 && <p class="search-empty">还没有文章。</p>}
+
+<Pagination currentPage={currentPage} lastPage={lastPage} base="/archives/" />

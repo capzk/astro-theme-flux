@@ -23,7 +23,7 @@ const posts = defineCollection({
      */
     generateId: ({ entry }) => entry.replace(/\.(md|mdx)$/i, ''),
   }),
-  schema: () =>
+  schema: ({ image }) =>
     z.object({
       title: z.string(),
       date: z.coerce.date(),
@@ -45,17 +45,32 @@ const posts = defineCollection({
       categories: z.array(z.string()).default([]),
       /**
        * 首页卡片封面（原版叫 index_img）。
-       * 写成根路径（`/img/cover-1.svg`）或完整 URL 都行 —— 与 Hexo 的用法一致。
-       * 想让 Astro 自动优化位图，把这条改成 `image()` 并用相对本文件的路径。
+       * 写成根路径（`/img/cover-1.svg`）或完整 URL 都行 —— 与 Hexo 的用法一致，
+       * 但**不会被优化**：原图多大就发多大。
        */
       indexImg: z.string().optional(),
+      /**
+       * 首页卡片封面（推荐写法）：相对本文档的图片路径，交给 Astro 优化。
+       *
+       *     cover: ../../assets/covers/cover-1.webp
+       *
+       * 构建时按需生成多档宽度（webp），并自动补上 `srcset` 与宽高比，
+       * 移动端不会下载桌面尺寸的大图。填了 `cover` 就不再理 `indexImg`。
+       * 能用位图就别用 SVG —— SVG 没有srcset可言，图片优化对它无效。
+       */
+      cover: image().optional(),
       /** 置顶（原版 `sticky: true`） */
       sticky: z.boolean().default(false),
       draft: z.boolean().default(false),
       /** 单篇覆盖「右侧目录」开关；不写则跟随 config.ts 的 post.toc */
       toc: z.boolean().optional(),
-      /** 单篇覆盖 banner 图（根路径或完整 URL） */
+      /** 单篇覆盖 banner 图（根路径或完整 URL，不优化） */
       bannerImg: z.string().optional(),
+      /**
+       * 单篇 banner 图（推荐写法）：相对本文档的路径，交给 Astro 优化。
+       * 文章头图往往是全屏大图，走优化能省下最多流量。
+       */
+      banner: image().optional(),
       /** 单篇覆盖 banner 遮罩透明度 */
       bannerMaskAlpha: z.number().min(0).max(1).optional(),
     }),

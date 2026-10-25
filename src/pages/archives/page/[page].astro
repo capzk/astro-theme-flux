@@ -1,0 +1,44 @@
+---
+/**
+ * 归档 —— /archives/page/2/ 起
+ *
+ * 第 1 页留在 `/archives/`（与 `/page/N/` 同一套约定），这里只生成第 2 页及以后。
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import Banner from '../../../components/Banner.astro';
+import Board from '../../../components/Board.astro';
+import ArchiveList from '../../../components/ArchiveList.astro';
+import { SITE } from '../../../config';
+import { T } from '../../../i18n';
+import { getPosts, paginate } from '../../../utils/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const size = SITE.archive.pageSize > 0 ? SITE.archive.pageSize : Math.max(1, posts.length);
+  const { lastPage, page } = paginate(posts, size);
+
+  return Array.from({ length: Math.max(0, lastPage - 1) }, (_, i) => {
+    const n = i + 2;
+    return {
+      params: { page: String(n) },
+      props: { currentPage: n, lastPage, posts: page(n), total: posts.length },
+    };
+  });
+}
+
+const { currentPage, lastPage, posts, total } = Astro.props;
+---
+
+<BaseLayout title={`${T.archive} · ${T.pageN(currentPage)}`}>
+  <Banner
+    title={T.archive}
+    subtitle={T.totalPosts(total)}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
+
+  <Board>
+    <ArchiveList posts={posts} currentPage={currentPage} lastPage={lastPage} />
+  </Board>
+</BaseLayout>

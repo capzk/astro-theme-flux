@@ -5,7 +5,15 @@
  * 配色、文章元信息开关，全在这一个文件里，不用碰任何组件。
  *
  * 配色是普通 CSS 变量（见 src/styles/main.css 顶部的 T 段），覆盖 `color` 即可。
+ *
+ * 图片有两套写法（详见 src/utils/image.ts）：写字符串是「原图直接用」，
+ * 写 `import` 进来的本地图是「交给 Astro 优化」。下面三条演示用的是后者。
  */
+import type { ImageSource } from './utils/image';
+/* 示例图带优化：src/assets 下的图会被处理成多档宽度 + webp。
+   换成自己的图时，把文件放进 src/assets 再 import，或者改回 '/img/xxx.png' */
+import bannerAsset from './assets/banner.webp';
+import coverDefaultAsset from './assets/covers/cover-default.webp';
 
 export interface NavItem {
   /**
@@ -30,6 +38,12 @@ export interface SiteConfig {
   lang: string;
   /** 头像（相对 public/ 或完整 URL），关于页与页脚用 */
   avatar: string;
+  /**
+   * 社交分享封面（微信 / Twitter / Slack 等抓取的缩略图）。
+   * 必须是 PNG、JPG 这类位图，建议 1200×630：这些平台不渲染 SVG。
+   * 文章自己配了位图封面时优先用文章的，否则回落到这张。
+   */
+  ogImage: string;
   /** 页脚版权起始年份；不设则用当前年 */
   since?: number;
   /** 备案号之类，显示在页脚最下面一行；不设则不显示 */
@@ -40,8 +54,11 @@ export interface SiteConfig {
 
   /** 首页 banner */
   banner: {
-    /** 背景图（public/ 下的路径或外链）；留空则用纯色渐变 */
-    img: string;
+    /**
+     * 背景图：`import` 进来的本地图（会被优化），或 public/ 路径 / 外链（原样用）。
+     * 留空则用纯色底色。
+     */
+    img: ImageSource;
     /** 高度：如 '100vh'、'60vh'、'400px' */
     height: string;
     /** 黑色蒙版透明度 0~1，越大字越清楚 */
@@ -54,7 +71,8 @@ export interface SiteConfig {
 
   /** 文章页默认 banner（单篇可用 front matter 覆盖） */
   postBanner: {
-    img: string;
+    /** 同 banner.img：本地资源会被优化，字符串原样输出 */
+    img: ImageSource;
     height: string;
     maskAlpha: number;
   };
@@ -62,7 +80,7 @@ export interface SiteConfig {
   /** 首页卡片 */
   index: {
     /** 没有封面图时用的默认图；留空则卡片不显示图片区 */
-    defaultImg: string;
+    defaultImg: ImageSource;
     /** 摘要截断字数 */
     excerptLength: number;
     /** 卡片底部显示日期 / 分类 / 标签 */
@@ -81,6 +99,11 @@ export interface SiteConfig {
     copyright: boolean;
     /** 上一篇 / 下一篇 */
     prevNext: boolean;
+    /**
+     * 文末「相关文章」：按标签 / 分类的重合度打分取前 3 篇，
+     * 一篇相关的都没有时整块不显示（不会拿「同一个博客」凑数）。
+     */
+    related: boolean;
     /** 每页字数换算阅读时长的速度（字/分钟） */
     wpm: number;
   };
@@ -104,8 +127,17 @@ export interface SiteConfig {
     accent: string;
   };
 
-  /** 每页文章数 */
+  /** 每页文章数（首页 / 分类 / 标签的卡片流） */
   pageSize: number;
+
+  /** 归档页 */
+  archive: {
+    /**
+     * 每页条数。归档是一行一篇的时间线，比卡片加密得多，所以和 pageSize 分开取值。
+     * 取 0 或负数表示不分页，整份归档铺在一页里。
+     */
+    pageSize: number;
+  };
 
   /** 站内搜索（构建期生成索引） */
   search: boolean;
@@ -118,6 +150,7 @@ export const SITE: SiteConfig = {
   author: 'capzk',
   lang: 'zh-CN',
   avatar: '/img/avatar.svg',
+  ogImage: '/img/og.png',
   since: 2026,
   beian: '',
 
@@ -131,7 +164,7 @@ export const SITE: SiteConfig = {
   ],
 
   banner: {
-    img: '/img/banner.svg',
+    img: bannerAsset,
     height: '100vh',
     maskAlpha: 0.3,
     slogan: '流体般的阅读体验',
@@ -139,13 +172,13 @@ export const SITE: SiteConfig = {
   },
 
   postBanner: {
-    img: '/img/banner.svg',
+    img: bannerAsset,
     height: '60vh',
     maskAlpha: 0.35,
   },
 
   index: {
-    defaultImg: '/img/cover-default.svg',
+    defaultImg: coverDefaultAsset,
     excerptLength: 200,
     showDate: true,
     showCategory: true,
@@ -157,6 +190,7 @@ export const SITE: SiteConfig = {
     toc: true,
     copyright: true,
     prevNext: true,
+    related: true,
     wpm: 300,
   },
 
@@ -173,5 +207,8 @@ export const SITE: SiteConfig = {
   },
 
   pageSize: 6,
+  archive: {
+    pageSize: 10,
+  },
   search: true,
 };

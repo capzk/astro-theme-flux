@@ -7,11 +7,20 @@
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
+import { absoluteUrl, ogLocale, shareImage } from '../utils/seo';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
 import Icon from '../components/Icon.astro';
 import '../styles/main.css';
+
+/** 文章页专属的分享元信息，对应 og:type=article 那几个字段 */
+interface ArticleMeta {
+  published: Date;
+  modified?: Date;
+  section?: string;
+  tags?: string[];
+}
 
 interface Props {
   title?: string;
@@ -20,6 +29,12 @@ interface Props {
   ogType?: 'website' | 'article';
   /** 首页：顶栏透明 */
   isHome?: boolean;
+  /** 分享封面（站内路径或绝对地址）；传 SVG 会自动回落到 SITE.ogImage */
+  image?: string;
+  /** og:type=article 时用；不传就不输出 article:* 那几行 */
+  article?: ArticleMeta;
+  /** 结构化数据（JSON-LD 对象或其数组），由页面用 utils/seo 生成 */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const {
@@ -27,11 +42,23 @@ const {
   description = SITE.description,
   ogType = 'website',
   isHome = false,
+  image,
+  article,
+  jsonLd,
 } = Astro.props;
 
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const origin = Astro.site ?? new URL(Astro.url.origin);
+const canonical = new URL(Astro.url.pathname, origin).href;
 const path = Astro.url.pathname;
+
+/* 分享封面必须是绝对地址，且不能是 SVG（平台会渲染成空白卡片） */
+const shareImg = absoluteUrl(shareImage([image]), origin);
+const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
+
+/* 浏览器地址栏配色。亮色跟随配置里的顶栏色，暗色取 main.css 里那套固定值 ——
+   用户手动切换过主题时可能与实际不符，但地址栏只是装饰，不值得为此加脚本。 */
+const DARK_CHROME = '#1f3144';
 
 /**
  * config.ts 的 color 段 → 覆盖 main.css 里亮色那组变量。
@@ -55,21 +82,54 @@ const colorVars =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
+    <meta name="author" content={SITE.author} />
     <link rel="canonical" href={canonical} />
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+    <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={DARK_CHROME} media="(prefers-color-scheme: dark)" />
 
     <!-- 配色来自 config.ts 的 color 段，只覆盖亮色（见 frontmatter 里的说明） -->
     <style is:inline set:html={colorVars} />
 
-    <!-- Open Graph / Twitter -->
+    <!--
+      Open Graph / Twitter。两家的字段大部分重叠，但都不接受相对路径：
+      地址与封面在 frontmatter 里已经绝对化（见 utils/seo.ts）。
+      封面尺寸因文章而异，标错不如不标，所以不写 og:image:width/height。
+    -->
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={SITE.title} />
+    <meta property="og:locale" content={ogLocale()} />
+    <meta property="og:image" content={shareImg} />
+    <meta property="og:image:alt" content={shareAlt} />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={shareImg} />
+    <meta name="twitter:image:alt" content={shareAlt} />
+
+    {
+      ogType === 'article' && article && (
+        <>
+          <meta property="article:published_time" content={article.published.toISOString()} />
+          {article.modified && (
+            <meta property="article:modified_time" content={article.modified.toISOString()} />
+          )}
+          <meta property="article:author" content={SITE.author} />
+          {article.section && <meta property="article:section" content={article.section} />}
+          {(article.tags ?? []).map((tag) => (
+            <meta property="article:tag" content={tag} />
+          ))}
+        </>
+      )
+    }
+
+    <!-- 结构化数据：由页面用 utils/seo 生成，这里只负责输出 -->
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
 
     <!--
       深色模式：首帧就把 data-user-color-scheme 写到 html 上，避免闪白。

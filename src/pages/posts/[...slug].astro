@@ -23,8 +23,11 @@ import {
   postUrl,
   postsBySlug,
   readingStats,
+  relatedPosts,
   termUrl,
 } from '../../utils/posts';
+import { absoluteUrl, articleJsonLd, shareImage } from '../../utils/seo';
+import { srcOf } from '../../utils/image';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -43,6 +46,9 @@ const stats = readingStats(post, SITE.post.wpm);
 
 const { prev, next } = neighbours(posts, post);
 
+/* 相关文章（标签权重高于分类，零分的不要）。关掉开关就整块不渲染 */
+const related = SITE.post.related ? relatedPosts(posts, post) : [];
+
 /* 右侧目录：取 h2~h4。原版 tocbot 也默认收 h2 起，h5/h6 缩到第五层已经读不清。
    Astro 的 headings 本来就是文档顺序，直接过滤即可。 */
 const tocItems = headings
@@ -50,8 +56,8 @@ const tocItems = headings
   .map((h) => ({ depth: h.depth, slug: h.slug, text: h.text }));
 const showToc = (post.data.toc ?? SITE.post.toc) && tocItems.length > 0;
 
-/* banner：单篇封面优先，其次站点默认图 */
-const bannerImg = post.data.bannerImg || SITE.postBanner.img;
+/* banner：单篇封面优先（`banner` 可优化 > `bannerImg` 字符串），其次站点默认图 */
+const bannerSource = post.data.banner ?? post.data.bannerImg ?? SITE.postBanner.img;
 
 const dateText = date.toLocaleDateString('zh-CN', {
   year: 'numeric',
@@ -82,13 +88,35 @@ if (SITE.post.meta.min2read) {
 const metaRows = [metaTop, metaBottom];
 
 const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+
+/* 分享封面：文章封面优先，但必须是位图（SVG 平台不渲染），否则回落到站点图 */
+const ogImage = absoluteUrl(shareImage([srcOf(bannerSource)]), permalink);
+
+const jsonLd = articleJsonLd({
+  title,
+  description: post.data.description ?? '',
+  url: permalink,
+  image: ogImage,
+  published: date,
+  modified: updated,
+  section: categories[0],
+  tags,
+  words: stats.words,
+});
 ---
 
-<BaseLayout title={title} description={post.data.description} ogType="article">
+<BaseLayout
+  title={title}
+  description={post.data.description}
+  ogType="article"
+  article={{ published: date, modified: updated, section: categories[0], tags }}
+  jsonLd={jsonLd}
+  image={srcOf(bannerSource)}
+>
   <Banner
     title={title}
     headingTag="div"
-    img={bannerImg}
+    img={bannerSource}
     height={SITE.postBanner.height}
     maskAlpha={post.data.bannerMaskAlpha ?? SITE.postBanner.maskAlpha}
     metas={metaRows}
@@ -202,6 +230,34 @@ const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).hr
           )
         }
       </footer>
+
+      {/* 相关文章放在版权与上下篇之后：读者读完、也知道这是谁的稿子了，再引向别处 */}
+      {
+        related.length > 0 && (
+          <section class="related-posts" aria-labelledby="related-title">
+            <h2 class="related-title" id="related-title">
+              {T.related}
+            </h2>
+            <ul class="related-list">
+              {related.map((item) => (
+                <li class="related-item">
+                  <a href={postUrl(item)}>
+                    <span class="related-item-title">{item.data.title}</span>
+                    <span class="related-item-meta">
+                      <Icon name="date" />
+                      {item.data.date.toLocaleDateString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
     </article>
     {showToc && <Toc slot="aside" items={tocItems} />}
   </Board>

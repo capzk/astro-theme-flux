@@ -7,7 +7,7 @@ tags:
   - 排版
 categories:
   - 使用
-indexImg: /img/cover-3.svg
+cover: ../../assets/covers/cover-3.webp
 ---
 
 主题好不好用，看**正文**就够了。这一页把常用元素全部铺开，方便检查每一处的间距与层次。

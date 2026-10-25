@@ -8,7 +8,7 @@ tags:
   - 定制
 categories:
   - 指南
-indexImg: /img/cover-4.svg
+cover: ../../assets/covers/cover-4.webp
 ---
 
 Flux 的样式全在一个文件里：`src/styles/main.css`。没有 Stylus / Sass，所以也没有编译步骤和变量作用域的问题 —— 改完存盘，刷新就能看到。

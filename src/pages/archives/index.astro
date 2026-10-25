@@ -1,41 +1,35 @@
 ---
 /**
- * 归档 —— /archives/
+ * 归档 —— /archives/（第 1 页）
  *
  * 原版是一条居中时间线：年份标题 + 年份下按时间倒序的文章行。
+ * 条数由 config.ts 的 `archive.pageSize` 决定，第 2 页起走 `/archives/page/N/`。
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Banner from '../../components/Banner.astro';
 import Board from '../../components/Board.astro';
+import ArchiveList from '../../components/ArchiveList.astro';
 import { SITE } from '../../config';
 import { T } from '../../i18n';
-import { getPosts, groupByYear, postUrl } from '../../utils/posts';
+import { getPosts, paginate } from '../../utils/posts';
 
 const posts = await getPosts();
-const years = groupByYear(posts);
+
+/* pageSize 取 0 或负数表示不分页：把整份归档当一页 */
+const size = SITE.archive.pageSize > 0 ? SITE.archive.pageSize : Math.max(1, posts.length);
+const { lastPage, page } = paginate(posts, size);
 ---
 
 <BaseLayout title={T.archive}>
-  <Banner title={T.archive} subtitle={T.totalPosts(posts.length)} img={SITE.postBanner.img} height="40vh" maskAlpha={SITE.postBanner.maskAlpha} />
+  <Banner
+    title={T.archive}
+    subtitle={T.totalPosts(posts.length)}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
 
   <Board>
-    {
-      years.map(([year, items]) => (
-        <>
-          <h2 class="archive-year">{year}</h2>
-          <ul class="archive-list">
-            {items.map((post) => (
-              <li class="archive-item">
-                <time datetime={post.data.date.toISOString()}>
-                  {post.data.date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
-                </time>
-                <a href={postUrl(post)}>{post.data.title}</a>
-              </li>
-            ))}
-          </ul>
-        </>
-      ))
-    }
-    {years.length === 0 && <p class="search-empty">还没有文章。</p>}
+    <ArchiveList posts={page(1)} currentPage={1} lastPage={lastPage} />
   </Board>
 </BaseLayout>

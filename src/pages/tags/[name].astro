@@ -1,27 +1,29 @@
 ---
 /**
- * 单个标签 —— /tags/<名称>/
+ * 单个标签 —— /tags/<名称>/（第 1 页）
+ *
+ * 第 2 页起走 `/tags/<名称>/page/N/`。与分类页同一套实现，只是取文章的字段不同。
  */
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Banner from '../../components/Banner.astro';
 import Board from '../../components/Board.astro';
 import PostList from '../../components/PostList.astro';
 import { SITE } from '../../config';
-import { getPosts, tagCounts } from '../../utils/posts';
+import { getPosts, paginate, postsWithTerm, tagCounts, termUrl } from '../../utils/posts';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
-  return tagCounts(posts).map(({ name, count }) => ({
-    params: { name },
-    props: {
-      name,
-      count,
-      posts: posts.filter((p) => p.data.tags.includes(name)),
-    },
-  }));
+  return tagCounts(posts).map(({ name, count }) => {
+    const list = postsWithTerm(posts, 'tags', name);
+    const { lastPage, page } = paginate(list, SITE.pageSize);
+    return {
+      params: { name },
+      props: { name, count, posts: page(1), lastPage, base: termUrl('tags', name) },
+    };
+  });
 }
 
-const { name, count, posts } = Astro.props;
+const { name, count, posts, lastPage, base } = Astro.props;
 ---
 
 <BaseLayout title={`#${name}`} description={`标签「${name}」下的 ${count} 篇文章`}>
@@ -34,6 +36,6 @@ const { name, count, posts } = Astro.props;
   />
 
   <Board>
-    <PostList posts={posts} currentPage={1} lastPage={1} />
+    <PostList posts={posts} currentPage={1} lastPage={lastPage} base={base} />
   </Board>
 </BaseLayout>

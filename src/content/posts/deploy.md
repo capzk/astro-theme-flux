@@ -8,7 +8,7 @@ tags:
   - nginx
 categories:
   - 指南
-indexImg: /img/cover-1.svg
+cover: ../../assets/covers/cover-1.webp
 ---
 
 构建这个主题只产出一堆静态文件，所以「部署」本质上就是**把这些文件放到一个能返回 HTTP 的地方**。没有 Node 运行时、没有数据库、没有环境变量。

@@ -1,0 +1,54 @@
+---
+/**
+ * 单个标签 —— /tags/<名称>/page/2/ 起
+ */
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import Banner from '../../../../components/Banner.astro';
+import Board from '../../../../components/Board.astro';
+import PostList from '../../../../components/PostList.astro';
+import { SITE } from '../../../../config';
+import { T } from '../../../../i18n';
+import { getPosts, paginate, postsWithTerm, tagCounts, termUrl } from '../../../../utils/posts';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const routes = [];
+
+  for (const { name, count } of tagCounts(posts)) {
+    const list = postsWithTerm(posts, 'tags', name);
+    const { lastPage, page } = paginate(list, SITE.pageSize);
+
+    for (let n = 2; n <= lastPage; n += 1) {
+      routes.push({
+        params: { name, page: String(n) },
+        props: {
+          name,
+          count,
+          currentPage: n,
+          lastPage,
+          posts: page(n),
+          base: termUrl('tags', name),
+        },
+      });
+    }
+  }
+
+  return routes;
+}
+
+const { name, count, currentPage, lastPage, posts, base } = Astro.props;
+---
+
+<BaseLayout title={`#${name} · ${T.pageN(currentPage)}`} description={`标签「${name}」下的 ${count} 篇文章`}>
+  <Banner
+    title={`#${name}`}
+    subtitle={`${count} 篇文章`}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
+
+  <Board>
+    <PostList posts={posts} currentPage={currentPage} lastPage={lastPage} base={base} />
+  </Board>
+</BaseLayout>

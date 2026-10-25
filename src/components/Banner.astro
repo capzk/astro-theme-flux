@@ -8,7 +8,9 @@
  *
  * 视差与打字机属于锦上添花且有额外 JS 依赖，暂不引入。
  */
+import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
+import { isAsset, type ImageSource } from '../utils/image';
 
 /** banner 上的一条元信息（图标 + 文字） */
 interface BannerMeta {
@@ -19,8 +21,13 @@ interface BannerMeta {
 interface Props {
   title: string;
   subtitle?: string;
-  /** 背景图地址；留空则用顶栏色作纯色底 */
-  img?: string;
+  /**
+   * 背景图。两种写法都认：
+   * - 本地资源（`import` 进来的）→ `<Image>` 出多档宽度 + webp + srcset
+   * - 字符串（public 路径 / 外链）→ CSS 背景图，原样输出、不优化
+   * 留空则用顶栏色作纯色底。
+   */
+  img?: ImageSource;
   height?: string;
   maskAlpha?: number;
   /** 底部滚动提示箭头（通常只在首页） */
@@ -50,13 +57,30 @@ const {
 
 const Heading = headingTag;
 
+/* 本地资源走 <Image>（下面单独渲染），字符串继续用 CSS 背景图 —— 
+   后者不产生额外 DOM，也不会因为 <img> 的宽高比把 banner 撑变形。 */
+const bgImage = img && !isAsset(img) ? img : '';
+
 const style = [
   `height:${height}`,
-  img ? `background-image:url('${img}')` : '',
+  bgImage ? `background-image:url('${bgImage}')` : '',
 ].filter(Boolean).join(';');
 ---
 
 <header class="banner" style={style}>
+  {
+    isAsset(img) && (
+      <Image
+        class="banner-img"
+        src={img}
+        alt=""
+        widths={[720, 1080, 1440, 1920]}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+      />
+    )
+  }
   <div class="banner-mask" style={`opacity:${maskAlpha}`}></div>
   <div class="banner-text">
     <Heading class="banner-title">{title}</Heading>

@@ -11,6 +11,7 @@ import Board from '../components/Board.astro';
 import PostList from '../components/PostList.astro';
 import { SITE } from '../config';
 import { getPosts, stickyFirst } from '../utils/posts';
+import { websiteJsonLd } from '../utils/seo';
 
 const all = await getPosts();
 const ordered = stickyFirst(all);
@@ -18,9 +19,11 @@ const ordered = stickyFirst(all);
 const pageSize = SITE.pageSize;
 const posts = ordered.slice(0, pageSize);
 const lastPage = Math.max(1, Math.ceil(ordered.length / pageSize));
+
+const jsonLd = websiteJsonLd(Astro.site ?? Astro.url.origin);
 ---
 
-<BaseLayout isHome>
+<BaseLayout isHome jsonLd={jsonLd}>
   <Banner
     title={SITE.title}
     subtitle={SITE.banner.slogan || SITE.subtitle}
