@@ -7,18 +7,19 @@
  */
 export const T = {
   skipToContent: '跳到主要内容',
+  /* 导航文案：config.ts 的 nav 用 labelKey 引用这几个键；
+     想给某一项单独起名，在那个 nav 项上写 label 覆盖即可 */
   home: '首页',
-  readMore: '阅读全文',
   archive: '归档',
   categories: '分类',
   tags: '标签',
+  friends: '友链',
+  about: '关于',
   search: '搜索',
   searchPlaceholder: '搜索文章标题、分类或标签…',
   searchStart: '输入关键词开始搜索',
   searchEmpty: '没有找到相关文章',
-  searchHint: '试试更短的关键词，或按 Esc 关闭',
   searchOpen: '打开搜索',
-  searchClose: '关闭搜索',
   toggleTheme: '切换深浅色',
   openMenu: '打开菜单',
   closeMenu: '关闭菜单',
@@ -30,10 +31,8 @@ export const T = {
   updatedPrefix: '本文最后更新于',
   prevPost: '上一篇',
   nextPost: '下一篇',
-  copyrightHeading: '版权声明',
   copyrightAuthor: '本文作者',
   copyrightDate: '发布于',
-  copyrightLink: '本文链接',
   copyrightLicense: '版权协议',
   copyrightLicenseValue: 'CC BY-NC-SA 4.0',
   prevPage: '上一页',

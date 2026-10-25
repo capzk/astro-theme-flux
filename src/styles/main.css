@@ -303,6 +303,20 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   display: none;
 }
 
+/* 移动端菜单按钮：收起时显示汉堡，展开时显示叉。
+   状态由 aria-expanded 表达，所以图标也跟着它走，不需要额外加 class。
+   注意这两处规则必须留在全局样式里 —— 放在组件 <style> 里会被 Astro 加上
+   组件作用域，而 <Icon> 渲染的 svg 属于子组件，匹配不到，规则会静默失效。 */
+#menu-toggle .icon-close {
+  display: none;
+}
+#menu-toggle[aria-expanded="true"] .icon-menu {
+  display: none;
+}
+#menu-toggle[aria-expanded="true"] .icon-close {
+  display: inline-block;
+}
+
 .nav-toggle {
   display: none;
 }

@@ -20,6 +20,16 @@ const { isHome = false, path } = Astro.props;
 const isActive = (href: string) =>
   href === '/' ? path === '/' : path === href || path.startsWith(href);
 
+/**
+ * 菜单文案：label 优先（单项覆盖），否则取 labelKey 对应的 i18n 文案。
+ * NavItem 从很早就有 labelKey 字段，但一直没被读过 —— 等于一个假 API，这里补上。
+ */
+const textOf = (item: { label?: string; labelKey?: string }) => {
+  const dict = T as unknown as Record<string, string>;
+  const key = item.labelKey;
+  return item.label ?? (key ? (dict[key] ?? key) : '');
+};
+
 const nav = SITE.nav;
 ---
 
@@ -39,7 +49,7 @@ const nav = SITE.nav;
                 rel={item.external ? 'noopener noreferrer' : undefined}
               >
                 {item.icon && <Icon name={item.icon} />}
-                <span>{item.label}</span>
+                <span>{textOf(item)}</span>
               </a>
             </li>
           ))
@@ -69,8 +79,11 @@ const nav = SITE.nav;
           aria-label={T.openMenu}
           aria-expanded="false"
           aria-controls="mobile-menu"
+          data-label-open={T.openMenu}
+          data-label-close={T.closeMenu}
         >
-          <Icon name="menu" />
+          <Icon name="menu" class="icon-menu" />
+          <Icon name="close" class="icon-close" />
         </button>
       </div>
     </div>
@@ -88,7 +101,7 @@ const nav = SITE.nav;
               rel={item.external ? 'noopener noreferrer' : undefined}
             >
               {item.icon && <Icon name={item.icon} />}
-              <span>{item.label}</span>
+              <span>{textOf(item)}</span>
             </a>
           </li>
         ))
@@ -96,16 +109,3 @@ const nav = SITE.nav;
     </ul>
   </div>
 </header>
-
-<style>
-  /* 主题切换按钮：图标按当前模式择一显示（纯 CSS，无需 JS 改 DOM） */
-  .icon-sun {
-    display: none;
-  }
-  :global([data-user-color-scheme='dark']) .icon-moon {
-    display: none;
-  }
-  :global([data-user-color-scheme='dark']) .icon-sun {
-    display: inline-block;
-  }
-</style>

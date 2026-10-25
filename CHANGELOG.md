@@ -7,6 +7,34 @@
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-25
+
+清理 i18n 里的半成品接口：有一批文案键从定义起就没被任何地方引用，
+还有一个 `NavItem.labelKey` 字段只存在于类型里、组件从来没读过。
+
+### Changed
+
+- `config.ts` 的 `nav` 改用 `labelKey` 引用 `i18n.ts` 的文案，
+  `Navbar` 也真的会读 `labelKey` 了（`label` 仍可用于单项覆盖）。
+  之前这个字段是个假 API —— 类型里写着、注释里说着，代码里没人处理。
+- 移动端菜单按钮展开时换成叉形图标，`aria-label` 同步变成「关闭菜单」。
+  两套文案由组件通过 `data-label-open` / `data-label-close` 注入，
+  和搜索框的 `data-text-*` 是同一套做法。
+- `i18n.ts` 补充 `friends` / `about` 两个键，让导航完全走字典。
+
+### Removed
+
+- `i18n.ts` 里五个从未被引用的键：`readMore`、`searchClose`、`searchHint`、
+  `copyrightHeading`、`copyrightLink`。对应的界面本来就没做，留着只会误导后来改的人。
+
+### Fixed
+
+- 删掉 `Navbar.astro` 里那段控制主题图标显隐的 scoped style。它**从来没生效过** ——
+  Astro 会给组件 `<style>` 的选择器加上作用域属性，而图标是 `<Icon>` 子组件渲染的 `<svg>`，
+  不带父组件的 scope，`.icon-sun { display: none }` 匹配不到，亮色下太阳和月亮才同时露出来。
+  1.1.2 已经在 `main.css` 用全局规则补齐了功能，这一版把组件里那份失效的重复实现清掉，
+  并在注释里写明「这类规则不能写在组件样式里」。
+
 ## [1.1.2] - 2026-10-25
 
 ### Changed
@@ -99,7 +127,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.2...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.3...HEAD
+[1.1.3]: https://github.com/capzk/astro-theme-flux/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/capzk/astro-theme-flux/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/capzk/astro-theme-flux/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/capzk/astro-theme-flux/compare/v1.0.0...v1.1.0

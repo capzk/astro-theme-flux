@@ -64,10 +64,15 @@ function initMobileMenu() {
   const menu = document.getElementById('mobile-menu');
   if (!btn || !menu) return;
 
+  /* 两套文案由组件通过 data-* 注入，按钮的语义跟着开合状态走 */
+  const labelOpen = btn.dataset.labelOpen || '打开菜单';
+  const labelClose = btn.dataset.labelClose || '关闭菜单';
+
   const setOpen = (open) => {
     menu.hidden = !open;
     menu.classList.toggle('is-open', open);
     btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? labelClose : labelOpen);
     document.body.classList.toggle('is-locked', open);
   };
 

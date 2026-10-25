@@ -8,8 +8,12 @@
  */
 
 export interface NavItem {
-  /** 菜单文案（跟随 i18n 时改用 labelKey） */
+  /**
+   * 菜单文案的覆盖值。写了就用它，不写则取 labelKey 对应的 i18n 文案。
+   * 默认的 nav 全部走 labelKey，所以改文案优先改 src/i18n.ts。
+   */
   label?: string;
+  /** 引用 src/i18n.ts 里的键名，如 'archive' */
   labelKey?: string;
   href: string;
   /** 图标名，见 src/components/Icon.astro */
@@ -118,12 +122,12 @@ export const SITE: SiteConfig = {
   beian: '',
 
   nav: [
-    { label: '首页', href: '/', icon: 'home' },
-    { label: '归档', href: '/archives/', icon: 'archive' },
-    { label: '分类', href: '/categories/', icon: 'category' },
-    { label: '标签', href: '/tags/', icon: 'tag' },
-    { label: '友链', href: '/links/', icon: 'link' },
-    { label: '关于', href: '/about/', icon: 'user' },
+    { labelKey: 'home', href: '/', icon: 'home' },
+    { labelKey: 'archive', href: '/archives/', icon: 'archive' },
+    { labelKey: 'categories', href: '/categories/', icon: 'category' },
+    { labelKey: 'tags', href: '/tags/', icon: 'tag' },
+    { labelKey: 'friends', href: '/links/', icon: 'link' },
+    { labelKey: 'about', href: '/about/', icon: 'user' },
   ],
 
   banner: {
