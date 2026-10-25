@@ -7,6 +7,49 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-25
+
+### Added
+
+- 补齐社交分享与结构化数据。此前页面只有半套 Open Graph：没有封面图、没有 locale，
+  Twitter 卡片声明了 `summary_large_image` 却没有 `twitter:image`，分享出去是一张纯文字卡。
+  现在 `og:*` / `twitter:*` 成对输出，封面与地址一律绝对化。
+- 新增 JSON-LD：首页输出 `WebSite`，文章页输出 `BlogPosting`（发布时间、更新时间、
+  作者、分类、标签、字数、`mainEntityOfPage`），搜索引擎能直接拿到结构化信息。
+- 文章页补 `article:published_time` / `article:modified_time` / `article:author` /
+  `article:section` / `article:tag`，补 `<meta name="author">`。
+- 补 `theme-color`（亮暗各一条），移动端浏览器地址栏跟随主题。
+- 新增配置项 `SITE.ogImage` 与 `public/img/og.png`（1200×630 分享封面）。
+  社交平台不渲染 SVG，所以只有位图封面会被采用，SVG 一律回落到这张站点图。
+- 新增 `src/utils/seo.ts`：绝对地址补全、分享封面挑选、JSON-LD 生成三个纯函数。
+- **分页补齐到归档 / 分类 / 标签**。归档此前把整份时间线铺在一页里，分类页则把某个
+  分类的所有文章一口气排下来 —— 文章一多就是无穷滚动。URL 形态沿用 Hexo：第 1 页是
+  列表首页，第 N 页是 `<base>/page/N/`（`/archives/page/2/`、`/categories/指南/page/2/`）。
+  归档条数由新配置 `archive.pageSize` 单独控制（时间线一行一篇，比卡片密），写 0 表示不分页。
+- **文末「相关文章」**：标签命中计 3 分、分类命中计 2 分，同分按时间倒序，取前 3 篇。
+  一篇得分为 0 时整块不渲染 —— 与其拿「都发在这个博客」当相关性，不如不显示。
+  开关是 `SITE.post.related`。
+- front matter 新增 `cover` / `banner` 两个 `image()` 字段，写相对本文档的图片路径即可
+  参与优化（见下方 Changed）。
+
+### Changed
+
+- `BaseLayout` 的支持面扩大：新增 `image`（分享封面）、`article`（文章的分享元信息）、
+  `jsonLd`（结构化数据）三个可选 prop，页面不传时行为与之前完全一致。
+- **封面与 banner 改走 `astro:assets`**：构建时按需生成多档宽度的 webp（卡片 240/400/560，
+  banner 720/1080/1440/1920）并补上 `srcset`，移动端不再下载桌面尺寸的大图；首屏 banner
+  还带上了 `fetchpriority="high"`。配置里的 `banner.img` / `postBanner.img` /
+  `index.defaultImg` 现在也接受 `import` 进来的本地资源。
+- 旧的 `indexImg` / `bannerImg` 字符串写法保留，用于 `public/` 里现成的图片与 Hexo
+  迁移场景 —— 代价是不参与优化，原图多大就发多大。
+- 示例文章全部改用 `cover` 字段，示例图从 SVG 换成位图源文件放在 `src/assets/`。
+  唯独 `guide/url-and-slug` 故意留着 `indexImg`，让两条路径都出现在构建产物里。
+
+### Fixed
+
+- 分页组件的 `base` 语义改为「列表首页地址」（`/`、`/archives/`、`/categories/前端/`），
+  不再靠 `/page` 后缀做字符串替换 —— 后者在中文分类名带编码时拼不出正确地址。
+
 ## [1.2.0] - 2026-10-25
 
 ### Added
