@@ -289,6 +289,20 @@ table {
   font-size: 1.05rem;
 }
 
+/* 主题切换按钮：同一时刻只显示一个图标 ——
+   亮色显示月亮（点了进暗色），暗色显示太阳（点了回亮色）。
+   两个 <svg> 都留在 DOM 里，靠根元素上的 data-user-color-scheme 切，
+   这个属性由 <head> 的内联脚本在首帧就写好，所以不会闪、也不需要 JS 参与切换。 */
+#theme-toggle .icon-sun {
+  display: none;
+}
+html[data-user-color-scheme="dark"] #theme-toggle .icon-sun {
+  display: inline-block;
+}
+html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
+  display: none;
+}
+
 .nav-toggle {
   display: none;
 }
