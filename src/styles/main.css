@@ -76,12 +76,33 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-html,
-body {
+html {
   height: 100%;
+}
+
+/*
+ * 页脚贴底
+ * ---------------------------------------------------------------------------
+ * body 撑满一屏并变成纵向 flex 容器，main 吃掉剩余高度 —— 内容不满一屏时
+ * （友链 / 分类 / 标签 / 目录这类短页面），页脚被压到视口底部，而不是跟在
+ * 内容后面浮在半空中。
+ *
+ * 原版 Fluid 的 html/body 只是 `height: 100%`，并没有这套机制：它的页脚也在
+ * 正常流里，靠每页的 banner（首页 100vh、其他页 40vh）把内容撑高才看不出问题。
+ * 这里用 flex 是标准解法，顺带把「banner 高度调小」这个自由度还给使用者。
+ */
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   font-family: var(--font-family-sans-serif);
   overflow-wrap: break-word;
+}
+
+/* 内容区吃掉剩余空间；页脚不参与压缩 */
+#main {
+  flex: 1 0 auto;
 }
 
 body {
@@ -1703,6 +1724,11 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 }
 
 /* ---------- 16. 页脚 ---------- */
+/* 页脚不参与 flex 压缩：宁可让页面滚动，也不要把备案号挤掉一行 */
+footer {
+  flex-shrink: 0;
+}
+
 .footer-inner {
   padding: 3rem 0 1.5rem;
   text-align: center;
@@ -2084,6 +2110,11 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 
 /* 打印：去掉导航、banner，只留正文 */
 @media print {
+  /* 打印是连续纸张，没有「视口底部」这回事，flex 撑高只会多出空白页 */
+  body {
+    display: block;
+    min-height: 0;
+  }
   .navbar,
   .banner,
   #scroll-top,
