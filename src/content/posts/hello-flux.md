@@ -35,8 +35,9 @@ sticky: true
 | Stylus | 手写 CSS + CSS 变量 | 构建零依赖，改色只改变量 |
 | Bootstrap 栅格（CDN） | 自己写 flex/grid | 少一个外部请求、少 200KB |
 | iconfont（CDN） | 内联 SVG | 零请求，随 `currentColor` |
-| jQuery + tocbot | 原生 IntersectionObserver | 依赖归零 |
+| jQuery + tocbot | 原生滚动监听 | 依赖归零 |
 | highlight.js | 构建期 Shiki | 双主题、无运行时高亮 |
+| fancybox | 自己写的灯箱 | 只要「点开放大」，不必引一个库 |
 | hexo-generator-searchdb | `/searchindex.json` | 索引也是一次静态构建 |
 
 > 代码高亮、目录高亮、站内搜索这几项，原版都依赖运行时脚本去「事后加工」DOM。Astro 的思路相反：**能构建期算完的就不留给浏览器。**
@@ -47,7 +48,7 @@ sticky: true
 
 ## 去掉了哪些
 
-评论（十几种第三方服务）、浏览量统计、文章加密、数学公式与流程图、打字机副标题、图片缩放插件、九套语言包。它们要么是外部服务依赖，要么需要额外的运行时库——与「静态、零依赖」的目标冲突。
+评论（十几种第三方服务）、浏览量统计、文章加密、数学公式与流程图、打字机副标题、九套语言包。它们要么是外部服务依赖，要么需要额外的运行时库——与「静态、零依赖」的目标冲突。图片缩放留下来了，只是把 fancybox 换成了自己写的灯箱。
 
 ### 关于取舍的原则
 

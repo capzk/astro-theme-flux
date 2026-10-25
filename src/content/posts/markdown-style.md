@@ -14,9 +14,11 @@ indexImg: /img/cover-3.svg
 
 ## 段落与行内元素
 
-正文的字号是 16px，行高 1.8，字间距 `0.02em` —— 中文长文需要比英文更松的行高，这是原版就调好的值。
+正文的字号是 16px，行高 1.6，字间距 `0.02em` —— 这几个值是原版调好的，直接沿用。
 
-行内可以有**加粗**、*斜体*、~~删除线~~、`行内代码`，以及[一个链接](https://astro.build/)。链接用下划线标出，悬停变主题蓝。
+行内可以有**加粗**、*斜体*、~~删除线~~、`行内代码`，以及[一个链接](https://astro.build/)。链接用下划线标出，悬停变主题蓝。需要补充说明时挂个脚注[^1]。
+
+[^1]: 脚注会排到文末，带 `[1]` 序号，点序号可以跳回原文位置。
 
 ## 列表
 
@@ -24,7 +26,7 @@ indexImg: /img/cover-3.svg
 
 - 卡片阴影用了两层：近处一层大扩散，远处一层小扩散
 - 圆角只有 0.5rem，Material 的克制
-- 目录宽度固定 240px，不抢正文的注意力
+- 正文两侧各留 10%，一行四十来个字，眼睛不用来回找行首
 
 有序列表（带你走一遍构建）：
 
@@ -43,7 +45,7 @@ indexImg: /img/cover-3.svg
 带语言标签与复制按钮，悬停代码块时按钮才显形：
 
 ```js
-// 目录跟随滚动：取「已进入视口且最靠上」的标题
+// 滚动高亮：取「已进入视口且最靠上」的那一个
 const observer = new IntersectionObserver(
   (entries) => {
     const visible = entries
@@ -62,6 +64,18 @@ npm run build
 # 34 pages built in 4.29s
 ```
 
+## 提示块
+
+正文里可以插语义化的提示块，写 `<div class="note note-xxx">` 即可，颜色和左边框都由 CSS 给出：
+
+<div class="note note-info">info：补充说明、背景信息这一类。</div>
+
+<div class="note note-success">success：推荐做法、操作成功。</div>
+
+<div class="note note-warning">warning：需要注意的坑，别踩。</div>
+
+<div class="note note-danger">danger：会造成数据丢失的操作。</div>
+
 ## 表格
 
 | 元素 | 亮色 | 暗色 |
@@ -76,6 +90,32 @@ npm run build
 ---
 
 ![封面示意图](/img/cover-2.svg)
+
+## 冷门元素
+
+删除线 ~~已经作废的说法~~ 用灰色，不抢眼；重点标记靠 HTML 的 `<mark>`：<mark>这一句要记住</mark>。上下标写作 H<sub>2</sub>O 与 E=mc<sup>2</sup>。
+
+任务清单：
+
+- [x] 标题层级有梯度
+- [x] 列表首尾不多留白
+- [ ] 表格在窄屏横向滚动
+
+折叠块（默认收起，点标题展开）：
+
+<details>
+<summary>这里放一段补充说明</summary>
+
+`details` 与 `summary` 用和引用块同一套配色，里面可以继续写段落、列表、代码，不影响正文节奏。
+
+</details>
+
+带图注的图片：
+
+<figure>
+  <img src="/img/cover-4.svg" alt="图注示例">
+  <figcaption>图注用灰色小字居中，和正文拉开一层</figcaption>
+</figure>
 
 ## 小结
 

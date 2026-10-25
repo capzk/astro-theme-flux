@@ -16,7 +16,7 @@
 
 **Flux（流变）** 是一套 Material Design 风格的 Astro 博客主题。名字取自拉丁语 *fluxus*（流动），设计概念与视觉语言迁移自 [hexo-theme-fluid](https://github.com/fluid-dev/hexo-theme-fluid)：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深浅色主题 —— 观感对齐原版，而运行时依赖归零。
 
-不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮用原生 `IntersectionObserver`，图标是内联 SVG，代码高亮在构建期由 Shiki 完成。
+不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮是原生的滚动监听，图标是内联 SVG，代码高亮在构建期由 Shiki 完成，图片灯箱自己写了几十行。
 
 ## 特性
 
@@ -24,7 +24,7 @@
 
 - 首页：全屏 banner（背景图 + 黑色蒙版 + 站名大字 + 滚动箭头），下方浮起一张白卡片
 - 卡片流：左图右文，封面带投影，摘要固定三行，meta 一行小字（日期 / 分类 / 标签）
-- 文章页：banner + 白卡片，正文收窄居中，右侧 240px 目录跟随滚动
+- 文章页：banner + 白卡片，正文收窄居中，右侧目录栏跟随滚动（三栏 `2fr 8fr 2fr`，对齐原版 Bootstrap 的 `col-lg-2/8/2`）
 - 顶栏：首页透明，滚动后变实色 + 阴影；移动端抽屉菜单
 
 **功能**
@@ -32,7 +32,8 @@
 | 功能 | 实现 |
 | --- | --- |
 | 深色模式 | 3 行内联脚本 + 一套 CSS 变量，首帧不闪白；优先级 `localStorage > 站点默认 > 系统` |
-| 目录跟随高亮 | `IntersectionObserver`（原版是 tocbot + jQuery） |
+| 目录跟随高亮 | 原生滚动监听 + `requestAnimationFrame`（原版是 tocbot + jQuery） |
+| 图片灯箱 | 自己写的 60 行，替代 fancybox：ESC / 点遮罩 / 点按钮关闭，焦点归还 |
 | 站内搜索 | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起 |
 | 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 |
 | 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
@@ -54,6 +55,21 @@ npm run build    # 产物在 dist/
 
 也可以用 GitHub 的 **Use this template** 直接开一个新仓库，或 `npx degit capzk/astro-theme-flux my-blog` 拉一份不含 git 历史的副本。
 
+## 示例文章
+
+`src/content/posts/` 自带 12 篇示例，其中「指南」分类的 6 篇就是这份主题的使用文档，同时也充当排版样例：
+
+| 文章 | 讲什么 |
+| --- | --- |
+| 快速开始 | 环境要求、三步启动、目录结构 |
+| 站点配置详解 | `config.ts` 每个字段的取值与效果 |
+| 写一篇文章 | front matter、分类与标签、正文可用语法 |
+| 换成你自己的样子 | 配色、字体、版心与字号 |
+| 部署上线 | GitHub Pages / Vercel / nginx，以及常见坑 |
+| 改造与扩展 | 加页面、加图标、加语言、接评论、换搜索 |
+
+fork 之后整批删掉即可，不影响任何功能。
+
 ## 配置
 
 几乎全部在 **`src/config.ts`** 一个文件里：站名、副标题、头像、菜单、banner（图 / 高度 / 蒙版 / 标语）、文章页 banner、首页卡片（默认封面 / 摘要长度 / meta 开关）、文章 meta（作者 / 日期 / 字数 / 阅读时长）、目录、文末版权、上下篇、深色模式默认值、配色（顶栏 / 页面底 / 卡片底 / 强调色）、每页条数、搜索开关。
@@ -70,12 +86,16 @@ npm run build    # 产物在 dist/
 ---
 title: 文章标题
 date: 2026-10-20 10:00:00
+updated: 2026-10-22 09:00:00   # 可选，有值时正文顶部显示「最后更新于」
 description: 摘要（列表与 SEO 用）
 tags: [Astro, 主题]
 categories: [公告]
-indexImg: /img/cover-1.svg   # 卡片封面（原版叫 index_img）
-sticky: true                 # 置顶
-toc: true                    # 右侧目录
+indexImg: /img/cover-1.svg      # 卡片封面（原版叫 index_img）
+sticky: true                   # 置顶
+toc: false                     # 单篇关掉右侧目录；不写则跟随 config.ts
+draft: false                   # true 则不进列表 / 搜索 / RSS
+bannerImg: /img/cover-2.svg    # 单篇 banner 图（可选）
+bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
 ---
 ```
 
@@ -100,7 +120,8 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 | --- | --- | --- |
 | 评论（13 种第三方服务）、浏览量统计 | ✕ | 外部服务依赖，与「静态、零依赖」冲突 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
-| 打字机副标题、视差 banner、fancybox 图片缩放 | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
+| 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
+| fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
 | Bootstrap 栅格（CDN） | 自己写 flex/grid | 只用到栅格，为它引 200KB 不划算 |
 | iconfont（CDN） | 内联 SVG | 零请求、随 `currentColor` |
 | Stylus | 手写 CSS | 改色只动 CSS 变量，构建不依赖预处理器 |
@@ -130,9 +151,13 @@ src/
 ## 已知限制
 
 - 封面与 banner 用普通 `<img>` / CSS 背景，不走 `astro:assets` 优化（示例图是 SVG）。想让 Astro 自动转 webp + srcset，把 `content.config.ts` 里的 `indexImg` 改成 `image()` 并用相对路径。
-- 目录只取 h2 / h3，与原版默认深度一致。
+- 目录取 h2 / h3 / h4，h5 以下不收（缩到第五层已经读不清了）。单篇可用 `toc: false` 关掉。
 - 搜索是线性扫描 + 分档权重，没有分词。文章量上千后建议换 [Pagefind](https://pagefind.app/)。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
+
+## 更新日志
+
+版本历史与每版的详细改动见 [CHANGELOG.md](./CHANGELOG.md)。主题遵循语义化版本，每个版本打一个 `v*` 标签。
 
 ## 致谢
 

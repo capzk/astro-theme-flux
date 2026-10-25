@@ -21,17 +21,18 @@ categories:
 
 这次迁移一个刻意的目标就是**把依赖数压到最低**：
 
-- 目录高亮：IntersectionObserver（浏览器自带）
+- 目录高亮：滚动监听 + `requestAnimationFrame`（浏览器自带）
 - 复制按钮：Clipboard API + `execCommand` 兜底（浏览器自带）
 - 图标：内联 SVG（就是几个 `<path>`）
 - 代码高亮：构建期算完，前端 0 请求
+- 图片放大：自己写的 60 行灯箱
 - 搜索：一个 JSON + 一段 indexOf
 
 结果：整个主题的运行时依赖是 **0** 个。`package.json` 里的依赖全是构建期的。
 
 ## 少也意味着要自己写
 
-代价当然有。没有 Bootstrap 就要自己写那几十行 flex 布局；没有 tocbot 就要自己写观察器；没有 fancybox 就没有图片缩放。
+代价当然有。没有 Bootstrap 就要自己写那几十行 flex 布局；没有 tocbot 就要自己写滚动监听；没有 fancybox 就要自己写灯箱。
 
 我的判断是：**这些代码加起来不到 300 行，而它们对应的依赖加起来超过 1MB，还会各自升级、各自破坏。**
 
