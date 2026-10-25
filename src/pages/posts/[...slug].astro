@@ -10,6 +10,7 @@
  * 元信息、目录、标签、版权、上一篇/下一篇。
  */
 import { render } from 'astro:content';
+import { getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Banner from '../../components/Banner.astro';
 import Board from '../../components/Board.astro';
@@ -27,7 +28,7 @@ import {
   termUrl,
 } from '../../utils/posts';
 import { absoluteUrl, articleJsonLd, shareImage } from '../../utils/seo';
-import { srcOf } from '../../utils/image';
+import { isAsset, srcOf } from '../../utils/image';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -89,8 +90,26 @@ const metaRows = [metaTop, metaBottom];
 
 const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
 
-/* 分享封面：文章封面优先，但必须是位图（SVG 平台不渲染），否则回落到站点图 */
-const ogImage = absoluteUrl(shareImage([srcOf(bannerSource)]), permalink);
+/* 分享封面。两个要求社交平台很挑剔：
+   1) 格式 —— webp/avif 至今仍有个别平台抓不动，所以位图封面统一再转一版 JPEG；
+   2) 比例 —— og:image 的标准是 1.91:1，用原图（3:2、16:9）会被平台居中裁掉一条，
+      干脆按 1200×630 裁好再给出去。
+   字符串路径（外部图 / public 里的图）没法参与转换，仍走 shareImage 的回落逻辑。 */
+const ogImage = isAsset(bannerSource)
+  ? absoluteUrl(
+      (
+        await getImage({
+          src: bannerSource,
+          width: 1200,
+          height: 630,
+          fit: 'cover',
+          format: 'jpeg',
+          quality: 82,
+        })
+      ).src,
+      permalink,
+    )
+  : absoluteUrl(shareImage([srcOf(bannerSource)]), permalink);
 
 const jsonLd = articleJsonLd({
   title,
@@ -111,7 +130,7 @@ const jsonLd = articleJsonLd({
   ogType="article"
   article={{ published: date, modified: updated, section: categories[0], tags }}
   jsonLd={jsonLd}
-  image={srcOf(bannerSource)}
+  image={ogImage}
 >
   <Banner
     title={title}
