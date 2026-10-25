@@ -13,7 +13,14 @@ const title = '关于';
 ---
 
 <BaseLayout title={title} description={`关于 ${SITE.title}`}>
-  <Banner title={title} subtitle={SITE.subtitle} img={SITE.postBanner.img} height="40vh" maskAlpha={SITE.postBanner.maskAlpha} />
+  <Banner
+    title={title}
+    headingTag="div"
+    subtitle={SITE.subtitle}
+    img={SITE.postBanner.img}
+    height="40vh"
+    maskAlpha={SITE.postBanner.maskAlpha}
+  />
 
   <Board>
     <div class="about">

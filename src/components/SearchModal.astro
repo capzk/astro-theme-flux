@@ -10,7 +10,16 @@ import { T } from '../i18n';
 import Icon from './Icon.astro';
 ---
 
-<div class="search-modal" id="search-modal" role="dialog" aria-modal="true" aria-label={T.search}>
+<div
+  class="search-modal"
+  id="search-modal"
+  role="dialog"
+  aria-modal="true"
+  aria-label={T.search}
+  data-text-start={T.searchStart}
+  data-text-empty={T.searchEmpty}
+  data-text-hint={T.searchHint}
+>
   <div class="search-box" role="search">
     <div class="search-field">
       <Icon name="search" />

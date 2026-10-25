@@ -14,6 +14,7 @@ export const T = {
   tags: '标签',
   search: '搜索',
   searchPlaceholder: '搜索文章标题、分类或标签…',
+  searchStart: '输入关键词开始搜索',
   searchEmpty: '没有找到相关文章',
   searchHint: '试试更短的关键词，或按 Esc 关闭',
   searchOpen: '打开搜索',

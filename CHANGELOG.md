@@ -7,16 +7,26 @@
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-25
+
 ### Changed
 
 - 去掉中文名「流变」，全站统一用 **Flux**。README 标题、首段与关于页同步，
   连带删掉「名字取自拉丁语 fluxus」那句解释。
+- 搜索框的两条提示文案（「输入关键词开始搜索」「没有找到相关文章」）原来写死在
+  `scripts/search.js` 里，改为由 `SearchModal.astro` 通过 `data-*` 注入 `i18n.ts` 的文案，
+  脚本里只保留兜底默认值。
 
 ### Fixed
 
 - 顶栏的主题切换按钮里，太阳和月亮两个图标一直同时显示、并排挤在一起。
   补上显隐规则：亮色显示月亮（点了进暗色），暗色显示太阳（点了回亮色），
   靠根元素的 `data-user-color-scheme` 切换，无 JS 参与、无首帧闪烁。
+- 关于页有两个 `<h1>`（banner 标题与作者名各一个），改为 banner 用 `div`，只留作者名；
+  404 页则相反 —— 缺 `<h1>`，把「404」那行改成标题标签。
+- 关于页的 `.about-avatar` / `.about-name` / `.about-bio` 只有 class 名、没有对应样式，
+  头像不居中、署名用浏览器默认字号。补齐：头像圆形居中带投影、署名 1.5rem、
+  简介灰字，正文恢复左对齐。
 
 ## [1.1.1] - 2026-10-25
 
@@ -89,7 +99,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/capzk/astro-theme-flux/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/capzk/astro-theme-flux/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/capzk/astro-theme-flux/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/capzk/astro-theme-flux/releases/tag/v1.0.0

@@ -26,6 +26,13 @@ function el(tag, cls, text) {
   return node;
 }
 
+/* 界面文案由 SearchModal 通过 data-* 传进来（见 src/i18n.ts），
+   这里的默认值只是兜底 —— 正常渲染时用不到。 */
+const TEXT = {
+  start: '输入关键词开始搜索',
+  empty: '没有找到相关文章',
+};
+
 async function loadIndex() {
   if (index) return index;
   if (!loading) {
@@ -82,7 +89,7 @@ function closeModal(modal) {
 function renderEmpty(message) {
   const list = qs('#search-results');
   if (!list) return;
-  list.replaceChildren(el('li', 'search-empty', message || '输入关键词开始搜索'));
+  list.replaceChildren(el('li', 'search-empty', message || TEXT.start));
 }
 
 function renderResults(list, items, activeIndex) {
@@ -106,6 +113,10 @@ export function initSearch() {
   const openBtn = qs('#search-toggle');
   if (!modal || !input || !list) return;
 
+  /* 文案以构建期注入的 data-* 为准，脚本里不再写死 */
+  if (modal.dataset.textStart) TEXT.start = modal.dataset.textStart;
+  if (modal.dataset.textEmpty) TEXT.empty = modal.dataset.textEmpty;
+
   let results = [];
   let activeIndex = 0;
 
@@ -128,7 +139,7 @@ export function initSearch() {
       .map((x) => x.item);
 
     activeIndex = 0;
-    if (!results.length) renderEmpty('没有找到相关文章');
+    if (!results.length) renderEmpty(TEXT.empty);
     else renderResults(list, results, activeIndex);
   };
 
