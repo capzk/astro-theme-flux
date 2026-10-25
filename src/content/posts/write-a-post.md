@@ -8,7 +8,7 @@ tags:
   - 内容组织
 categories:
   - 指南
-indexImg: /img/cover-3.svg
+cover: ../../assets/covers/cover-3.webp
 ---
 
 主题把「一篇文章」定义成一个 Markdown 文件。没有后台、没有数据库 —— 你在编辑器里存盘，站点就变了。
@@ -62,11 +62,11 @@ updated: 2026-10-24 09:30:00     # 可选，有值时正文顶部显示「最后
 description: 列表与 SEO 用的摘要   # 可选，建议写
 tags: [写作, Markdown]           # 可选，字符串数组
 categories: [指南]                # 可选，字符串数组
-indexImg: /img/cover-3.svg       # 可选，首页卡片封面
+cover: ../../assets/covers/cover-3.webp # 可选，卡片封面（会优化；也可写 indexImg: /img/x.png）
 sticky: false                    # 可选，置顶
 draft: false                     # 可选，草稿
 toc: true                        # 可选，单篇覆盖右侧目录开关
-bannerImg: /img/banner-2.svg     # 可选，单篇 banner 图
+banner: ../../assets/banner.webp # 可选，单篇 banner 图（会优化）
 bannerMaskAlpha: 0.5             # 可选，0~1
 ---
 ```
@@ -103,15 +103,26 @@ bannerMaskAlpha: 0.5             # 可选，0~1
 
 **更新时间** `updated` 一旦存在，正文标题下方会出现一行「本文最后更新于 X 年 X 月 X 日」。这不是自动的 —— 主题不会去读 git 提交时间，你觉得该更新就手写。
 
-## 封面：`indexImg`
+## 封面：`cover`
 
 ```yaml
-indexImg: /img/cover-3.svg
+cover: ../../assets/covers/cover-3.webp
 ```
 
-放 `public/` 下就用根路径，外链就写完整 URL。卡片上封面是**固定高度 10rem、宽度 240px**（窄屏会变成上下堆叠），图片用 `object-fit: cover` 裁切，所以原图比例不重要，重要是别把关键内容放在边缘。
+路径**相对这篇 Markdown 文件**，指向 `src/assets/` 下的图。构建时 Astro 会把它转成多档宽度的 webp，浏览器按屏幕宽度挑一张 —— 手机上不会白下桌面尺寸的大图。
 
-不写 `indexImg` 就用 `config.ts` 里 `index.defaultImg`；那个也留空，卡片就退化成纯文字块，不带图。
+两种写法都认：
+
+| 写法 | 例子 | 会被优化吗 |
+| --- | --- | --- |
+| `cover`（推荐） | `cover: ../../assets/covers/a.webp` | 会：转 webp + 多档宽度 + `srcset` |
+| `indexImg`（兼容 Hexo） | `indexImg: /img/a.png` | 不会：原样输出 |
+
+`indexImg` 是留给从 Hexo 迁过来的站的 —— 图还在 `public/`、路径是根路径，不用挪。两个都写时 `cover` 优先。
+
+卡片封面是**固定高度 10rem、宽度 240px**（窄屏变成上下堆叠），图片用 `object-fit: cover` 裁切，所以原图比例不重要，别把关键内容放在边缘就行。
+
+两个都不写就用 `config.ts` 的 `index.defaultImg`；那个也留空，卡片就退化成纯文字块，不带图。
 
 ## 正文能用什么
 
@@ -154,7 +165,7 @@ updated: 2026-10-24 09:30:00
 description: 把上面讲的字段拼在一起，可以直接照抄。
 tags: [写作, 示例]
 categories: [指南]
-indexImg: /img/cover-3.svg
+cover: ../../assets/covers/cover-3.webp
 ---
 
 开篇一两句话说清楚这篇要讲什么。

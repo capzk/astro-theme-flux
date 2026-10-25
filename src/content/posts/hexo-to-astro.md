@@ -7,7 +7,7 @@ tags:
   - Hexo
 categories:
   - 实现
-indexImg: /img/cover-4.svg
+cover: ../../assets/covers/cover-4.webp
 ---
 
 如果你手上已经有一个用 Fluid 的 Hexo 站点，这张表大概能省下半天时间。
@@ -38,7 +38,9 @@ sticky: true
 ---
 ```
 
-⚠️ 唯一要动的是 `index_img` 的写法。Astro 用驼峰，所以这里写成 `indexImg`；值仍然可以是根路径或完整 URL。
+⚠️ 唯一要动的是 `index_img` 的写法。Astro 用驼峰，所以这里写成 `indexImg`；值仍然可以是根路径或完整 URL（不会被压图）。
+
+想顺手把封面也交给构建器优化，就把它挪到 `src/assets/` 并改用 `cover: ../../assets/cover-1.webp` —— 见《写一篇文章》里的封面一节。
 
 ## 链接与路径
 
@@ -48,7 +50,9 @@ sticky: true
 
 ## 分页
 
-Hexo 的 `per_page` 换成 `SITE.pageSize`。列表页第 1 页在 `/`，第 2 页起在 `/page/N/`——与原版的 `page/2/` 完全一致。
+Hexo 的 `per_page` 换成 `SITE.pageSize`。列表页第 1 页在 `/`，第 2 页起在 `/page/N/` —— 与原版的 `page/2/` 完全一致。
+
+归档、分类、标签这三处也分了页，形态一样：`/archives/page/2/`、`/categories/指南/page/2/`、`/tags/Astro/page/2/`。归档的条数单独由 `SITE.archive.pageSize` 控制（时间线一行一篇，比卡片密），分类与标签沿用 `pageSize`。
 
 ## 搜索
 

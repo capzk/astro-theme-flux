@@ -8,7 +8,7 @@ tags:
   - TypeScript
 categories:
   - 指南
-indexImg: /img/cover-2.svg
+cover: ../../assets/covers/cover-2.webp
 ---
 
 主题的配置只有一个入口：**`src/config.ts`**。它导出一个 `SITE` 常量，页面组件只读取它，不读别的地方。
@@ -79,8 +79,10 @@ nav: [
 ## 首页 banner
 
 ```ts
+import bannerImg from './assets/banner.webp';
+
 banner: {
-  img: '/img/banner.svg',   // public/ 下的路径，或完整 URL
+  img: bannerImg,           // import 进来的图会被优化；也可以写 '/img/banner.svg' 或完整 URL
   height: '100vh',          // 任意 CSS 长度：60vh / 400px / 32rem
   maskAlpha: 0.3,           // 0~1，黑色蒙版，越大字越清楚
   slogan: '流体般的阅读体验',
@@ -88,7 +90,14 @@ banner: {
 },
 ```
 
-`img` 留空则退化成纯色渐变，标题照样显示。`maskAlpha` 是**文字可读性**的唯一旋钮 —— 背景图越花，这个值越要大。
+`img` 有两种写法，差别只在**要不要 Astro 帮你压图**：
+
+| 写法 | 效果 |
+| --- | --- |
+| `import x from './assets/banner.webp'` | 生成 720 / 1080 / 1440 / 1920 四档 webp，浏览器按屏宽挑一张，首屏图还会带上 `fetchpriority="high"` |
+| `'/img/banner.svg'` 或外链 | 原样输出，不处理 |
+
+`img` 留空则退化成纯色底，标题照样显示。`maskAlpha` 是**文字可读性**的唯一旋钮 —— 背景图越花，这个值越要大。
 
 `slogan` 不写字就用 `SITE.subtitle`。
 
@@ -98,7 +107,7 @@ banner: {
 
 ```ts
 postBanner: {
-  img: '/img/banner.svg',
+  img: bannerImg,   // 同上，本地资源会被优化
   height: '60vh',
   maskAlpha: 0.35,
 },
@@ -106,13 +115,15 @@ postBanner: {
 
 文章页 banner 比首页矮一档，蒙版更深一点 —— 因为上面要压两行元信息（作者/日期、字数/阅读时长），字多了更需要对比度。
 
-单篇文章可以用 front matter 的 `bannerImg` / `bannerMaskAlpha` 覆盖这两项。
+单篇文章可以用 front matter 的 `banner`（相对本文档的图片，会优化）或 `bannerImg`（根路径字符串）覆盖，`bannerMaskAlpha` 同理。
 
 ## 首页卡片
 
 ```ts
+import coverDefault from './assets/covers/cover-default.webp';
+
 index: {
-  defaultImg: '/img/cover-default.svg',
+  defaultImg: coverDefault,
   excerptLength: 200,
   showDate: true,
   showCategory: true,
@@ -122,7 +133,7 @@ index: {
 
 | 字段 | 作用 |
 | --- | --- |
-| `defaultImg` | 文章没写 `indexImg` 时用的封面；留空则卡片不显示图片区，变成纯文字块 |
+| `defaultImg` | 文章没写 `cover` / `indexImg` 时用的封面；两种写法都行，留空则卡片不显示图片区，变成纯文字块 |
 | `excerptLength` | 摘要截断字数。优先用 front matter 的 `description`，没有才截正文 |
 | `showDate` / `showCategory` / `showTags` | 卡片底部那一行小字的三个开关 |
 
@@ -136,6 +147,7 @@ post: {
   toc: true,
   copyright: true,
   prevNext: true,
+  related: true,
   wpm: 300,
 },
 ```
@@ -144,6 +156,7 @@ post: {
 - `toc` 是右侧目录的总开关。单篇可用 front matter 的 `toc: false` 单独关掉。
 - `copyright` 控制文末那张灰底版权卡片。
 - `prevNext` 控制文末的上一篇 / 下一篇。
+- `related` 控制文末的「相关文章」：标签命中 3 分、分类命中 2 分，取前 3 篇；一篇得分为 0 时**整块不显示**，不拿「同一个博客」凑数。
 - `wpm` 是阅读速度（字/分钟）。字数统计里中文按字算、英文按词算，所以 300 对中英混排比较准。
 
 ## 深色模式
@@ -186,9 +199,12 @@ color: {
 ## 分页与搜索
 
 ```ts
-pageSize: 6,   // 首页每页文章数，超出生成 /page/2/、/page/3/
-search: true,  // 关掉则不渲染搜索弹窗，也不生成 /searchindex.json
+pageSize: 6,                  // 首页 / 分类 / 标签，每页文章数
+archive: { pageSize: 10 },    // 归档页每页条数（时间线一行一篇，比卡片密，所以单独取值）
+search: true,                 // 关掉则不渲染搜索弹窗，也不生成 /searchindex.json
 ```
+
+分页的 URL 形态统一：第 1 页是列表首页，第 N 页是 `<base>/page/N/`。所以归档是 `/archives/` → `/archives/page/2/`，分类是 `/categories/指南/` → `/categories/指南/page/2/`。`archive.pageSize` 写 0 或负数表示归档不分页。
 
 `search: false` 之后，按 `/` 和 `Ctrl/⌘ + K` 不会有任何反应 —— 快捷键监听在搜索脚本里，整段都不会被打包。
 

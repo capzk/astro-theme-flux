@@ -39,9 +39,12 @@
 | 站内搜索 | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起 |
 | 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 |
 | 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
-| 分页 | `/page/2/`，与 Hexo 的 `page/2/` 一致 |
+| 分页 | 首页 `/page/2/`、归档 `/archives/page/2/`、分类与标签同理，形态与 Hexo 一致 |
+| 图片优化 | 封面与 banner 走 `astro:assets`：按屏宽生成多档 webp + `srcset`，首屏图 `fetchpriority="high"` |
+| 相关文章 | 按标签（3 分）/ 分类（2 分）的重合度取前 3 篇，没有相关的一篇就不显示 |
 | 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
+| 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta + JSON-LD（`WebSite` / `BlogPosting`），封面自动绝对化 |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap` |
 
 ## 开始使用
@@ -76,9 +79,22 @@ fork 之后整批删掉即可，不影响任何功能。
 
 ## 配置
 
-几乎全部在 **`src/config.ts`** 一个文件里：站名、副标题、头像、菜单、banner（图 / 高度 / 蒙版 / 标语）、文章页 banner、首页卡片（默认封面 / 摘要长度 / meta 开关）、文章 meta（作者 / 日期 / 字数 / 阅读时长）、目录、文末版权、上下篇、深色模式默认值、配色（顶栏 / 页面底 / 卡片底 / 强调色）、每页条数、搜索开关。
+几乎全部在 **`src/config.ts`** 一个文件里：站名、副标题、头像、分享封面、菜单、banner（图 / 高度 / 蒙版 / 标语）、文章页 banner、首页卡片（默认封面 / 摘要长度 / meta 开关）、文章 meta（作者 / 日期 / 字数 / 阅读时长）、目录、文末版权、上下篇、相关文章、深色模式默认值、配色（顶栏 / 页面底 / 卡片底 / 强调色）、每页条数、搜索开关。
+
+图片有两套写法，差别只在要不要构建器压图：
+
+```ts
+import banner from './assets/banner.webp';   // 本地资源：生成多档 webp + srcset
+banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banner.svg' 或外链
+```
 
 上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS、sitemap、canonical 与 OG 里的绝对地址。本仓库里它填的是示例站的地址（`https://astro-theme-flux.pages.dev`），fork 之后第一件事就是换成你自己的域名 —— 忘了换，分享出去的链接会指向示例站。
+
+### SEO 与分享
+
+每页都输出 canonical、`og:*`、`twitter:*` 与 JSON-LD；首页是 `WebSite`，文章页是 `BlogPosting`（含发布时间、更新、作者、分类、标签、字数）。这些值全部由页面数据现算，不用手填。
+
+分享缩略图取 `SITE.ogImage`（默认 `public/img/og.png`，1200×630）。**社交媒体不渲染 SVG**，所以文章若配了位图封面（`bannerImg` / `indexImg`）就用那一张，配的是 SVG 就自动回落到站点图 —— 不会把空白卡片发给别人。换成自己的图时也请用 PNG / JPG。
 
 `/robots.txt` 是从 `site` 现算出来的（`src/pages/robots.txt.ts`），不需要另外维护；`public/_headers` 是 Cloudflare Pages 的缓存策略，用别的平台会忽略它。
 
@@ -97,11 +113,11 @@ updated: 2026-10-22 09:00:00   # 可选，有值时正文顶部显示「最后�
 description: 摘要（列表与 SEO 用）
 tags: [Astro, 主题]
 categories: [公告]
-indexImg: /img/cover-1.svg      # 卡片封面（原版叫 index_img）
+cover: ../../assets/covers/cover-1.webp   # 卡片封面（会优化；兼容写法 indexImg: /img/x.png）
 sticky: true                   # 置顶
 toc: false                     # 单篇关掉右侧目录；不写则跟随 config.ts
 draft: false                   # true 则不进列表 / 搜索 / RSS
-bannerImg: /img/cover-2.svg    # 单篇 banner 图（可选）
+banner: ../../assets/banner.webp  # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
 bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
 ---
 ```
@@ -168,22 +184,30 @@ src/
 ├── i18n.ts              # 界面文案
 ├── content.config.ts    # 集合与 front matter 校验
 ├── content/posts/       # 文章
+├── assets/              # 参与优化的图片源文件（封面、banner）
 ├── data/links.ts        # 友链
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
-│                        # Toc / Pagination / SearchModal / Icon / Footer
+│                        # ArchiveList / Toc / Pagination / SearchModal / Icon / Footer
 ├── pages/               # 文件即路由
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链
 ├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶
 ├── scripts/search.js    # 站内搜索
+├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计
+├── utils/slug.ts        # URL 规范化（含中文转拼音）
+├── utils/image.ts       # 图片两种写法的统一处理
+├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
 └── styles/main.css      # 全部样式（变量分亮暗两套）
 ```
 
 ## 已知限制
 
-- 封面与 banner 用普通 `<img>` / CSS 背景，不走 `astro:assets` 优化（示例图是 SVG）。想让 Astro 自动转 webp + srcset，把 `content.config.ts` 里的 `indexImg` 改成 `image()` 并用相对路径。
+- 封面与 banner 已走 `astro:assets`（见上方「配置」）。图片要放在 `src/assets/` 并用 `import` 或 `cover:` 引用才会被优化；`public/` 下的图永远原样输出 —— 这是 Astro 的规则，不是主题的限制。
 - 目录取 h2 / h3 / h4，h5 以下不收（缩到第五层已经读不清了）。单篇可用 `toc: false` 关掉。
 - 搜索是线性扫描 + 分档权重，没有分词。文章量上千后建议换 [Pagefind](https://pagefind.app/)。
+- 分享封面不会自动生成：每篇文章共用一张站点图，除非文章自己配了位图封面。想给每篇做单独的卡片图，得自己出图。
+- 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
+- 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
 
 ## 更新日志
