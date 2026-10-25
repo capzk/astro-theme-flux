@@ -7,12 +7,23 @@
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-25
+
 ### Fixed
 
 - 目录里出现超长标题时，右侧栏会按内容的 min-content 顶宽栅格轨道，把中间的正文卡片挤窄；
   滚动高亮到该条目时，`.is-active` 加粗改变文字宽度，列宽跟着变，表现为左右抖动。
   三栏改为 `minmax(0, 2fr) minmax(0, 8fr) minmax(0, 2fr)`，并给 `#board` 与 `.sidebar`
   补上 `min-width: 0` —— 轨道宽度只由 fr 决定，长标题在栏内以省略号截断。
+
+### Changed
+
+- `astro.config.mjs` 的 `site` 指向示例站 `https://astro-theme-flux.pages.dev`（Cloudflare Pages）。
+  RSS、sitemap、canonical、OG 从此输出正确的绝对地址。
+- 新增 `/robots.txt`：由 `site` 现算，带 sitemap 地址，域名只维护一处。
+- 新增 `public/_headers`：Cloudflare Pages 的缓存策略 —— `_astro/*` 带 hash 永久缓存，
+  HTML 每次回源校验，图片 30 天，RSS 与搜索索引 1 小时。
+- README 顶部加在线预览入口，并说明 fork 后要改 `site`。
 
 ## [1.1.0] - 2026-10-25
 
@@ -67,6 +78,7 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/capzk/astro-theme-flux/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/capzk/astro-theme-flux/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/capzk/astro-theme-flux/releases/tag/v1.0.0

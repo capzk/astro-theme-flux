@@ -13,8 +13,10 @@ import { codeChrome, codeToolbar, headingAnchors, linkTargets } from './src/plug
  * @see https://docs.astro.build/zh-cn/reference/configuration-reference/
  */
 export default defineConfig({
-  // ⚠️ 部署前换成你自己的域名（RSS / sitemap / canonical / OG 都靠它）
-  site: 'https://example.com',
+  /* 本站（主题的示例站）部署在 Cloudflare Pages。
+     RSS / sitemap / canonical / OG 里的绝对地址都取自这里 ——
+     fork 之后第一件事就是把它改成你自己的域名，否则分享出去的链接会指向这里。 */
+  site: 'https://astro-theme-flux.pages.dev',
 
   /* 与 Hexo 版一致：/posts/hello/ 带尾斜杠、目录式输出，旧链接不会 404 */
   trailingSlash: 'always',

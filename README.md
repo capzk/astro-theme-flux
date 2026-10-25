@@ -6,6 +6,8 @@
 
 > A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC.
 
+**在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
+
 > [!NOTE]
 > **关于这个项目**
 > Flux 完全由 **AI 迁移并编写**（从 hexo-theme-fluid 移植到 Astro），主要目的是作者自用。
@@ -74,7 +76,9 @@ fork 之后整批删掉即可，不影响任何功能。
 
 几乎全部在 **`src/config.ts`** 一个文件里：站名、副标题、头像、菜单、banner（图 / 高度 / 蒙版 / 标语）、文章页 banner、首页卡片（默认封面 / 摘要长度 / meta 开关）、文章 meta（作者 / 日期 / 字数 / 阅读时长）、目录、文末版权、上下篇、深色模式默认值、配色（顶栏 / 页面底 / 卡片底 / 强调色）、每页条数、搜索开关。
 
-上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS 与 sitemap 里的绝对地址。
+上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS、sitemap、canonical 与 OG 里的绝对地址。本仓库里它填的是示例站的地址（`https://astro-theme-flux.pages.dev`），fork 之后第一件事就是换成你自己的域名 —— 忘了换，分享出去的链接会指向示例站。
+
+`/robots.txt` 是从 `site` 现算出来的（`src/pages/robots.txt.ts`），不需要另外维护；`public/_headers` 是 Cloudflare Pages 的缓存策略，用别的平台会忽略它。
 
 配色除了可以在 `config.ts` 覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
 

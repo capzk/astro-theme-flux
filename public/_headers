@@ -1,0 +1,27 @@
+# Cloudflare Pages 的响应头配置
+# ---------------------------------------------------------------------------
+# 只做两件事：给带 hash 的静态资源长缓存，给 HTML 短缓存。
+# 别的平台（Vercel / Netlify / nginx）会忽略这个文件，不会造成影响。
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Astro 产出的 CSS / JS / 字体，文件名带内容 hash，可以永久缓存
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# 图片与 favicon
+/img/*
+  Cache-Control: public, max-age=2592000
+
+/favicon.svg
+  Cache-Control: public, max-age=2592000
+
+# 索引类文件，让搜索引擎尽快看到新文章
+/rss.xml
+  Cache-Control: public, max-age=3600
+
+/searchindex.json
+  Cache-Control: public, max-age=3600
