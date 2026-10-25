@@ -32,6 +32,20 @@ const {
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
 const path = Astro.url.pathname;
+
+/**
+ * config.ts 的 color 段 → 覆盖 main.css 里亮色那组变量。
+ * 只作用于亮色：暗色那套留在 main.css 的 [data-user-color-scheme="dark"] 里，
+ * 这里若无条件写 :root 会把暗色一起盖掉。想连暗色改，去改 main.css 的变量。
+ * 选择器用 html:root:not(...) 是为了稳定赢过 main.css 的 :root（特异性 0,2,1 > 0,1,0），
+ * 免得和样式表的注入顺序赛跑。
+ */
+const colorVars =
+  `html:root:not([data-user-color-scheme='dark']){` +
+  `--navbar-bg-color:${SITE.color.navbar};` +
+  `--body-bg-color:${SITE.color.bodyBg};` +
+  `--board-bg-color:${SITE.color.board};` +
+  `--link-hover-color:${SITE.color.accent};}`;
 ---
 
 <!doctype html>
@@ -45,6 +59,9 @@ const path = Astro.url.pathname;
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+
+    <!-- 配色来自 config.ts 的 color 段，只覆盖亮色（见 frontmatter 里的说明） -->
+    <style is:inline set:html={colorVars} />
 
     <!-- Open Graph / Twitter -->
     <meta property="og:type" content={ogType} />

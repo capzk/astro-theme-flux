@@ -2,14 +2,16 @@
  * Flux · 交互脚本
  * ---------------------------------------------------------------------------
  * 原版这些行为散在 boot.js / color-schema.js / events.js / plugins.js 里，还依赖
- * jQuery + tocbot + clipboard.js + nprogress。这里合成一个原生模块，四件事：
+ * jQuery + tocbot + clipboard.js + nprogress。这里合成一个原生模块：
  *
  *   1. 顶栏：首页透明 → 滚动变实色
  *   2. 深色模式：切换并写入 localStorage（首帧恢复在 BaseLayout 的内联脚本里）
- *   3. 目录：跟随滚动高亮当前小节（IntersectionObserver 替代 tocbot）
- *   4. 代码块复制 / 回到顶部 / 移动端菜单
+ *   3. 移动端菜单
+ *   4. 目录：滚动高亮当前章节（目录 HTML 是构建期渲染的，这里只管高亮）
+ *   5. 代码块复制
+ *   6. 回到顶部
  *
- * 全部可选增强：脚本没加载时页面依然完整可读（导航是普通链接、目录是普通锚点）。
+ * 全部可选增强：脚本没加载时页面依然完整可读（导航是普通链接、正文是普通文本）。
  */
 
 /* ---------- 1. 顶栏 ---------- */
@@ -83,50 +85,72 @@ function initMobileMenu() {
   });
 }
 
-/* ---------- 4. 目录跟随高亮 ---------- */
+/* ---------- 5. 目录滚动高亮 ---------- */
 function initToc() {
-  const links = [...document.querySelectorAll('.toc-link')];
+  const links = Array.from(document.querySelectorAll('.toc-link'));
   if (!links.length) return;
 
-  const map = new Map();
+  /* 只保留能在正文里找到目标的链接，找不到的（锚点被插件改过）不参与高亮 */
+  const items = [];
   for (const link of links) {
-    const id = decodeURIComponent(link.hash.slice(1));
-    const el = document.getElementById(id);
-    if (el) map.set(el, link);
+    let id = link.hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      /* hash 里有非法转义就按原样找 */
+    }
+    const target = document.getElementById(id);
+    if (target) items.push({ link, target });
   }
-  if (!map.size) return;
+  if (!items.length) return;
 
+  /* 判定线：标题越过视口顶部这条线就算「当前章节」。
+     与 .markdown-body 标题的 scroll-margin-top(5rem) 呼应，略低一点。 */
+  const LINE = 100;
   let active = null;
+  let ticking = false;
+
   const setActive = (link) => {
     if (link === active) return;
-    if (active) active.classList.remove('is-active');
+    if (active) {
+      active.classList.remove('is-active');
+      active.removeAttribute('aria-current');
+    }
     active = link;
-    if (link) link.classList.add('is-active');
+    if (active) {
+      active.classList.add('is-active');
+      active.setAttribute('aria-current', 'location');
+    }
   };
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      /* 取「已进入视口且最靠上」的那个标题 */
-      const visible = entries
-        .filter((e) => e.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (visible.length) {
-        setActive(map.get(visible[0].target) ?? null);
-        return;
+  const sync = () => {
+    ticking = false;
+    /* 从后往前找「已经越过判定线的最后一个标题」。
+       比 IntersectionObserver 稳：滚到页面底部时最后一个章节也能被选中。 */
+    let current = items[0].link;
+    for (let i = items.length - 1; i >= 0; i--) {
+      if (items[i].target.getBoundingClientRect().top - LINE <= 0) {
+        current = items[i].link;
+        break;
       }
-      /* 都离开视口时，回退到「最后一个已经划过顶部的标题」 */
-      const passed = [...map.keys()]
-        .filter((el) => el.getBoundingClientRect().top < 120)
-        .pop();
-      if (passed) setActive(map.get(passed) ?? null);
-    },
-    { rootMargin: '-80px 0px -60% 0px', threshold: [0, 1] },
-  );
+    }
+    setActive(current);
+  };
 
-  for (const el of map.keys()) observer.observe(el);
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(sync);
+    },
+    { passive: true },
+  );
+  window.addEventListener('resize', sync, { passive: true });
+  sync();
 }
 
-/* ---------- 5. 代码复制 ---------- */
+/* ---------- 6. 代码复制 ---------- */
 function initCodeCopy() {
   const buttons = document.querySelectorAll('.code-copy');
   if (!buttons.length) return;
@@ -172,7 +196,7 @@ function initCodeCopy() {
   }
 }
 
-/* ---------- 6. 回到顶部 ---------- */
+/* ---------- 7. 回到顶部 ---------- */
 function initScrollTop() {
   const btn = document.getElementById('scroll-top');
   if (!btn) return;
@@ -185,9 +209,76 @@ function initScrollTop() {
   });
 }
 
+/* ---------- 8. 正文图片放大 ---------- */
+function initImageZoom() {
+  const body = document.querySelector('.markdown-body');
+  if (!body) return;
+
+  /* 只接管「没有被链接包着」的图片；带链接的图保持原来的跳转行为 */
+  const isZoomable = (img) => !img.closest('a');
+
+  let overlay = null;
+  let closeBtn = null;
+  let bigImg = null;
+  let opener = null;
+
+  const close = () => {
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('is-locked');
+    if (opener && typeof opener.focus === 'function') {
+      opener.focus({ preventScroll: true });
+    }
+  };
+
+  const open = (img) => {
+    /* 遮罩第一次用到时才建，避免每个页面都背一份无用的 DOM */
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'img-zoom';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.innerHTML =
+        '<button type="button" class="img-zoom-close" aria-label="关闭">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+        'stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+        '</button><img alt="">';
+      document.body.appendChild(overlay);
+
+      closeBtn = overlay.querySelector('.img-zoom-close');
+      bigImg = overlay.querySelector('img');
+      closeBtn.addEventListener('click', close);
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+      });
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && overlay.classList.contains('is-open')) close();
+      });
+    }
+
+    bigImg.src = img.currentSrc || img.src;
+    bigImg.alt = img.alt || '';
+    opener = img;
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('is-locked');
+    closeBtn.focus({ preventScroll: true });
+  };
+
+  body.addEventListener('click', (e) => {
+    const img = e.target.closest('img');
+    if (!img || !body.contains(img) || !isZoomable(img)) return;
+    e.preventDefault();
+    open(img);
+  });
+}
+
 initNavbar();
 initTheme();
 initMobileMenu();
 initToc();
 initCodeCopy();
 initScrollTop();
+initImageZoom();

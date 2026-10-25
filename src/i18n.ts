@@ -31,6 +31,7 @@ export const T = {
   nextPost: '下一篇',
   copyrightHeading: '版权声明',
   copyrightAuthor: '本文作者',
+  copyrightDate: '发布于',
   copyrightLink: '本文链接',
   copyrightLicense: '版权协议',
   copyrightLicenseValue: 'CC BY-NC-SA 4.0',

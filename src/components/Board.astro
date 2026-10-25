@@ -4,19 +4,31 @@
  *
  * 原版的 #board 是那张「叠在 banner 上、带大阴影的白卡片」—— 整个主题的
  * 视觉锚点。宽屏居中 820px，内部左右留白由 .board-inner 控制。
+ *
+ * 文章页的三栏结构对应原版 post.ejs 的 Bootstrap 栅格：
+ *   col-lg-2（空）｜col-lg-8（卡片）｜col-lg-2（右侧目录）
+ * 这里用 grid 复刻同一件事 —— 卡片永远在中间列，右列的目录不会挤压正文。
  */
 interface Props {
-  /** 文章页用更宽的版式（正文 + 目录），列表页用窄版 */
+  /** 去掉 .board-inner 的 820px 限制，内容铺满整张卡片 */
   wide?: boolean;
+  /**
+   * 三栏版式：左右各留一条等宽栏，中间内容列定宽。
+   * 第 3 列给右侧内容（目前是目录），通过 `aside` 具名插槽放进去。
+   */
+  rails?: boolean;
 }
 
-const { wide = false } = Astro.props;
+const { wide = false, rails = false } = Astro.props;
 ---
 
 <section class="board-wrap">
   <div class="container">
-    <div id="board">
-      {wide ? <slot /> : <div class="board-inner"><slot /></div>}
+    <div class:list={['board-shell', { 'has-rails': rails }]}>
+      <div id="board">
+        {wide ? <slot /> : <div class="board-inner"><slot /></div>}
+      </div>
+      {rails && Astro.slots.has('aside') && <slot name="aside" />}
     </div>
   </div>
 </section>

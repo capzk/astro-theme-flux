@@ -1,30 +1,50 @@
 ---
 /**
- * Toc —— 文章右侧目录（递归）
+ * Toc —— 文章右侧目录
  *
- * 结构在构建期生成，滚动高亮由 src/scripts/theme.js 里的 IntersectionObserver 负责。
- * 原版用 tocbot（+ jQuery），这里零依赖。
+ * 对应原版 `layout/_partials/post/toc.ejs` + `source/css/_pages/_base/_widget/toc.styl`。
+ *
+ * 原版用 tocbot 在浏览器里扫描 `.markdown-body` 的 h2~h6 现场生成目录；这里是
+ * 构建期就把 Astro 的 `headings` 渲染成静态列表 —— 无运行时依赖、无闪白，
+ * 首屏就有目录，剩下的滚动高亮交给 theme.js。
+ *
+ * 层级不用嵌套 <ol>，而是给每项打 `data-depth`，靠 CSS 缩进：
+ * 视觉与原版的逐级 padding 一致，但滚动高亮时是一个扁平数组，遍历更快。
  */
-import type { TocNode } from '../utils/toc';
+import Icon from './Icon.astro';
+import { T } from '../i18n';
 
-interface Props {
-  items: TocNode[];
-  /** 当前嵌套深度，用于缩进 */
-  depth?: number;
+interface TocItem {
+  depth: number;
+  slug: string;
+  text: string;
 }
 
-const { items, depth = 0 } = Astro.props;
+interface Props {
+  items: TocItem[];
+}
+
+const { items } = Astro.props;
 ---
 
-<ul class="toc-list" data-depth={depth}>
-  {
-    items.map((node) => (
-      <li>
-        <a class="toc-link" href={`#${node.slug}`} data-toc-depth={node.depth}>
-          {node.text}
-        </a>
-        {node.children.length > 0 && <Astro.self items={node.children} depth={depth + 1} />}
-      </li>
-    ))
-  }
-</ul>
+<aside class="sidebar">
+  <div id="toc">
+    <p class="toc-header">
+      <Icon name="list" />
+      <span>{T.toc}</span>
+    </p>
+    <div class="toc-body" id="toc-body">
+      <ol class="toc-list">
+        {
+          items.map((item) => (
+            <li class="toc-item" data-depth={item.depth}>
+              <a class="toc-link" href={`#${item.slug}`}>
+                {item.text}
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </div>
+</aside>

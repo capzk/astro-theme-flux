@@ -28,8 +28,8 @@ const posts = defineCollection({
       /** 置顶（原版 `sticky: true`） */
       sticky: z.boolean().default(false),
       draft: z.boolean().default(false),
-      /** 右侧目录 */
-      toc: z.boolean().default(true),
+      /** 单篇覆盖「右侧目录」开关；不写则跟随 config.ts 的 post.toc */
+      toc: z.boolean().optional(),
       /** 单篇覆盖 banner 图（根路径或完整 URL） */
       bannerImg: z.string().optional(),
       /** 单篇覆盖 banner 遮罩透明度 */

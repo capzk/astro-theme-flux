@@ -159,7 +159,8 @@ table {
 
 .container {
   width: 100%;
-  max-width: 1120px;
+  /* 原版用 Bootstrap 的 .container，≥1200 时 max-width 1140 */
+  max-width: 1140px;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -368,7 +369,8 @@ table {
 
 .banner-title {
   margin: 0;
-  font-size: 3rem;
+  /* 原版 banner 标题用的是 Bootstrap 的 .h2，也就是 2rem */
+  font-size: 2rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   line-height: 1.3;
@@ -385,25 +387,51 @@ table {
   animation: banner-fade-up 0.8s 0.12s ease both;
 }
 
-/* 底部滚动提示箭头 */
-.scroll-down-bar {
-  position: absolute;
-  left: 50%;
-  bottom: 1.5rem;
-  transform: translateX(-50%);
-  z-index: 2;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
+/* 标题下方的元信息：一个 .banner-metas 是一行，行内是若干 .banner-meta。
+   原版文章页就是「日期」一行、「字数 + 阅读时长」一行。 */
+.banner-metas {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
+  gap: 0.25rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  opacity: 0.92;
+  animation: banner-fade-up 0.8s 0.18s ease both;
+}
+.banner-metas + .banner-metas {
+  margin-top: 0.25rem;
+  animation-delay: 0.26s;
+}
+.banner-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.banner-meta .icon {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+/* 底部滚动提示：原版是一整条 6rem 高、贴满底边的可点区域，
+   图标 2rem、上内边距 2rem、1.5s 无限上下跳动（没有圆形底） */
+.scroll-down-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 6rem;
+  text-align: center;
   color: var(--subtitle-color);
-  background-color: rgba(255, 255, 255, 0.14);
-  animation: scroll-hint 1.8s ease-in-out infinite;
 }
 .scroll-down-bar .icon {
-  font-size: 1rem;
+  display: inline-block;
+  position: relative;
+  padding-top: 2rem;
+  font-size: 2rem;
+  animation: scroll-down 1.5s infinite;
 }
 
 @keyframes banner-fade-up {
@@ -417,13 +445,15 @@ table {
   }
 }
 
-@keyframes scroll-hint {
+@keyframes scroll-down {
   0%,
   100% {
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+    opacity: 0.65;
   }
   50% {
-    transform: translate(-50%, 6px);
+    transform: translateY(0.6rem);
+    opacity: 1;
   }
 }
 
@@ -444,24 +474,143 @@ table {
   transition: background-color 0.2s ease-in-out;
 }
 
+/* 卡片内部左右留白：照原版 .post-content 的 10%（窄屏退回固定值，
+   否则手机上正文会被挤成一条） */
 .board-inner {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 10%;
+}
+@media (max-width: 767px) {
+  .board-inner {
+    padding: 0 2rem;
+  }
+}
+@media (max-width: 424px) {
+  .board-inner {
+    padding: 0 1rem;
+  }
 }
 
-/* 文章页：正文 + 右侧目录 */
-.post-layout {
+/* 文章页：三栏式布局
+   对应原版 post.ejs 的 Bootstrap 栅格 col-lg-2 / col-lg-8 / col-lg-2，也就是 2/8/2 共 12 份。
+   直接按份数写，卡片宽度自然跟着视口走，与原版一致：
+     1920 → 中列 1280、卡片封顶 1108、目录列 320
+     1440 → 中列  960、卡片  960、目录列 240
+     1200 → 中列  800、卡片  800、目录列 200
+   卡片封顶 1108 = 原版 .container 的 1140 减掉左右各 1rem 内边距。 */
+.board-shell.has-rails {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
-  gap: 2.5rem;
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 2rem;
+  grid-template-columns: 2fr 8fr 2fr;
+  align-items: start;
 }
-.post-layout.no-toc {
-  grid-template-columns: minmax(0, 1fr);
-  max-width: 900px;
+.board-shell.has-rails > #board {
+  grid-column: 2;
+  width: 100%;
+  max-width: 1108px;
+  justify-self: center;
+}
+/* 原版这一层是 container-fluid（全宽），栅格按视口百分比铺开，不设上限 */
+.container:has(> .board-shell.has-rails) {
+  max-width: none;
+  padding: 0;
+}
+
+/* 右侧目录栏（原版 .sidebar：sticky，top 2rem + 自身 3rem 上内边距，
+   滚动后目录顶部正好落在固定顶栏下方，并与卡片正文首行对齐） */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  padding: 3rem 0;
+}
+.board-shell.has-rails > .sidebar {
+  grid-column: 3;
+  justify-self: start;
+  width: 100%;
+  /* 列宽本身已是视口的 2/12（约 320/240/200），右侧留 2rem 就是原版
+     「col 的 15px 内边距」那个量级，再靠 -1rem 往卡片方向贴近一点 */
+  padding-right: 2rem;
+  margin-left: -1rem;
+}
+
+#toc {
+  min-width: 0;
+}
+.toc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-color);
+}
+.toc-header .icon {
+  font-size: 1.25rem;
+}
+/* 目录过长时栏内滚动，滚动条隐藏（原版同样处理） */
+.toc-body {
+  max-height: 75vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.toc-body::-webkit-scrollbar {
+  display: none;
+}
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-item {
+  padding: 0.05rem 0;
+}
+.toc-link {
+  position: relative;
+  display: block;
+  padding-left: 0.85rem;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+/* 当前章节左侧的小竖条：默认 0.2rem 高且透明，激活时拉长到 1rem */
+.toc-link::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 50%;
+  width: 0.15rem;
+  height: 0.2rem;
+  margin-top: -0.1rem;
+  border-radius: 2px;
+  background-color: var(--link-hover-color);
+  opacity: 0;
+  transition: height 0.15s ease, margin-top 0.15s ease, opacity 0.15s ease;
+}
+/* 三级及以下：缩进一级、字号降一档（原版 ol ol a 的 0.85rem） */
+.toc-item[data-depth="3"] .toc-link {
+  padding-left: 1.85rem;
+  font-size: 0.85rem;
+}
+.toc-item[data-depth="4"] .toc-link {
+  padding-left: 2.85rem;
+  font-size: 0.85rem;
+}
+.toc-link:hover {
+  color: var(--link-hover-color);
+}
+.toc-link.is-active {
+  color: var(--link-hover-color);
+  font-weight: 700;
+}
+.toc-link.is-active::before {
+  height: 1rem;
+  margin-top: -0.5rem;
+  opacity: 1;
 }
 
 /* ---------- 7. 首页卡片 ---------- */
@@ -508,8 +657,8 @@ table {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding-top: 0.25rem;
-  padding-bottom: 0.25rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .index-header {
@@ -547,15 +696,17 @@ table {
   transform: translateY(-1px);
 }
 
+/* 摘要固定三行高度：原版用 calc(1.4rem * 3) 撑住，卡片高度才整齐 */
 .index-excerpt {
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  height: calc(1.4rem * 3);
   margin: 0.5rem 0;
   color: var(--sec-text-color);
   line-height: 1.4rem;
-  font-size: 0.94rem;
+  font-size: 1rem;
 }
 .index-excerpt:hover {
   color: var(--sec-text-color);
@@ -567,7 +718,7 @@ table {
   align-items: center;
   gap: 0.2rem 1rem;
   color: var(--sec-text-color);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 .index-btm a {
   color: var(--sec-text-color);
@@ -580,45 +731,51 @@ table {
   align-items: center;
   gap: 0.3rem;
   color: var(--sec-text-color);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 .post-meta .icon {
   font-size: 0.9em;
   opacity: 0.85;
 }
+/* 「本文最后更新于」—— 卡片里的第一行 */
+.post-meta-updated {
+  margin: 0 0 16px;
+}
 
 /* ---------- 8. 文章页 ---------- */
-.post-header {
-  margin-bottom: 1.5rem;
+/* 卡片里的 h1 只服务 SEO 与打印（对应原版 #seo-header）。
+   正常浏览时隐藏，标题只在 banner 上出现一次。 */
+#seo-header {
+  display: none;
+}
+@media print {
+  #seo-header {
+    display: block;
+    margin: 0 0 0.75em;
+    font-size: 2em;
+    line-height: 1.25;
+    color: var(--post-heading-color);
+    border-bottom: 1px solid var(--line-color);
+    padding-bottom: 0.3em;
+  }
 }
 
-.post-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.9rem;
-  font-weight: 700;
-  line-height: 1.35;
-  color: var(--post-heading-color);
-}
-
-.post-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  margin-bottom: 0.25rem;
-}
-
-/* 正文排版 */
+/* 正文排版
+   数值取自原版：font-size / line-height 是 Fluid 对 github-markdown-css 的覆盖
+   （1rem / 1.6），其余 margin、padding、字号是 github-markdown-css 4.0.0 的原值
+   （16px 基准）。标题的 2em / .75em 是相对标题自身字号，所以 h1 的留白比 h2 大。 */
 .markdown-body {
   color: var(--post-text-color);
   font-size: 1rem;
-  line-height: 1.8;
+  line-height: 1.6;
   overflow-wrap: break-word;
+  margin-bottom: 2rem;
 }
 .markdown-body > *:first-child {
   margin-top: 0;
 }
 .markdown-body p {
-  margin: 0 0 1.25rem;
+  margin: 0 0 16px;
 }
 .markdown-body h1,
 .markdown-body h2,
@@ -627,25 +784,45 @@ table {
 .markdown-body h5,
 .markdown-body h6 {
   position: relative;
-  margin: 2rem 0 1rem;
+  margin: 2em 0 0.75em;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.25;
   color: var(--post-heading-color);
   scroll-margin-top: 5rem;
 }
 .markdown-body h1 {
-  font-size: 1.75rem;
+  font-size: 2em;
 }
+.markdown-body h1,
 .markdown-body h2 {
-  font-size: 1.5rem;
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.3em;
   border-bottom: 1px solid var(--line-color);
 }
+.markdown-body h2 {
+  font-size: 1.5em;
+}
 .markdown-body h3 {
-  font-size: 1.25rem;
+  font-size: 1.25em;
 }
 .markdown-body h4 {
-  font-size: 1.1rem;
+  font-size: 1em;
+}
+.markdown-body h5 {
+  font-size: 0.875em;
+}
+.markdown-body h6 {
+  font-size: 0.85em;
+}
+/* 标题里的行内代码不带底色，免得标题被切成一块块灰条 */
+.markdown-body h1 code,
+.markdown-body h2 code,
+.markdown-body h3 code,
+.markdown-body h4 code,
+.markdown-body h5 code,
+.markdown-body h6 code {
+  padding: 0;
+  background: none;
+  font-size: 0.9em;
 }
 .markdown-body a {
   color: var(--post-text-color);
@@ -653,69 +830,111 @@ table {
 }
 .markdown-body a:hover {
   color: var(--link-hover-color);
+  border-bottom-color: var(--link-hover-color);
 }
 .markdown-body strong {
   font-weight: 700;
 }
 .markdown-body ul,
 .markdown-body ol {
-  margin: 0 0 1.25rem;
-  padding-left: 1.6rem;
+  margin: 0 0 16px;
+  padding-left: 2em;
 }
 .markdown-body li {
-  margin: 0.35rem 0;
+  margin: 0;
+}
+.markdown-body li + li {
+  margin-top: 0.25em;
 }
 .markdown-body li > ul,
 .markdown-body li > ol {
-  margin: 0.35rem 0;
+  margin: 0;
 }
+/* 任务列表：复选框顶替掉原来的项目符号 */
+.markdown-body li.task-list-item {
+  list-style: none;
+}
+.markdown-body input[type="checkbox"] {
+  margin: 0 0.4em 0 -1.2em;
+  vertical-align: middle;
+}
+/* 原版引用块只有左边框和灰字，没有底色和圆角 */
 .markdown-body blockquote {
-  margin: 0 0 1.25rem;
-  padding: 0.75rem 1rem;
+  margin: 0 0 16px;
+  padding: 0 1em;
   color: var(--sec-text-color);
-  border-left: 4px solid var(--link-hover-color);
-  background-color: var(--button-bg-color);
-  border-radius: 0 0.25rem 0.25rem 0;
+  border-left: 0.25em solid var(--link-hover-color);
+}
+.markdown-body blockquote > :first-child {
+  margin-top: 0;
 }
 .markdown-body blockquote > :last-child {
   margin-bottom: 0;
 }
 .markdown-body hr {
-  height: 1px;
+  height: 0;
   border: 0;
+  border-top: 1px solid var(--line-color);
   margin: 2rem 0;
-  background-color: var(--line-color);
 }
 .markdown-body img {
   max-width: 100%;
   object-fit: cover;
-  border-radius: 0.25rem;
+}
+/* 正文里的插图：原版是 90% 宽、居中、上下 1.5rem 留白、4px 圆角。
+   只约束「独占一段 / 独占 figure」的图，行内小图（徽章之类）不受影响。 */
+.markdown-body p > img,
+.markdown-body p > a > img,
+.markdown-body figure > img,
+.markdown-body figure > a > img {
+  display: block;
+  max-width: 90%;
+  margin: 1.5rem auto;
+  border-radius: 4px;
   box-shadow: var(--img-shadow);
-  margin: 0.5rem 0;
+}
+/* 这类图能被灯箱接管（没有被 <a> 包着），给个放大光标做提示 */
+.markdown-body p > img,
+.markdown-body figure > img {
+  cursor: zoom-in;
+}
+.markdown-body video,
+.markdown-body iframe {
+  display: block;
+  max-width: 100%;
+  margin: 1.5rem auto;
+  border: 0;
+  border-radius: 4px;
 }
 .markdown-body code {
   font-family: var(--font-family-monospace);
   font-size: 85%;
-  padding: 0.15em 0.4em;
-  border-radius: 0.25rem;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
   background-color: var(--inlinecode-bg-color);
 }
+/* 等宽内容不吃全局的 letter-spacing：代码要对齐，字距必须回到 0 */
+.markdown-body code,
+.markdown-body pre,
+.markdown-body kbd {
+  letter-spacing: normal;
+}
+/* 原版表格没有表头底色、也没有斑马纹，只有 1px 边框 */
 .markdown-body table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 0 0 1.25rem;
-  font-size: 0.94rem;
   display: block;
   overflow-x: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0 0 16px;
 }
 .markdown-body th,
 .markdown-body td {
-  padding: 0.5rem 0.75rem;
+  padding: 6px 13px;
   border: 1px solid var(--line-color);
 }
 .markdown-body th {
-  font-weight: 700;
-  background-color: var(--button-bg-color);
+  font-weight: 600;
 }
 .markdown-body kbd {
   font-family: var(--font-family-monospace);
@@ -725,6 +944,174 @@ table {
   border-bottom-width: 2px;
   border-radius: 0.25rem;
   background-color: var(--button-bg-color);
+}
+
+/* 低频但合法的元素：补齐样式，避免落到浏览器默认值上出戏 */
+.markdown-body del,
+.markdown-body s {
+  color: var(--sec-text-color);
+}
+.markdown-body mark {
+  padding: 0.1em 0.25em;
+  border-radius: 0.2rem;
+  background-color: rgba(48, 169, 222, 0.18);
+  color: var(--post-heading-color);
+}
+.markdown-body sup,
+.markdown-body sub {
+  position: relative;
+  font-size: 75%;
+  line-height: 0;
+  vertical-align: baseline;
+}
+.markdown-body sup {
+  top: -0.5em;
+}
+.markdown-body sub {
+  bottom: -0.25em;
+}
+/* 代码块本身也是 figure.highlight，这里要排除，别把它的间距改掉 */
+.markdown-body figure:not(.highlight) {
+  margin: 1.5rem 0;
+}
+/* 图注：原版 .image-caption 是 0.8rem、opacity .65、贴着图往下 0.75rem */
+.markdown-body figcaption {
+  margin: -0.75rem auto 2rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--post-text-color);
+  opacity: 0.65;
+  text-align: center;
+}
+.markdown-body dl {
+  margin: 0 0 16px;
+  padding: 0;
+}
+.markdown-body dt {
+  margin-top: 16px;
+  font-size: 1em;
+  font-weight: 600;
+  font-style: italic;
+}
+.markdown-body dd {
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+.markdown-body details {
+  margin: 0 0 16px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-color);
+  border-radius: 0.375rem;
+  background-color: var(--button-bg-color);
+  cursor: pointer;
+}
+.markdown-body summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--post-heading-color);
+  outline: none;
+}
+.markdown-body details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+/* ---------- 语义提示块 ----------
+   对应原版 Hexo 的 {% note %} 标签。Markdown 里直接写
+   <div class="note note-success">…</div> 就行，纯 CSS、无脚本。 */
+.note {
+  margin: 1.5rem 0;
+  padding: 0.75rem;
+  border-left: 0.35rem solid;
+  border-radius: 0.25rem;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+.note a {
+  color: var(--text-color);
+}
+.note > :last-child {
+  margin-bottom: 0;
+}
+.note-default,
+.note-secondary {
+  background-color: rgba(187, 187, 187, 0.25);
+  border-color: #777;
+}
+.note-primary {
+  background-color: rgba(183, 160, 224, 0.25);
+  border-color: #6f42c1;
+}
+.note-success {
+  background-color: rgba(174, 220, 174, 0.25);
+  border-color: #5cb85c;
+}
+.note-danger {
+  background-color: rgba(236, 169, 167, 0.25);
+  border-color: #d9534f;
+}
+.note-warning {
+  background-color: rgba(248, 214, 166, 0.25);
+  border-color: #f0ad4e;
+}
+.note-info {
+  background-color: rgba(160, 197, 228, 0.25);
+  border-color: #428bca;
+}
+.note-light {
+  background-color: rgba(254, 254, 254, 0.25);
+  border-color: #0f0f0f;
+}
+
+/* ---------- 脚注 ----------
+   Markdown 里写 [^1] 即可，处理器会生成 <sup> 角标 + 文末 section.footnotes。
+   原版 .footnote-list 的编号样式是 [1]、[2]，这里用计数器还原。 */
+.markdown-body sup a {
+  padding: 0 0.1em;
+  color: var(--link-hover-color);
+  border-bottom: 0;
+  scroll-margin-top: 5rem;
+}
+.markdown-body .footnotes {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line-color);
+  font-size: 0.95rem;
+  color: var(--sec-text-color);
+}
+/* 生成器附带的英文标题（Footnotes），视觉上不需要 */
+.markdown-body .footnotes > h2 {
+  display: none;
+}
+.markdown-body .footnotes ol {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: footnote;
+}
+.markdown-body .footnotes li {
+  position: relative;
+  counter-increment: footnote;
+  padding-left: 1.7rem;
+  margin: 0;
+  scroll-margin-top: 5rem;
+}
+.markdown-body .footnotes li::before {
+  content: "[" counter(footnote) "]";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-family-monospace);
+}
+.markdown-body .footnotes li + li {
+  margin-top: 0.5rem;
+}
+.markdown-body .footnotes li p {
+  margin-bottom: 0;
+}
+.markdown-body .footnote-backref {
+  margin-left: 0.25rem;
+  color: var(--link-hover-color);
+  border-bottom: 0;
 }
 
 /* 标题锚点：悬停才出现的小 # */
@@ -751,19 +1138,20 @@ table {
 /* ---------- 9. 代码块（figure.highlight） ---------- */
 .highlight {
   position: relative;
-  margin: 0 0 1.5rem;
-  border-radius: 0.375rem;
-  border: 1px solid var(--line-color);
+  margin: 0 0 1rem;
+  border-radius: 4px;
   background-color: var(--highlight-bg-color);
   overflow: hidden;
 }
+/* 原版 .highlight pre 是 padding 1.45rem 1rem、line-height 1.5、字号 85%；
+   这里上内边距留到 2.4rem，给顶部那条工具挡出位置。 */
 .highlight pre {
   margin: 0;
-  padding: 2.4rem 1rem 1rem;
+  padding: 2.4rem 1rem 1.45rem;
   overflow-x: auto;
   font-family: var(--font-family-monospace);
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: 0.85rem;
+  line-height: 1.5;
   background: transparent !important;
   tab-size: 2;
 }
@@ -774,31 +1162,55 @@ table {
   background: none;
 }
 
-/* 左上角语言标签：用 attr() 画，不进 textContent */
-.code-lang {
+/* 行号：Shiki 每行本来就是一个 <span class="line">，用 CSS 计数器画序号即可。
+   ::before 的内容不进入 innerText，所以复制代码不会把行号带出去。 */
+.highlight pre {
+  counter-reset: code-line;
+}
+.highlight .line {
+  counter-increment: code-line;
+}
+.highlight .line::before {
+  content: counter(code-line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-right: 0.75rem;
+  text-align: right;
+  color: var(--sec-text-color);
+  opacity: 0.45;
+  user-select: none;
+}
+
+/* 工具栏：横跨代码块顶部一条，语言名靠左、复制按钮靠右，互不侵占 */
+.code-toolbar {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 0.35rem 0.7rem;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem 0;
+  /* 整条不挡鼠标，只有按钮自己可点 */
+  pointer-events: none;
+}
+/* 语言名：不进 textContent，复制代码时带不上 */
+.code-lang {
   font-family: var(--font-family-monospace);
   font-size: 0.72rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sec-text-color);
-  pointer-events: none;
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-
-/* 右上角复制按钮：hover 代码块才显形 */
-.code-toolbar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-}
+/* 复制按钮：hover 代码块才显形 */
 .code-copy {
+  pointer-events: auto;
   font-family: var(--font-family-monospace);
   font-size: 0.7rem;
   letter-spacing: 0.08em;
@@ -806,7 +1218,7 @@ table {
   background-color: var(--button-bg-color);
   border: 1px solid var(--line-color);
   border-radius: 0.25rem;
-  margin: 0.35rem 0.5rem 0 0;
+  margin: 0;
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   opacity: 0;
@@ -838,55 +1250,6 @@ table {
 [data-user-color-scheme="light"] .astro-code,
 [data-user-color-scheme="light"] .astro-code span {
   color: var(--shiki-light);
-}
-
-/* ---------- 10. 目录（右侧，跟随滚动） ---------- */
-.toc {
-  position: sticky;
-  top: 5.5rem;
-  align-self: start;
-  max-height: calc(100vh - 7rem);
-  overflow-y: auto;
-  padding-left: 1rem;
-  border-left: 1px solid var(--line-color);
-  font-size: 0.85rem;
-}
-.toc-header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.6rem;
-  color: var(--sec-text-color);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.toc-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.toc-list .toc-list {
-  padding-left: 0.85rem;
-}
-.toc-link {
-  display: block;
-  padding: 0.22rem 0.5rem;
-  border-radius: 0.25rem;
-  color: var(--sec-text-color);
-  border-left: 2px solid transparent;
-  line-height: 1.4;
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-}
-.toc-link:hover {
-  color: var(--link-hover-color);
-  background-color: var(--link-hover-bg-color);
-}
-.toc-link.is-active {
-  color: var(--link-hover-color);
-  border-left-color: var(--link-hover-color);
-  background-color: var(--link-hover-bg-color);
 }
 
 /* ---------- 11. 文末版权 / 上下篇 ---------- */
@@ -924,16 +1287,80 @@ table {
   background-color: var(--link-hover-color);
 }
 
-.copyright {
-  padding: 0.9rem 1rem;
-  border-radius: 0.375rem;
-  background-color: var(--button-bg-color);
-  color: var(--sec-text-color);
-  font-size: 0.85rem;
-  line-height: 1.7;
+/* 文末版权卡片（原版 .license-box）：灰底 4px 圆角，第一行标题、
+   第二行链接，下面一行「作者 / 发布于 / 许可协议」，右侧一枚半透明大水印 */
+.license-box {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 4px;
+  background-color: rgba(27, 31, 35, 0.05);
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease-in-out;
 }
-.copyright strong {
-  color: var(--post-text-color);
+.license-box .license-title {
+  margin-bottom: 1rem;
+}
+.license-box .license-title > div:nth-child(1) {
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+.license-box .license-title > div:nth-child(2) {
+  color: var(--sec-text-color);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.license-box .license-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+.license-box .license-meta .license-meta-item {
+  margin-right: 1.5rem;
+}
+.license-box .license-meta .license-meta-item > div:nth-child(1) {
+  color: var(--sec-text-color);
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+.license-box .license-meta .license-meta-date {
+  order: -1;
+}
+.license-box .license-icon {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+}
+.license-box .license-icon::after {
+  content: "©";
+  position: relative;
+  left: -0.85em;
+  bottom: 0.5em;
+  font-size: 12.5rem;
+  line-height: 1;
+  opacity: 0.1;
+  z-index: -1;
+}
+[data-user-color-scheme="dark"] .license-box {
+  background-color: rgba(62, 75, 94, 0.35);
+}
+@media (max-width: 424px) {
+  .license-box .license-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .license-box .license-meta .license-meta-item {
+    display: flex;
+    flex-wrap: wrap;
+    margin-right: 0;
+    font-size: 0.8rem;
+  }
+  .license-box .license-meta .license-meta-item > div:nth-child(1) {
+    margin-right: 0.5rem;
+  }
 }
 
 .post-prevnext {
@@ -1275,35 +1702,124 @@ table {
   font-size: 0.9rem;
 }
 
-/* ---------- 18. 回到顶部 ---------- */
+/* ---------- 18. 回到顶部 ----------
+   原版 #scroll-top-button：白卡片色、4px 圆角（不是圆）、40px 见方、
+   32px 灰图标、双层阴影，从底部滑入；悬停时图标上下浮动。 */
 #scroll-top {
   position: fixed;
   right: 1.25rem;
-  bottom: 1.25rem;
-  z-index: 1000;
-  width: 2.75rem;
-  height: 2.75rem;
+  bottom: -60px;
+  z-index: 99;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
   border: 0;
-  border-radius: 50%;
-  background-color: var(--navbar-bg-color);
-  color: var(--navbar-text-color);
-  box-shadow: var(--navbar-shadow);
+  border-radius: 4px;
+  background-color: var(--board-bg-color);
+  color: var(--sec-text-color);
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
   cursor: pointer;
-  opacity: 0;
-  transform: translateY(10px);
+  outline: none;
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-#scroll-top.is-visible {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
+  transition: background-color 0.2s ease-in-out, bottom 0.3s ease, color 0.2s ease-in-out;
 }
 #scroll-top .icon {
-  transform: rotate(-90deg);
+  font-size: 2rem;
+  margin: auto;
+}
+#scroll-top:hover {
+  color: var(--link-hover-color);
+}
+#scroll-top:hover .icon,
+#scroll-top:focus-visible .icon {
+  animation: scroll-top 1s ease-in-out infinite alternate;
+}
+#scroll-top.is-visible {
+  bottom: 1.25rem;
+  pointer-events: auto;
+}
+@keyframes scroll-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-0.35rem);
+  }
 }
 
-/* ---------- 19. 404 / 空状态 ---------- */
+/* ---------- 19. 正文图片灯箱 ----------
+   原版用 fancybox，这里自己写一份等效实现，不引第三方库。
+   点正文插图放大到全屏遮罩，ESC / 点遮罩 / 点按钮都能关。
+   只接管没有被 <a> 包着的图，带链接的图保持原来的跳转行为。 */
+.img-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  background-color: rgba(0, 0, 0, 0.86);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease-in-out, visibility 0.25s ease-in-out;
+}
+.img-zoom.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.img-zoom img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  cursor: zoom-out;
+  /* 打开时轻微放大一下，别硬切 */
+  transform: scale(0.96);
+  transition: transform 0.25s ease;
+}
+.img-zoom.is-open img {
+  transform: scale(1);
+}
+.img-zoom-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease-in-out;
+}
+.img-zoom-close svg {
+  width: 20px;
+  height: 20px;
+}
+.img-zoom-close:hover,
+.img-zoom-close:focus-visible {
+  background-color: rgba(255, 255, 255, 0.26);
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-zoom,
+  .img-zoom img {
+    transition: none;
+  }
+}
+
+/* ---------- 20. 404 / 空状态 ---------- */
 .empty-state {
   text-align: center;
   padding: 1rem 0;
@@ -1320,26 +1836,48 @@ table {
   margin: 0.5rem 0 1.5rem;
 }
 
-/* ---------- 20. 响应式 ---------- */
+/* ---------- 21. 响应式 ---------- */
+/* 三栏要装得下 1088 的卡片，视口不够就退回单栏 */
+@media (max-width: 1199.98px) {
+  /* 原版用 Bootstrap 的 .container，宽度是分档的：1140 / 960 / 720 / 540 */
+  .container {
+    max-width: 960px;
+  }
+  /* 1200 以下放不下「卡片 + 目录栏」，退回单栏：卡片铺满、目录收起。
+     断点对齐原版 Bootstrap 的 lg（col-lg-2 的 d-none d-lg-block 就在 1200 生效）。 */
+  .board-shell.has-rails {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 单栏时卡片别贴着屏幕边，留一点留白（原版窄屏也是 container 的 15px 内边距） */
+  .container:has(> .board-shell.has-rails) {
+    padding: 0 1rem;
+  }
+  .board-shell.has-rails > #board {
+    grid-column: 1;
+  }
+  .board-shell.has-rails > .sidebar {
+    display: none;
+  }
+}
+
 @media (max-width: 991.98px) {
+  /* Bootstrap 在 992 以下容器收到 720 */
+  .container {
+    max-width: 720px;
+  }
   .nav-links {
     display: none;
   }
   .nav-toggle {
     display: inline-flex;
   }
-  .post-layout,
-  .post-layout.no-toc {
-    grid-template-columns: minmax(0, 1fr);
-    max-width: 820px;
-    padding: 0 1.5rem;
-  }
-  .toc {
-    display: none;
-  }
 }
 
 @media (max-width: 767px) {
+  /* Bootstrap 在 768 以下容器收到 540 */
+  .container {
+    max-width: 540px;
+  }
   html {
     font-size: 15px;
   }
@@ -1349,12 +1887,6 @@ table {
   }
   .board-wrap {
     margin-top: -1rem;
-  }
-  .board-inner {
-    padding: 0 1.25rem;
-  }
-  .banner-title {
-    font-size: 2rem;
   }
   .banner-subtitle {
     font-size: 1rem;
@@ -1383,9 +1915,6 @@ table {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  .post-title {
-    font-size: 1.5rem;
-  }
   .post-prevnext {
     flex-direction: column;
   }
@@ -1411,11 +1940,10 @@ table {
   }
 }
 
-/* 打印：去掉导航、banner、目录，只留正文 */
+/* 打印：去掉导航、banner，只留正文 */
 @media print {
   .navbar,
   .banner,
-  .toc,
   #scroll-top,
   .search-modal,
   .post-prevnext,

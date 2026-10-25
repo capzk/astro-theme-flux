@@ -1,12 +1,20 @@
 ---
 /**
- * Banner —— 全屏（或固定高度）头图 + 大标题
+ * Banner —— 全屏（或固定高度）头图 + 大标题 + 元信息
  *
- * 原版支持视差、typed 打字机副标题、随机图。这里保留「背景图 + 蒙版 + 居中
- * 标题 + 底部滚动箭头」这套核心观感；视差与打字机属于锦上添花且有额外 JS
- * 依赖，暂不引入。
+ * 对应原版 `layout/_partials/header/banner.ejs`：蒙版之上是一个居中的
+ * `.banner-text`，里面依次是标题、若干行 `.post-meta`。原版文章页的标题、
+ * 日期、字数、阅读时长全部在这里显示，白色卡片里不再重复标题。
+ *
+ * 视差与打字机属于锦上添花且有额外 JS 依赖，暂不引入。
  */
 import Icon from './Icon.astro';
+
+/** banner 上的一条元信息（图标 + 文字） */
+interface BannerMeta {
+  icon: string;
+  text: string;
+}
 
 interface Props {
   title: string;
@@ -17,6 +25,16 @@ interface Props {
   maskAlpha?: number;
   /** 底部滚动提示箭头（通常只在首页） */
   scrollDown?: boolean;
+  /**
+   * 标题标签。首页用 h1；文章页用 div —— 页面里唯一的 h1 留给正文开头的
+   * `<h1 id="seo-header">`（原版就是 div.h2 + 隐藏的 h1，保证只有一个 h1）。
+   */
+  headingTag?: 'h1' | 'div';
+  /**
+   * 标题下方的元信息，一维数组 = 一行。原版是「日期」一行、
+   * 「字数 + 阅读时长」一行，两行之间间距更小。
+   */
+  metas?: BannerMeta[][];
 }
 
 const {
@@ -26,7 +44,11 @@ const {
   height = '60vh',
   maskAlpha = 0.3,
   scrollDown = false,
+  headingTag = 'h1',
+  metas = [],
 } = Astro.props;
+
+const Heading = headingTag;
 
 const style = [
   `height:${height}`,
@@ -37,8 +59,20 @@ const style = [
 <header class="banner" style={style}>
   <div class="banner-mask" style={`opacity:${maskAlpha}`}></div>
   <div class="banner-text">
-    <h1 class="banner-title">{title}</h1>
+    <Heading class="banner-title">{title}</Heading>
     {subtitle && <p class="banner-subtitle">{subtitle}</p>}
+    {
+      metas.filter((row) => row.length > 0).map((row) => (
+        <div class="banner-metas">
+          {row.map((m) => (
+            <span class="banner-meta">
+              <Icon name={m.icon} />
+              {m.text}
+            </span>
+          ))}
+        </div>
+      ))
+    }
   </div>
   {
     scrollDown && (

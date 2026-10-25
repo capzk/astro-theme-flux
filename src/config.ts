@@ -69,9 +69,9 @@ export interface SiteConfig {
 
   /** 文章页 */
   post: {
-    /** 顶部信息：作者 / 日期 / 字数 / 预计阅读 */
+    /** 顶部信息：作者 / 日期 / 字数 / 预计阅读（都显示在 banner 上） */
     meta: { author: boolean; date: boolean; wordcount: boolean; min2read: boolean };
-    /** 右侧跟随滚动的目录 */
+    /** 右侧目录（取正文 h2~h4；宽屏才显示，窄屏自动隐藏） */
     toc: boolean;
     /** 文末版权声明 */
     copyright: boolean;

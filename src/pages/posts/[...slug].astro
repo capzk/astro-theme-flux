@@ -10,12 +10,11 @@ import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Banner from '../../components/Banner.astro';
 import Board from '../../components/Board.astro';
-import Toc from '../../components/Toc.astro';
 import Icon from '../../components/Icon.astro';
+import Toc from '../../components/Toc.astro';
 import { SITE } from '../../config';
 import { T } from '../../i18n';
 import { getPosts, neighbours, postUrl, readingStats, termUrl } from '../../utils/posts';
-import { buildToc } from '../../utils/toc';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -28,12 +27,17 @@ export async function getStaticPaths() {
 const { post, posts } = Astro.props;
 const { Content, headings } = await render(post);
 
-const { title, date, updated, tags, categories, toc: tocEnabled } = post.data;
+const { title, date, updated, tags, categories } = post.data;
 const stats = readingStats(post, SITE.post.wpm);
-const toc = buildToc(headings);
-const showToc = SITE.post.toc && tocEnabled && toc.length > 0;
 
 const { prev, next } = neighbours(posts, post);
+
+/* 右侧目录：取 h2~h4。原版 tocbot 也默认收 h2 起，h5/h6 缩到第五层已经读不清。
+   Astro 的 headings 本来就是文档顺序，直接过滤即可。 */
+const tocItems = headings
+  .filter((h) => h.depth >= 2 && h.depth <= 4)
+  .map((h) => ({ depth: h.depth, slug: h.slug, text: h.text }));
+const showToc = (post.data.toc ?? SITE.post.toc) && tocItems.length > 0;
 
 /* banner：单篇封面优先，其次站点默认图 */
 const bannerImg = post.data.bannerImg || SITE.postBanner.img;
@@ -47,157 +51,147 @@ const updatedText = updated
   ? updated.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
   : null;
 
+/* banner 上的元信息，一个子数组 = 一行。与原版一致：
+   第一行日期（作者开关打开时排在日期前面），第二行字数 + 阅读时长。 */
+const metaTop: { icon: string; text: string }[] = [];
+const metaBottom: { icon: string; text: string }[] = [];
+
+if (SITE.post.meta.author) {
+  metaTop.push({ icon: 'user', text: SITE.author });
+}
+if (SITE.post.meta.date) {
+  metaTop.push({ icon: 'date', text: dateText });
+}
+if (SITE.post.meta.wordcount) {
+  metaBottom.push({ icon: 'chart', text: `${stats.words} ${T.words}` });
+}
+if (SITE.post.meta.min2read) {
+  metaBottom.push({ icon: 'clock', text: `${stats.minutes} ${T.minRead}` });
+}
+const metaRows = [metaTop, metaBottom];
+
 const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
 ---
 
 <BaseLayout title={title} description={post.data.description} ogType="article">
   <Banner
     title={title}
+    headingTag="div"
     img={bannerImg}
     height={SITE.postBanner.height}
     maskAlpha={post.data.bannerMaskAlpha ?? SITE.postBanner.maskAlpha}
+    metas={metaRows}
   />
 
-  <Board wide>
-    <div class:list={['post-layout', { 'no-toc': !showToc }]}>
-      <article class="post-content">
-        <header class="post-header">
-          <h1 class="post-title">{title}</h1>
-
-          {
-            SITE.post.meta && (
-              <div class="post-meta-row">
-                {SITE.post.meta.author && (
-                  <span class="post-meta">
-                    <Icon name="user" />
-                    {SITE.author}
-                  </span>
-                )}
-                {SITE.post.meta.date && (
-                  <span class="post-meta">
-                    <Icon name="date" />
-                    <time datetime={date.toISOString()}>{dateText}</time>
-                  </span>
-                )}
-                {SITE.post.meta.wordcount && (
-                  <span class="post-meta">
-                    <Icon name="chart" />
-                    {stats.words} {T.words}
-                  </span>
-                )}
-                {SITE.post.meta.min2read && (
-                  <span class="post-meta">
-                    <Icon name="clock" />
-                    {stats.minutes} {T.minRead}
-                  </span>
-                )}
-              </div>
-            )
-          }
-
-          {
-            updatedText && (
-              <p class="post-meta" style="margin:0.35rem 0 0">
-                <Icon name="clock" />
-                {T.updatedPrefix} {updatedText}
-              </p>
-            )
-          }
-        </header>
-
-        <div class="markdown-body">
-          <Content />
-        </div>
-
-        <footer class="post-footer">
-          {
-            (tags.length > 0 || categories.length > 0) && (
-              <div class="post-tags">
-                {categories.length > 0 && (
-                  <>
-                    <span class="post-tags-label">
-                      <Icon name="folder" />
-                      分类
-                    </span>
-                    {categories.map((c) => (
-                      <a class="tag-chip" href={termUrl('categories', c)}>
-                        {c}
-                      </a>
-                    ))}
-                  </>
-                )}
-                {tags.length > 0 && (
-                  <>
-                    <span class="post-tags-label">
-                      <Icon name="tag" />
-                      标签
-                    </span>
-                    {tags.map((t) => (
-                      <a class="tag-chip" href={termUrl('tags', t)}>
-                        #{t}
-                      </a>
-                    ))}
-                  </>
-                )}
-              </div>
-            )
-          }
-
-          {
-            SITE.post.copyright && (
-              <div class="copyright">
-                <strong>{T.copyrightHeading}</strong>
-                <br />
-                {T.copyrightAuthor}：{SITE.author}
-                <br />
-                {T.copyrightLink}：
-                <a href={permalink}>{permalink}</a>
-                <br />
-                {T.copyrightLicense}：{T.copyrightLicenseValue}
-              </div>
-            )
-          }
-
-          {
-            SITE.post.prevNext && (
-              <nav class="post-prevnext" aria-label="上一篇 / 下一篇">
-                {prev ? (
-                  <a href={postUrl(prev)}>
-                    <Icon name="arrow-left" />
-                    <span class="label">
-                      {T.prevPost}：{prev.data.title}
-                    </span>
-                  </a>
-                ) : (
-                  <span />
-                )}
-                {next ? (
-                  <a href={postUrl(next)} class="post-next">
-                    <span class="label">
-                      {T.nextPost}：{next.data.title}
-                    </span>
-                    <Icon name="arrow-right" />
-                  </a>
-                ) : (
-                  <span />
-                )}
-              </nav>
-            )
-          }
-        </footer>
-      </article>
+  <Board rails={showToc}>
+    <article class="post-content">
+      {/* 标题、日期、字数、时长都已在 banner 上；这里的 h1 与原版 #seo-header
+          一样只服务 SEO 与打印，正常浏览时 display:none，避免标题出现两次 */}
+      <h1 id="seo-header">{title}</h1>
 
       {
-        showToc && (
-          <aside class="toc" aria-label={T.toc}>
-            <p class="toc-header">
-              <Icon name="list" />
-              <span>{T.toc}</span>
-            </p>
-            <Toc items={toc} />
-          </aside>
+        updatedText && (
+          <p class="post-meta post-meta-updated">
+            <Icon name="clock" />
+            {T.updatedPrefix} {updatedText}
+          </p>
         )
       }
-    </div>
+
+      <div class="markdown-body">
+        <Content />
+      </div>
+
+      <footer class="post-footer">
+        {
+          (tags.length > 0 || categories.length > 0) && (
+            <div class="post-tags">
+              {categories.length > 0 && (
+                <>
+                  <span class="post-tags-label">
+                    <Icon name="folder" />
+                    {T.categories}
+                  </span>
+                  {categories.map((c) => (
+                    <a class="tag-chip" href={termUrl('categories', c)}>
+                      {c}
+                    </a>
+                  ))}
+                </>
+              )}
+              {tags.length > 0 && (
+                <>
+                  <span class="post-tags-label">
+                    <Icon name="tag" />
+                    {T.tags}
+                  </span>
+                  {tags.map((t) => (
+                    <a class="tag-chip" href={termUrl('tags', t)}>
+                      #{t}
+                    </a>
+                  ))}
+                </>
+              )}
+            </div>
+          )
+        }
+
+        {
+          SITE.post.copyright && (
+            <div class="license-box">
+              <div class="license-title">
+                <div>{title}</div>
+                <div>
+                  <a href={permalink}>{permalink}</a>
+                </div>
+              </div>
+              <div class="license-meta">
+                <div class="license-meta-item">
+                  <div>{T.copyrightAuthor}</div>
+                  <div>{SITE.author}</div>
+                </div>
+                <div class="license-meta-item license-meta-date">
+                  <div>{T.copyrightDate}</div>
+                  <div>{dateText}</div>
+                </div>
+                <div class="license-meta-item">
+                  <div>{T.copyrightLicense}</div>
+                  <div>{T.copyrightLicenseValue}</div>
+                </div>
+              </div>
+              <div class="license-icon" aria-hidden="true"></div>
+            </div>
+          )
+        }
+
+        {
+          SITE.post.prevNext && (
+            <nav class="post-prevnext" aria-label="上一篇 / 下一篇">
+              {prev ? (
+                <a href={postUrl(prev)}>
+                  <Icon name="arrow-left" />
+                  <span class="label">
+                    {T.prevPost}：{prev.data.title}
+                  </span>
+                </a>
+              ) : (
+                <span />
+              )}
+              {next ? (
+                <a href={postUrl(next)} class="post-next">
+                  <span class="label">
+                    {T.nextPost}：{next.data.title}
+                  </span>
+                  <Icon name="arrow-right" />
+                </a>
+              ) : (
+                <span />
+              )}
+            </nav>
+          )
+        }
+      </footer>
+    </article>
+    {showToc && <Toc slot="aside" items={tocItems} />}
   </Board>
 </BaseLayout>
