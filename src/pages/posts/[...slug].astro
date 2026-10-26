@@ -6,8 +6,8 @@
  * （规则见 utils/slug.ts，一律小写 ASCII）。子目录会体现在路径里。
  *
  * 对应原版 post.ejs：banner + 白卡片（正文居中，右侧跟随滚动的目录）。
- * 剪掉了评论、分享、浏览量、mathjax/mermaid 等插件，保留阅读本身需要的部分：
- * 元信息、目录、标签、版权、上一篇/下一篇。
+ * 保留阅读本身需要的部分：元信息、目录、标签、版权、上一篇/下一篇、相关文章，
+ * 以及可选的评论（Waline，见 config.ts 的 comment 段）。
  */
 import { render } from 'astro:content';
 import { getImage } from 'astro:assets';
@@ -16,6 +16,7 @@ import Banner from '../../components/Banner.astro';
 import Board from '../../components/Board.astro';
 import Icon from '../../components/Icon.astro';
 import Toc from '../../components/Toc.astro';
+import Comments from '../../components/Comments.astro';
 import { SITE } from '../../config';
 import { T } from '../../i18n';
 import {
@@ -56,6 +57,14 @@ const tocItems = headings
   .filter((h) => h.depth >= 2 && h.depth <= 4)
   .map((h) => ({ depth: h.depth, slug: h.slug, text: h.text }));
 const showToc = (post.data.toc ?? SITE.post.toc) && tocItems.length > 0;
+
+/* 评论要同时满足三件事：站点开了、这篇没关、而且真的填了服务端地址。
+   少了最后一条就整块不渲染 —— 不在页面上留一个注定失败的输入框。 */
+const showComments =
+  SITE.comment.enable &&
+  SITE.comment.type === 'waline' &&
+  Boolean(SITE.comment.waline.serverURL) &&
+  (post.data.comment ?? true);
 
 /* banner：单篇封面优先（`banner` 可优化 > `bannerImg` 字符串），其次站点默认图 */
 const bannerSource = post.data.banner ?? post.data.bannerImg ?? SITE.postBanner.img;
@@ -278,6 +287,9 @@ const jsonLd = articleJsonLd({
         )
       }
     </article>
+    {/* 评论放在 </article> 之外：它不是这篇稿子的一部分，是读者之间的对话。
+        也正因为如此，它不能进 <article> 的语义里，屏幕阅读器才不会把它当正文念 */}
+    {showComments && <Comments />}
     {showToc && <Toc slot="aside" items={tocItems} />}
   </Board>
 </BaseLayout>

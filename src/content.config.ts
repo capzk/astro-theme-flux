@@ -64,6 +64,11 @@ const posts = defineCollection({
       draft: z.boolean().default(false),
       /** 单篇覆盖「右侧目录」开关；不写则跟随 config.ts 的 post.toc */
       toc: z.boolean().optional(),
+      /**
+       * 单篇关闭评论。站点总开关在 config.ts 的 `comment.enable`，
+       * 这里是单篇的否决权 —— 公告、关于这类不需要讨论的稿子可以关掉。
+       */
+      comment: z.boolean().optional(),
       /** 单篇覆盖 banner 图（根路径或完整 URL，不优化） */
       bannerImg: z.string().optional(),
       /**

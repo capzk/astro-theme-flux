@@ -1,0 +1,129 @@
+---
+/**
+ * Comments —— 评论区（Waline）
+ * ---------------------------------------------------------------------------
+ * 评论是本站唯一的运行时外部依赖，所以这里刻意做窄：
+ *
+ *   · 没有服务端地址就整块不渲染（不留空壳、不发一个注定失败的请求）；
+ *   · 客户端脚本走 CDN + 动态 import，滚动到评论区附近才拉（`lazy`）；
+ *   · 加载中给骨架屏、失败给可重试的提示，评论挂了不影响正文。
+ *
+ * 组件只负责「长什么样」和「配置怎么传到浏览器」；加载与初始化在
+ * src/scripts/comments.js。深色模式不用我们操心 —— Waline 自己监听
+ * `html[data-user-color-scheme="dark"]`，那是它文档里点名的适配方式。
+ *
+ * 想放到关于页 / 留言板，直接 `<Comments />` 即可：`path` 默认取当前页路径。
+ */
+import { SITE } from '../config';
+import { T } from '../i18n';
+import Icon from './Icon.astro';
+
+interface Props {
+  /** 评论归属路径。默认当前页 pathname，一般不用传 */
+  path?: string;
+}
+
+const { path: pathOverride } = Astro.props;
+const opts = SITE.comment.waline;
+
+/* jsDelivr 上的 v3 客户端。换 CDN 或自托管时两个地址一起换，版本要对得上 */
+const DEFAULT_JS = 'https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js';
+const DEFAULT_CSS = 'https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css';
+
+/**
+ * SITE.lang（BCP 47）→ Waline 认的语言名。
+ * 它只认固定几个值，且大小写敏感（`zh-TW` 有效、`zh-tw` 会回落到英文），
+ * 所以这里逐条映射，认不出来的统一给 en —— 总比给一份中文界面强。
+ */
+function walineLang(lang: string): string {
+  const l = lang.toLowerCase();
+  if (l.startsWith('zh')) {
+    return /-(tw|hk|mo|hant)\b/.test(l) || l.includes('hant') ? 'zh-TW' : 'zh-CN';
+  }
+  if (l.startsWith('ja') || l.startsWith('jp')) return 'jp';
+  if (l.startsWith('ru')) return 'ru';
+  if (l.startsWith('fr')) return 'fr';
+  if (l.startsWith('pt')) return 'pt-BR';
+  return 'en';
+}
+
+/* 评论归属路径。构建期算好写进页面，运行期不再依赖 window.location ——
+   带 ?utm=… 之类的查询参数访问时不会被当成一篇新文章。 */
+const pagePath = pathOverride ?? Astro.url.pathname;
+const path =
+  opts.path === 'href'
+    ? new URL(pagePath, Astro.site ?? Astro.url.origin).href
+    : (opts.path ?? pagePath);
+
+/* 只把有值的键发给浏览器：undefined 序列化不掉，脚本里还得再过滤一遍 */
+const config = {
+  serverURL: opts.serverURL,
+  js: opts.js ?? DEFAULT_JS,
+  css: opts.css ?? DEFAULT_CSS,
+  path,
+  lang: opts.lang ?? walineLang(SITE.lang),
+  /* 主题的暗色就挂在 html 的这个属性上（见 BaseLayout 的首帧脚本），Waline 认选择器 */
+  dark: opts.dark ?? 'html[data-user-color-scheme="dark"]',
+  locale: opts.locale,
+  meta: opts.meta,
+  requiredMeta: opts.requiredMeta ?? [],
+  login: opts.login,
+  emoji: opts.emoji,
+  /* GIF 搜索依赖服务端配置，默认关 —— 开了而服务端没配，按钮点了没反应 */
+  search: opts.search ?? false,
+  reaction: opts.reaction,
+  wordLimit: opts.wordLimit,
+  pageSize: opts.pageSize ?? 10,
+  /* 上传默认关：没配存储的服务端点了会报错，配了存储又等于对外开放写入 */
+  imageUpload: opts.imageUpload ?? false,
+  noCopyright: opts.noCopyright,
+  lazy: opts.lazy ?? true,
+};
+
+const payload = JSON.stringify(
+  Object.fromEntries(Object.entries(config).filter(([, value]) => value !== undefined)),
+)
+  /* JSON 里出现 `</script>` 会提前闭合标签，把 `<` 转义掉最省心 */
+  .replace(/</g, '\\u003c');
+---
+
+<section
+  class="comment-section"
+  aria-labelledby="comment-title"
+  data-state="loading"
+  data-error={T.commentLoadFailed}
+>
+  <h2 class="comment-title" id="comment-title">
+    <Icon name="comment" />
+    <span>{T.comments}</span>
+    <span class="comment-count">
+      <span class="waline-comment-count"></span>{T.commentCountUnit}
+    </span>
+  </h2>
+
+  {/* Waline 挂载到这里。Vue 挂载时会清空子节点，骨架屏因此自动消失，
+      不用我们在脚本里手动移除。 */}
+  <div class="comment-body" aria-busy="true">
+    <div class="comment-skeleton" aria-hidden="true">
+      <span class="comment-skeleton-panel"></span>
+      <span class="comment-skeleton-line"></span>
+      <span class="comment-skeleton-line"></span>
+      <span class="comment-skeleton-line is-short"></span>
+    </div>
+  </div>
+
+  <div class="comment-status" role="status" hidden>
+    <p class="comment-status-text" />
+    <button type="button" class="comment-retry">{T.commentRetry}</button>
+  </div>
+
+  <noscript>
+    <p class="comment-status-text">{T.commentNoScript}</p>
+  </noscript>
+
+  <script type="application/json" class="comment-config" is:inline set:html={payload} />
+</section>
+
+<script>
+  import '../scripts/comments.js';
+</script>

@@ -2,7 +2,7 @@
  * Flux · 站点配置 —— 主题使用者的唯一入口
  * ---------------------------------------------------------------------------
  * 这里对应 Hexo 版 `_config.yml` 的常用项，但只保留核心：改站名、菜单、banner、
- * 配色、文章元信息开关，全在这一个文件里，不用碰任何组件。
+ * 配色、文章元信息开关、评论，全在这一个文件里，不用碰任何组件。
  *
  * 配色是普通 CSS 变量（见 src/styles/main.css 顶部的 T 段），覆盖 `color` 即可。
  *
@@ -27,6 +27,91 @@ export interface NavItem {
   /** 图标名，见 src/components/Icon.astro */
   icon?: string;
   external?: boolean;
+}
+
+/**
+ * 评论（Waline）
+ * ---------------------------------------------------------------------------
+ * 大部分字段都有合适的默认值，真要填的只有 `serverURL` —— 也就是你自己部署
+ * 的那个 Waline 服务端地址。其余项的默认值写在这里的注释里，需要时再往
+ * config 里加一行即可。
+ *
+ * @see https://waline.js.org/reference/client/
+ */
+export interface WalineConfig {
+  /**
+   * 服务端地址，例如 `https://comment.example.com`。
+   * 部署方式见 https://waline.js.org/guide/get-started/ ——
+   * Vercel / Cloudflare Workers / Docker 都行，客户端只认这一个字符串。
+   */
+  serverURL: string;
+  /**
+   * 客户端脚本与样式地址。「@3」表示取 3.x 的最新版；
+   * 想锁版本就写全（`@3.16.1`），想换 CDN / 自托管就改这里。
+   * 两个地址必须同版本，只改一个会样式错位。
+   *
+   * 默认：https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js
+   *       https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css
+   */
+  js?: string;
+  css?: string;
+  /**
+   * 评论归属的路径，Waline 用它区分不同文章。
+   * - 不写      用当前页路径（`/posts/hello-flux/`），推荐
+   * - `'href'`  用完整地址，带查询参数访问会被当成新文章，一般别用
+   * - 自定义    写死一段路径，多站共用一份评论数据时用
+   */
+  path?: string;
+  /** 界面语言。不写则按 SITE.lang 推断（zh-CN / zh-TW / en / jp / ru / fr / pt-BR） */
+  lang?: string;
+  /**
+   * 暗色模式。主题靠 `html[data-user-color-scheme="dark"]` 切换，所以默认就传这个
+   * 选择器，Waline 会自己盯着它。设成 `false` 关掉它自带的暗色样式 —— 颜色已经由
+   * 主题变量桥接，一般不用动这里。
+   */
+  dark?: string | boolean;
+  /**
+   * 覆盖 Waline 的具体文案，键名见它的 i18n 文档。
+   * 常用的两个：`placeholder`（输入框占位符）、`submit`（提交按钮）。
+   */
+  locale?: Record<string, string>;
+  /** 评论者信息栏：昵称 / 邮箱 / 网址。默认三项都显示 */
+  meta?: ('nick' | 'mail' | 'link')[];
+  /** 必填项。默认 `[]` 全匿名；`['nick']` 只要求昵称；`['nick','mail']` 还要邮箱 */
+  requiredMeta?: ('nick' | 'mail')[];
+  /** `enable` 允许登录（默认）/ `disable` 只能匿名 / `force` 必须登录 */
+  login?: 'enable' | 'disable' | 'force';
+  /**
+   * 表情包目录地址，默认只有微博那一套。
+   * 想加 QQ / B 站 / 贴吧，在这里追加对应 CDN 目录即可。
+   */
+  emoji?: string[];
+  /** 表情面板里的 GIF 图片搜索（依赖服务端配置）。默认关 */
+  search?: boolean;
+  /** 文末「反应」表情，给一组图片地址才会出现。默认不显示 */
+  reaction?: string[];
+  /** 评论字数上限，`0` 不限。默认 0 */
+  wordLimit?: number;
+  /** 每页评论条数。默认 10 */
+  pageSize?: number;
+  /**
+   * 允许在评论里上传图片（走服务端配置的存储）。
+   * 默认**关闭** —— 上传是一个写入型攻击面，个人博客多数用不上；
+   * 服务端配好存储（S3 / 图床）之后再来这里打开。
+   */
+  imageUpload?: boolean;
+  /** 隐藏 Waline 页脚的版权署名。默认显示，建议保留以支持上游 */
+  noCopyright?: boolean;
+  /** 滚动到评论区附近再拉客户端脚本。默认开 */
+  lazy?: boolean;
+}
+
+/** 评论系统总配置。目前只接 Waline，`type` 留着是为了以后加别的不用改结构 */
+export interface CommentConfig {
+  /** 总开关。关掉后文章页不渲染评论区，也不会请求任何外部资源 */
+  enable: boolean;
+  type: 'waline';
+  waline: WalineConfig;
 }
 
 export interface SiteConfig {
@@ -107,6 +192,9 @@ export interface SiteConfig {
     /** 每页字数换算阅读时长的速度（字/分钟） */
     wpm: number;
   };
+
+  /** 评论（Waline）。详见上方 WalineConfig 的字段说明 */
+  comment: CommentConfig;
 
   /** 暗色模式：默认跟随系统还是固定 */
   darkMode: {
@@ -192,6 +280,23 @@ export const SITE: SiteConfig = {
     prevNext: true,
     related: true,
     wpm: 300,
+  },
+
+  /* 评论默认关闭：Waline 得先有一个自己的服务端，示例站没有。
+     部署完之后把 serverURL 填上、enable 改 true，评论区就出现在文章页文末。 */
+  comment: {
+    enable: false,
+    type: 'waline',
+    waline: {
+      serverURL: '',
+      locale: {
+        placeholder: '说点什么吧，支持 Markdown…',
+      },
+      /* 昵称必填、邮箱选填。想全匿名改成 []，想要邮箱也必填再加 'mail' */
+      requiredMeta: ['nick'],
+      pageSize: 10,
+      lazy: true,
+    },
   },
 
   darkMode: {
