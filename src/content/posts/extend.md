@@ -145,6 +145,7 @@ comment: {
 - **下发的配置必须是纯 JSON**。`imageUploader`、`texRenderer`、自定义 `search` 这些函数型选项传不过去，要用就在 mounter 里写。
 - **失败重试得换 URL key**。动态 `import()` 的失败结果会被浏览器按 URL 记住，重试时带 `?retry=N`，否则第二次拿到的还是同一个失败的 Promise。
 - **`dark` 这类选择器交给对方自己盯**。Waline 认 `html[data-user-color-scheme="dark"]`，Giscus 得自己 `postMessage` —— 后者在 mounter 里挂了 `MutationObserver`，主题这边不用改。
+- **地址别写死在代码里**。Waline 的脚本、样式、计数插件地址都由 `comment.waline.cdn` 的模板算出来（默认 jsDelivr，可换镜像或指向 `public/` 下的自托管目录），组件里不出现任何第三方 URL。加新系统时照这个来 —— 用户换 CDN 应该只改配置一行。
 - **评论是一个第三方请求**，也是主题里唯一会让「纯静态」出现运行时网络依赖的东西。加之前想清楚值不值 —— 所以默认关，且什么都没配时连加载器都不进构建产物。
 
 ## 换掉搜索

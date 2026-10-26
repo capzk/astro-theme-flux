@@ -160,7 +160,7 @@ comment: {
 
 几个实现上的选择，知道一下有好处：
 
-- **客户端走 CDN**（jsDelivr 上的 `@waline/client@3`），不进依赖树、不进构建产物。想锁版本、换 CDN 或自托管，改 `waline.js` / `waline.css` 两个地址，**两个必须同版本**。
+- **客户端由 `comment.waline.cdn` 决定**（默认 jsDelivr 上的 `@waline/client@3`），不进依赖树、不进构建产物。换 CDN、锁版本、自托管都只改这一行，详见下面「客户端从哪加载」。
 - **滚到评论区附近才加载**，首屏不为评论付流量。距离由 `comment.lazy` 控制：调大（如 `1800`）能让脚本在读者刚开始往下读时就开始预取，滚到评论区已经就绪；代价是这一页一定会拉脚本。
 - **深色模式不用配**：切到暗色时 `html` 上带 `data-user-color-scheme="dark"`，Waline 自己认这个选择器。
 - **不用维护第二套颜色**：`main.css` 的「评论区」一节把 Waline 的 CSS 变量接到了主题令牌上，改配色、切暗色，评论区跟着走。
@@ -173,7 +173,33 @@ comment: {
 
 用的是 Waline 单独的 `pageview.js`（gzip 不到 1KB），**不依赖评论区**：评论关掉、懒加载从没触发、读者滚都不滚，数字照样统计。它在 `window.load` 之后才发请求，不跟正文抢带宽。
 
-自托管时记得把 `pageview.js` 也放进同一个目录，文件名按 `waline-x.y.z.js` → `pageview-x.y.z.js` 的规律改；对不上就自己写 `pageview: '/waline/pageview-3.16.1.js'` 指定。
+自托管时把 `pageview.js` 一起放进同一个目录就行 —— 地址由同一个 `cdn` 模板算出来，不用单独指。文件名对不上（比如自己加了哈希）才写字符串指定。
+
+#### 客户端从哪加载
+
+`comment.waline.cdn` 一行决定脚本和样式从哪儿取，默认 `'jsdelivr'`：
+
+| `cdn` | 展开成（以 `waline.js` 为例） |
+| --- | --- |
+| `'jsdelivr'` | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js` |
+| `'unpkg'` | `https://unpkg.com/@waline/client@3/dist/waline.js` |
+| `'npmmirror'` | `https://registry.npmmirror.com/@waline/client/3.16.1/files/dist/waline.js` |
+
+`version` 默认 `'3'`（跟着 3.x 最新版走），锁死就写 `'3.16.1'`。npmmirror 的 `/files/` 只认确定版本，写 `'3'` 这种范围会在构建期收到一条警告 —— 别的 CDN 支持范围，所以只在指向 npmmirror 时才拦。
+
+想换到自己托管的目录或别的 CDN，把 `cdn` 写成模板。占位符：`{name}`（`@waline/client`）、`{version}`、`{file}`（包内路径 `dist/waline.js`）、`{basename}`（`waline`）、`{ext}`（`js`）：
+
+| 场景 | 配置 | 展开成 |
+| --- | --- | --- |
+| 自托管，文件平铺、名字带版本 | `cdn: '/waline/{basename}-{version}.{ext}'`<br>`version: '3.16.1'` | `/waline/waline-3.16.1.js`<br>`/waline/pageview-3.16.1.js` |
+| 自托管，按 npm 的目录结构 | `cdn: '/vendor/waline/{file}'` | `/vendor/waline/dist/waline.js` |
+| 自己的对象存储 | `cdn: 'https://cdn.example.com/npm/{name}@{version}/{file}'` | `https://cdn.example.com/npm/@waline/client@3.16.1/dist/waline.js` |
+
+自托管就三步：`waline.js`、`waline.css`、`pageview.js` 丢进 `public/waline/`（文件名带版本号，`_headers` 里给这段路径 `immutable`），然后写 `cdn` + `version`。不用改组件，也不用单独指 `pageview` 的地址。换回公共 CDN 同样是改这一行。
+
+`{version}` 也可以不出现在模板里（`/waline/{basename}.{ext}`），那就是「文件名不带版本」的放法。名字既不是预置值、又不含占位符时（比如手抖写成 `'jsdelivr-npm'`），构建期会警告并回落到默认 CDN —— 免得悄悄拼出一串 404。
+
+为什么做成配置而不是把文件塞进主题的 `public/`：塞进去等于让每个用主题的人都白背 300KB 第三方代码，升级 Waline 还得跟着发主题版本。模板法把「从哪取」留在使用者的配置里，主题只负责算地址。
 
 #### Giscus
 
@@ -221,7 +247,7 @@ Waline 服务端那边至少做三件事：
 | 抢占管理员 | 部署完立刻访问 `<serverURL>/ui/register` 注册第一个账号，之后在后台开两步验证 | 第一个注册的人就是管理员，拖着不注册等于把后台敞开 |
 | 先审后发 | `COMMENT_AUDIT=true`；频率限制用 `IPQPS`（默认 60 秒一条） | 评论一旦上线，垃圾广告是分钟级的 |
 
-评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行 `cdn.jsdelivr.net`（script / style）与 `serverURL`（connect）；用 Giscus 则要放行 `giscus.app`（script / frame）。
+评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行当前 `cdn` 指向的域名（script / style，默认 `cdn.jsdelivr.net`）与 `serverURL`（connect）；用 Giscus 则要放行 `giscus.app`（script / frame）。
 
 ## 写文章
 
@@ -365,7 +391,7 @@ src/
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
-- 评论的客户端默认从 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css`（要开浏览量就再加 `pageview.js`）放进 `public/waline/`，再把配置里两个地址改成 `/waline/…` 这一级别的绝对路径即可 —— 文件名带版本号 + `_headers` 里给它 `immutable` 缓存，升级只换文件。
+- 评论的客户端默认从公共 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css`（开了浏览量再加 `pageview.js`）放进 `public/waline/`，然后 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'` —— 见上文「客户端从哪加载」。`_headers` 里给这段路径 `immutable` 缓存，升级只换文件、不失效缓存。
 
 ## 更新日志
 
