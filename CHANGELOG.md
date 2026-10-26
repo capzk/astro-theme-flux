@@ -7,6 +7,45 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-26
+
+### Added
+
+- **评论区接入 Waline**。文章页文末现在可以挂一个真正的评论区：配置在 `config.ts` 的
+  `comment` 段，填 `waline.serverURL` 并打开 `enable` 即生效，单篇可用 front matter
+  的 `comment: false` 单独关掉。原版 Fluid 支持 13 种评论服务，这里只接 Waline ——
+  多出来的 12 套适配属于插件市场，不属于主题。
+
+  几个刻意的取舍：
+
+  - **客户端从 CDN 加载，不进依赖树**（`@waline/client@3` 的 `waline.js` / `waline.css`）。
+    地址写在配置里，锁版本、换 CDN、自托管都只改两行；两个地址必须同版本。
+  - **滚到评论区附近才加载**（IntersectionObserver，提前 600px）。评论是主题里唯一的
+    运行时外部依赖，首屏不该为它付流量；`lazy: false` 可以关掉这套。
+  - **颜色不另起一套**。`main.css` 新增「评论区」一节，把 Waline 的 CSS 变量桥接到主题
+    令牌上：改配色、切暗色，评论区自动跟随，不用维护第二份色板。暗色也不需要额外规则 ——
+    Waline 往 `<html>` 上写变量，而我们在 `.comment-section` 上直接赋值，直接赋值恒赢继承值。
+  - **加载中给骨架屏，失败给重试**。CDN 挂掉时显示一句话和一个「重试」按钮，不白屏、
+    不把正文挤走；重试会带 `?retry=N` 换个模块 key，否则浏览器会复用上一次失败的 Promise。
+  - **评论里默认不能传图**（`imageUpload: false`）。上传是写入型攻击面，服务端没配存储时
+    点了还会报错，要用再开。
+  - 评论区标题右侧显示评论数（Waline 回填 `.waline-comment-count`）；浏览量统计没接，
+    主题里没有放这个数字的位置。
+
+- 新增 `src/components/Comments.astro`、`src/scripts/comments.js`，以及 `comment` 图标。
+
+### Fixed
+
+- `npm run check` 终于能跑了。`package.json` 里早就挂着这条脚本，但 `@astrojs/check`
+  和 `typescript` 从来没装过 —— 一执行就静默退出，等于没有类型检查。现在补上这两个
+  devDependency，当前 **0 error / 0 warning**（39 个文件）。
+
+### Changed
+
+- `main.css` 节号重排：评论区插在「文末版权 / 上下篇」之后成为第 12 节，后续各节顺延一位。
+- 示例文章〈改造与扩展〉的「接评论」一章改写为「换评论系统」：先讲内置的 Waline 怎么开，
+  再讲换成 giscus 时动哪一行。
+
 ## [1.3.2] - 2026-10-25
 
 ### Fixed
