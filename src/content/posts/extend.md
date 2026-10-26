@@ -1,7 +1,7 @@
 ---
-title: 改造与扩展：加页面、加语言、加评论
+title: 改造与扩展：加页面、加语言、换评论
 date: 2026-10-24 10:00:00
-description: 组件职责一览，以及五种常见改造的具体做法：加一个页面、加图标、加语言、接评论、换搜索。都不需要动核心逻辑。
+description: 组件职责一览，以及五种常见改造的具体做法：加一个页面、加图标、加语言、换评论系统、换搜索。都不需要动核心逻辑。
 tags:
   - 扩展
   - 组件
@@ -28,6 +28,7 @@ cover: ../../assets/covers/cover-2.webp
 | `PostList.astro` | 卡片列表 + 空状态 | 首页、`/page/N/` |
 | `Pagination.astro` | 上一页 / 下一页 | 首页、`/page/N/` |
 | `SearchModal.astro` | 搜索弹窗的 DOM | `BaseLayout` |
+| `Comments.astro` | 评论区外壳：标题、计数、骨架屏、失败重试；加载逻辑在 `scripts/comments.js` | 文章页（可复用到任何页面） |
 | `Icon.astro` | 内联 SVG 图标表 | 到处 |
 | `Footer.astro` | 页脚、备案号 | `BaseLayout` |
 
@@ -111,11 +112,13 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 真正的多语言站点（`/en/` 和 `/zh/` 两套路由）不在当前范围内 —— 那需要把 `pages/` 整个复制一份或改成 `[lang]` 动态段，工作量比这个主题现在的定位大。
 
-## 接一个评论系统
+## 换一个评论系统
 
-主题本身不带评论。想加，位置在 `src/pages/posts/[...slug].astro` 里 `</article>` 之后、`<Board>` 闭合之前 —— 也就是正文、版权卡片、上下篇全部结束之后。
+主题自带 [Waline](https://waline.js.org/)，开关全在 `config.ts` 的 `comment` 段：填上自己的服务端地址、把 `enable` 改成 `true`，文章页文末就出现评论区。默认关着 —— 没有服务端地址的评论区是个空壳，不如不出现。
 
-以 giscus（基于 GitHub Discussions）为例：
+想换成 giscus、twikoo 这类，动手的地方是 `src/pages/posts/[...slug].astro` 里的 `<Comments />`：那一行在 `</article>` 之后、`<Board>` 闭合之前，也就是正文、版权卡片、上下篇、相关文章全部结束之后。
+
+以 giscus（基于 GitHub Discussions）为例，把那行换成：
 
 ```astro
 </article>
@@ -138,7 +141,9 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 - 脚本用 `is:inline`，否则 Astro 会尝试打包它（外部 URL 打不了包，会报错）。
 - `data-theme="preferred_color_scheme"` 会跟随系统，但**不跟随主题的手动切换**。要让两者同步，得在 `theme.js` 的切换函数里给 giscus 的 `<iframe>` 发一条 `postMessage`。
-- 评论是一个第三方请求，也是唯一会让「纯静态」出现运行时网络依赖的东西。加之前想清楚值不值。
+- 评论是一个第三方请求，也是主题里唯一会让「纯静态」出现运行时网络依赖的东西（Waline 同样如此）。加之前想清楚值不值。
+
+如果只是想换掉 Waline、但想留住「标题 + 计数 + 懒加载 + 失败重试」这套外壳，改 `src/scripts/comments.js` 里的 `toOptions()` 和那句 `client.init(...)` 就够了，`Comments.astro` 一行都不用动。
 
 ## 换掉搜索
 

@@ -4,7 +4,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.23.4-339933.svg?logo=node.js&logoColor=white)](./package.json)
 
-> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC.
+> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, Waline comments.
 
 **在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
 
@@ -18,7 +18,7 @@
 
 **Flux** 是一套 Material Design 风格的 Astro 博客主题。设计概念与视觉语言迁移自 [hexo-theme-fluid](https://github.com/fluid-dev/hexo-theme-fluid)：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深浅色主题 —— 观感对齐原版，而运行时依赖归零。
 
-不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮是原生的滚动监听，图标是内联 SVG，代码高亮在构建期由 Shiki 完成，图片灯箱自己写了几十行。
+不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮是原生的滚动监听，图标是内联 SVG，代码高亮在构建期由 Shiki 完成，图片灯箱自己写了几十行。唯一的例外是评论：Waline 客户端从 CDN 按需加载，默认关闭，不给不评论的站点增加一个字节。
 
 ## 特性
 
@@ -45,6 +45,7 @@
 | 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta + JSON-LD（`WebSite` / `BlogPosting`），封面自动绝对化 |
+| 评论 | Waline：填一个服务端地址即开，滚到评论区才加载客户端，配色与深浅色跟随主题 |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap` |
 
 ## 开始使用
@@ -55,6 +56,7 @@ cd my-blog
 npm install
 npm run dev      # http://localhost:4321
 npm run build    # 产物在 dist/
+npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
 ```
 
 要求 **Node ≥ 22.23.4**（Astro 7 的要求）。
@@ -73,7 +75,7 @@ npm run build    # 产物在 dist/
 | URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
 | 换成你自己的样子 | 配色、字体、版心与字号 |
 | 部署上线 | GitHub Pages / Vercel / nginx，以及常见坑 |
-| 改造与扩展 | 加页面、加图标、加语言、接评论、换搜索 |
+| 改造与扩展 | 加页面、加图标、加语言、换评论、换搜索 |
 
 fork 之后整批删掉即可，不影响任何功能。
 
@@ -100,6 +102,57 @@ banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banne
 
 配色除了可以在 `config.ts` 覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
 
+### 评论（Waline）
+
+评论区接的是 [Waline](https://waline.js.org/)，默认**关闭** —— 它需要一个自己的服务端，示例站没有。三步打开：
+
+1. 按[官方教程](https://waline.js.org/guide/get-started/)部署一个服务端（Vercel、Cloudflare Workers、Docker 都行），拿到域名；
+2. 把域名填进 `src/config.ts` 的 `comment.waline.serverURL`；
+3. 把 `comment.enable` 改成 `true`。
+
+```ts
+comment: {
+  enable: true,
+  type: 'waline',
+  waline: {
+    serverURL: 'https://comment.example.com',
+    locale: { placeholder: '说点什么吧，支持 Markdown…' },
+    requiredMeta: ['nick'],   // 昵称必填、邮箱选填；要邮箱也必填就加 'mail'
+    pageSize: 10,
+    lazy: true,
+  },
+},
+```
+
+单篇想关掉，在 front matter 里写 `comment: false`。
+
+评论是**按 URL 归属**的（Waline 的 `path` 就是文章地址）。所以改文章的 `slug` 或目录名之前先想一下 —— 地址变了，老评论不会跟过去。想让多站（比如旧域名与新域名）共用一份评论数据，就把 `waline.path` 写死成固定字符串。
+
+几个实现上的选择，知道一下有好处：
+
+- **客户端走 CDN**（jsDelivr 上的 `@waline/client@3`），不进依赖树、不进构建产物。想锁版本、换 CDN 或自托管，改 `waline.js` / `waline.css` 两个地址，**两个必须同版本**。
+- **滚到评论区附近才加载**（`lazy: true`，提前 600px），首屏不为评论付流量；关掉它就是进页面就加载。
+- **深色模式不用配**：切到暗色时 `html` 上带 `data-user-color-scheme="dark"`，Waline 自己认这个选择器。
+- **不用维护第二套颜色**：`main.css` 的「评论区」一节把 Waline 的 CSS 变量接到了主题令牌上，改配色、切暗色，评论区跟着走。
+- **评论挂了不影响阅读**：脚本加载失败只显示一句话和「重试」，不白屏，也不把正文挤走。
+- **评论里默认不能传图**（`imageUpload: false`）。上传是写入型攻击面，服务端没配存储时点上传还会报错；配好 S3 / 图床之后再来配置里打开。
+
+评论数显示在标题右侧（Waline 回填 `.waline-comment-count`）。浏览量统计没接 —— 主题里没有放这个数字的位置。
+
+想把评论放到关于页或留言板，在那一页里 `<Comments />` 即可（`path` 默认取当前页路径）。
+
+**上线前请注意**：`serverURL` 要用 `https://` —— 站点本身是 https，指向 http 的服务端会被浏览器按混合内容拦掉（本地调试指向 `http://127.0.0.1:8360` 是另一回事）。
+
+Waline 服务端那边至少做三件事：
+
+| 事项 | 怎么做 | 为什么 |
+| --- | --- | --- |
+| 限制来源域 | `SECURE_DOMAINS=你的域名`（**不带协议**，博客和服务端两个地址都写） | 不设的话，别人可以拿你的服务端当免费评论 API |
+| 抢占管理员 | 部署完立刻访问 `<serverURL>/ui/register` 注册第一个账号，之后在后台开两步验证 | 第一个注册的人就是管理员，拖着不注册等于把后台敞开 |
+| 先审后发 | `COMMENT_AUDIT=true`；频率限制用 `IPQPS`（默认 60 秒一条） | 评论一旦上线，垃圾广告是分钟级的 |
+
+评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行 `cdn.jsdelivr.net`（script / style）与 `serverURL`（connect）。
+
 ## 写文章
 
 放进 `src/content/posts/`，front matter 与 Hexo 基本同名：
@@ -116,6 +169,7 @@ categories: [公告]
 cover: ../../assets/covers/cover-1.webp   # 卡片封面（会优化；兼容写法 indexImg: /img/x.png）
 sticky: true                   # 置顶
 toc: false                     # 单篇关掉右侧目录；不写则跟随 config.ts
+comment: false                 # 单篇关掉评论；不写则跟随 config.ts
 draft: false                   # true 则不进列表 / 搜索 / RSS
 banner: ../../assets/banner.webp  # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
 bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
@@ -165,7 +219,8 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 
 | 原版功能 | Flux | 原因 |
 | --- | --- | --- |
-| 评论（13 种第三方服务）、浏览量统计 | ✕ | 外部服务依赖，与「静态、零依赖」冲突 |
+| 评论（13 种第三方服务） | 只接 Waline | 一个够用；13 套适配是插件该干的活，主题背不动 |
+| 浏览量统计（Waline / 不蒜子） | ✕ | 主题里没有放这个数字的位置，接了也是摆设 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
 | 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
 | fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
@@ -188,11 +243,13 @@ src/
 ├── data/links.ts        # 友链
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
-│                        # ArchiveList / Toc / Pagination / SearchModal / Icon / Footer
+│                        # ArchiveList / Toc / Pagination / SearchModal /
+│                        # Comments / Icon / Footer
 ├── pages/               # 文件即路由
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链
 ├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶
 ├── scripts/search.js    # 站内搜索
+├── scripts/comments.js  # 评论区的懒加载与初始化
 ├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计
 ├── utils/slug.ts        # URL 规范化（含中文转拼音）
 ├── utils/image.ts       # 图片两种写法的统一处理
@@ -209,6 +266,7 @@ src/
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
+- 评论的客户端默认从 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css` 放进 `public/`，再把配置里两个地址改成 `/waline.js` 这一级别的绝对路径即可。
 
 ## 更新日志
 
