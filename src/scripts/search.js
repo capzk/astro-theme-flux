@@ -77,6 +77,10 @@ function openModal(modal, input) {
   document.body.classList.add('is-locked');
   input.value = '';
   renderEmpty('');
+  /* 弹层一打开就开始取索引。读者从「打开」到「敲下第一个字」通常还有零点几秒，
+     正好把这一趟（一个几十 KB 的 JSON）藏进去，第一次搜索就不会卡在等索引上。
+     失败也无所谓：loadIndex 内部已经把错误吞成空索引。 */
+  void loadIndex();
   /* 等弹层可见再聚焦，避免 iOS 上滚动跳动 */
   requestAnimationFrame(() => input.focus());
 }
@@ -168,6 +172,8 @@ export function initSearch() {
   });
 
   openBtn?.addEventListener('click', () => openModal(modal, input));
+  /* 鼠标移上去就预取索引 —— 比点开再取早一步，且只发生一次 */
+  openBtn?.addEventListener('pointerenter', () => void loadIndex(), { once: true });
 
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal(modal);

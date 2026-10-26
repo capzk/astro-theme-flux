@@ -22,6 +22,24 @@ export default defineConfig({
   trailingSlash: 'always',
   build: { format: 'directory' },
 
+  /**
+   * 预取：鼠标悬停在链接上时就把目标页面悄悄取回来。
+   *
+   * 静态站最值钱的一项优化 —— 导航的感知延迟不是带宽问题，是「点下去才开始
+   * 拿文档」那一两个往返。悬停到点击之间通常有 100~300ms，正好够把 HTML 拿下来；
+   * 页面其余资源（CSS / JS / 图片）本来就带 hash 长缓存，于是点击几乎是即时的。
+   *
+   * `hover` 而不是 `viewport`：后者会在页面加载后把所有站内链接都拉一遍，
+   * 归档页一百多篇就是一百多个请求。悬停只取「读者真的想去的那一个」。
+   *
+   * 想关掉某条链接，在 <a> 上写 data-astro-prefetch="false"。
+   * @see https://docs.astro.build/zh-cn/guides/prefetch/
+   */
+  prefetch: {
+    prefetchAll: true,
+    defaultStrategy: 'hover',
+  },
+
   integrations: [sitemap()],
 
   markdown: {
