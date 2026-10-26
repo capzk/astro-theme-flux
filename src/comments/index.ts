@@ -20,6 +20,7 @@ import type {
 } from './types';
 import { giscus } from './giscus';
 import { waline } from './waline';
+import { warnOnce } from './warn';
 
 /** 暗色模式的判定选择器。主题固定写在 html 的 data 属性上，见 BaseLayout 首帧脚本 */
 export const DARK_SELECTOR = 'html[data-user-color-scheme="dark"]';
@@ -41,15 +42,6 @@ const PROVIDERS = new Map<CommentType, AnyProvider>(
 
 /** 支持评论系统的名单，给配置校验和文档用 */
 export const COMMENT_TYPES = LIST.map((provider) => provider.type);
-
-/** 已经警告过的问题 —— 下面几个函数是逐页调用的，同一个问题只该说一次 */
-const warned = new Set<string>();
-
-function warnOnce(key: string, message: string): void {
-  if (warned.has(key)) return;
-  warned.add(key);
-  console.warn(message);
-}
 
 function providerOf(comment: CommentConfig): AnyProvider | null {
   const provider = PROVIDERS.get(comment.type);

@@ -30,6 +30,36 @@ export interface NavItem {
 }
 
 /**
+ * Waline 客户端从哪加载。
+ * ---------------------------------------------------------------------------
+ * 三种写法：
+ *
+ *   `'jsdelivr'` | `'unpkg'` | `'npmmirror'`   预置的公共 CDN（见下方表格）
+ *   模板字符串                                  自己的 CDN / 自托管目录
+ *
+ * 模板里的占位符：
+ *   `{name}`     npm 包名，固定是 `@waline/client`
+ *   `{version}`  版本号，来自下面的 `version`
+ *   `{file}`     包内相对路径，如 `dist/waline.js`、`dist/waline.css`、`dist/pageview.js`
+ *   `{basename}` 文件名主干，如 `waline`、`pageview`
+ *   `{ext}`      扩展名，`js` 或 `css`
+ *
+ * 例子：
+ *   自托管、文件平铺在 public/waline/  —— `'/waline/{basename}-{version}.{ext}'`
+ *   自托管、按 npm 目录结构放          —— `'/vendor/waline/{file}'`
+ *   国内镜像（要写全版本号）           —— `'https://registry.npmmirror.com/{name}/{version}/files/{file}'`
+ *   自己的对象存储                      —— `'https://cdn.example.com/npm/{name}@{version}/{file}'`
+ *
+ * @see https://waline.js.org/guide/get-started/client.html
+ */
+export type WalineCdn =
+  | 'jsdelivr'
+  | 'unpkg'
+  | 'npmmirror'
+  /* 自定义模板；用 string 而不是字面量联合，写错成别的名字会在构建期报错提醒 */
+  | (string & {});
+
+/**
  * 评论 · Waline
  * ---------------------------------------------------------------------------
  * 大部分字段都有合适的默认值，真要填的只有 `serverURL` —— 也就是你自己部署
@@ -46,15 +76,33 @@ export interface WalineConfig {
    */
   serverURL: string;
   /**
-   * 客户端脚本与样式地址。「@3」表示取 3.x 的最新版；
-   * 想锁版本就写全（`@3.16.1`），想换 CDN / 自托管就改这里。
-   * 两个地址必须同版本，只改一个会样式错位。
+   * 客户端脚本与样式从哪个 CDN 取。默认 `'jsdelivr'`。
    *
-   * 默认：https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js
-   *       https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.css
+   * | 取值 | 实际地址 |
+   * | --- | --- |
+   * | `'jsdelivr'` | `https://cdn.jsdelivr.net/npm/@waline/client@{version}/{file}` |
+   * | `'unpkg'` | `https://unpkg.com/@waline/client@{version}/{file}` |
+   * | `'npmmirror'` | `https://registry.npmmirror.com/@waline/client/{version}/files/{file}` |
+   *
+   * 也可以直接填模板（占位符见上方 WalineCdn 的说明）：
+   *
+   *   自托管、文件平铺在 public/waline/、文件名带版本号
+   *     cdn: '/waline/{basename}-{version}.{ext}', version: '3.16.1'
+   *     → /waline/waline-3.16.1.js、/waline/waline-3.16.1.css、/waline/pageview-3.16.1.js
+   *
+   *   自托管、按 npm 的目录结构放（即 public/vendor/waline/dist/waline.js）
+   *     cdn: '/vendor/waline/{file}'
+   *
+   * 国内访问 jsDelivr / unpkg 都不稳，换 `'npmmirror'` 或自己的对象存储最省事。
+   * 换 CDN 只改这一行，不用碰组件，也不用改 `pageview` 的地址。
    */
-  js?: string;
-  css?: string;
+  cdn?: WalineCdn;
+  /**
+   * 客户端版本。默认 `'3'` —— 跟着 3.x 的最新版走，对 jsDelivr / unpkg 有效。
+   * 想锁死就写全（`'3.16.1'`）；**`npmmirror` 不支持 `'3'` 这种范围写法，必须写全**，
+   * 写范围会在构建期收到一条警告。
+   */
+  version?: string;
   /**
    * 评论归属的路径，Waline 用它区分不同文章。
    * - 不写      用当前页路径（`/posts/hello-flux/`），推荐
@@ -127,10 +175,10 @@ export interface WalineConfig {
    * 用的是 Waline 的独立小插件（gzip < 1KB），**不依赖评论区是否加载** ——
    * 评论关掉、甚至懒加载从没触发，数字照样统计。
    *
-   * - `true`  按 `js` 的地址推同版本插件（`waline-3.16.1.js` → `pageview-3.16.1.js`）
-   * - 字符串  直接指定插件地址
+   * - `true`  用同一套 `cdn` 模板算（把 `{basename}` 换成 `pageview`）
+   * - 字符串  直接指定插件地址，例如自带 `?v=` 参数绕开 CDN 的旧缓存
    *
-   * 自托管时记得把 `pageview.js` 也放进同一个目录；文件名按上面的规律改。
+   * 自托管时记得把 `pageview.js` 也放进同一个目录，文件名与 `waline.js` 同一规律。
    */
   pageview?: boolean | string;
 }
@@ -386,6 +434,9 @@ export const SITE: SiteConfig = {
     lazy: 600,
     waline: {
       serverURL: '',
+      /* 脚本与样式从哪加载：'jsdelivr'（默认）/ 'unpkg' / 'npmmirror'，
+         也可以写自托管模板 —— 换 CDN 只改这一行，见上方 WalineConfig.cdn 的表格 */
+      // cdn: 'jsdelivr',
       locale: {
         placeholder: '说点什么吧，支持 Markdown…',
       },
