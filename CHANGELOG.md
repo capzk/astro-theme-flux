@@ -32,8 +32,22 @@
 - **浏览量统计**。`waline.pageview: true` 后，文章页「最后更新于」下面多一行「阅读 N 次」。
   用的是 Waline 单独的 `pageview.js`（gzip 不到 1KB），在 `window.load` 之后才发请求。
   **和评论区解耦**：评论关掉、懒加载从没触发，阅读数照样统计 —— 所以「不要评论、只要阅读数」
-  这种配法是成立的。插件地址默认从 `js` 推同版本（`waline-x.y.z.js` → `pageview-x.y.z.js`），
-  推不出来或想自己指定就写 `pageview: '/waline/pageview-3.16.1.js'`。
+  这种配法是成立的。地址由 `cdn` 模板一并算出，不用单独指。
+
+- **客户端地址可配置**（`comment.waline.cdn` + `version`）。以前脚本地址是写死的
+  jsDelivr 链接，想换国内镜像或自托管得改组件。现在只改配置一行：
+
+  | `cdn` | 展开成 |
+  | --- | --- |
+  | `'jsdelivr'`（默认）/ `'unpkg'` | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js` |
+  | `'npmmirror'` | `https://registry.npmmirror.com/@waline/client/3.16.1/files/dist/waline.js` |
+  | 模板字符串 | 占位符 `{name}` `{version}` `{file}` `{basename}` `{ext}`，见 README |
+
+  自托管就是 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'`，
+  `waline.js` / `waline.css` / `pageview.js` 由同一个模板展开。名字写错（既不是预置值、
+  又不含占位符）或 npmmirror 配了范围版本，构建期会警告并在必要时回落到默认 CDN。
+  这样主题里不再有任何写死的第三方地址，也不用把 300KB 的客户端塞进 `public/` 让所有
+  使用者一起背。
 
 - Waline 的选项补齐到官方那一套：`commentSorting`、`noRss`、`recaptchaV3Key`、
   `turnstileKey`；`emoji` / `reaction` 现在也接受 `true`（用内置那套）。函数型选项
