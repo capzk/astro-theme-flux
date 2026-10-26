@@ -810,6 +810,19 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 .post-meta-updated {
   margin: 0 0 16px;
 }
+/* 「阅读 N 次」—— 紧跟在更新日期下面，所以上边距小、下边距回到正文间距 */
+.post-meta-pageview {
+  margin: -10px 0 16px;
+}
+/* 数字由评论系统的插件异步回填，回填前是个空 span。
+   空的时候给个占位符，免得先显示「阅读 次」再补上数字 */
+.post-pageview-value > span:empty::before {
+  content: '—';
+}
+.post-pageview-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-color);
+}
 
 /* ---------- 8. 文章页 ---------- */
 /* 卡片里的 h1 只服务 SEO 与打印（对应原版 #seo-header）。
@@ -1524,17 +1537,21 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   height: 1em;
 }
 
-/* ---------- 12. 评论区（Waline） ----------
-   结构只有三件东西：标题、挂载点、加载/失败状态。Waline 自带完整样式，
-   这里不覆盖它的类名（上游一改版就会错位），只把它的 CSS 变量接到主题令牌上 ——
-   主题改配色、切暗色，评论区自动跟着走，不用维护第二套颜色。
+/* ---------- 12. 评论区（可插拔；Waline 是参考实现） ----------
+   结构只有三件东西：标题、挂载点、加载/失败状态 —— 外壳由主题给，
+   里面那一坨由评论系统自己渲染（src/comments/client/ 里各家负责挂载）。
+   所以这套样式对任何评论系统都成立，换一家也不改。
 
-   变量名是 Waline 的公开接口：
+   Waline 自带完整样式，这里不覆盖它的类名（上游一改版就会错位），
+   只把它的 CSS 变量接到主题令牌上 —— 主题改配色、切暗色，评论区自动跟着走，
+   不用维护第二套颜色。变量名是 Waline 的公开接口：
    https://waline.js.org/reference/client/style.html
 
    注意「暗色不需要另写一套」这件事：Waline 的暗色是往 <html> 上写一组变量，
    而我们在这里给 .comment-section 自己赋了值 —— 直接赋的值永远赢过继承来的值，
-   所以无论亮暗，区内的颜色都走主题令牌。 */
+   所以无论亮暗，区内的颜色都走主题令牌。
+   这一段的变量只对 Waline 有意义；别的评论系统（例如 iframe 型的 Giscus）
+   自己管配色，用不到这些变量，留着也无害。 */
 .comment-section {
   margin-top: 2.5rem;
   padding-top: 1.5rem;
@@ -1588,8 +1605,9 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   font-weight: 400;
   letter-spacing: 0;
 }
-/* 计数还没回填、或者请求失败时，这枚徽标只剩一个「条评论」，不如整枚藏起来 */
-.comment-count:has(.waline-comment-count:empty) {
+/* 计数还没回填、或者这家评论系统没有计数接口时，这枚徽标只剩一个「条」，
+   不如整枚藏起来。判据是「里面的 span 还空着」—— 不认具体是哪一家 */
+.comment-count:has(span:empty) {
   display: none;
 }
 

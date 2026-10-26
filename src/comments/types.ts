@@ -1,0 +1,109 @@
+/**
+ * 评论系统 · 公共契约
+ * ---------------------------------------------------------------------------
+ * 评论被拆成两层，中间只靠一份 JSON（CommentSection）通信：
+ *
+ *   构建期（src/comments/*.ts）—— 读配置、校验、算出该给浏览器发什么；
+ *   运行期（src/comments/client/*.js）—— 浏览器里把脚本拉下来挂到 DOM 上。
+ *
+ * 这样加一个评论系统不需要动加载器、不需要动样式、也不用碰任何页面模板。
+ * 具体步骤见 README「再加一个评论系统」。
+ */
+import type { CommentConfig } from '../config';
+
+/** 站点支持的评论系统。加一个就在 config.ts 的 `type` 里加一项 */
+export type CommentType = 'waline' | 'giscus';
+
+/** 构建期传给 provider 的上下文 */
+export interface CommentContext {
+  /** 当前页面路径，如 `/posts/hello/` */
+  path: string;
+  /** 完整地址（`path: 'href'` 这类配置要用） */
+  href: string;
+  /** 站点语言（BCP 47），provider 负责翻译成自己认的写法 */
+  lang: string;
+  /** 暗色模式的判定选择器，主题固定挂在 html 的 data 属性上 */
+  dark: string;
+}
+
+/**
+ * 交给浏览器的配置。
+ * 必须是纯 JSON —— 函数型选项（Waline 的 `imageUploader`、`texRenderer` 之类）
+ * 传不过去，要用就得在 client/ 里自己写，不能靠配置。
+ */
+export interface CommentPayload {
+  /** ES 模块或传统脚本地址 */
+  js?: string;
+  /** 样式地址 */
+  css?: string;
+  /**
+   * 评论区标题上那枚「N 条」的占位 class —— 评论系统自己会回填它。
+   * 不给就说明这家不暴露评论数，徽标整枚不渲染。这样模板里不必写死某一家的类名。
+   */
+  countClass?: string;
+  /** 透传给评论系统的初始化选项 */
+  init: Record<string, unknown>;
+}
+
+/** 页面里那一份完整的下发配置 */
+export interface CommentSection extends CommentPayload {
+  type: CommentType;
+  /** 滚到距评论区多少像素时开始加载；0 = 进页面就加载 */
+  lazy: number;
+}
+
+/**
+ * 「数字占位」的描述 —— 浏览量、评论数这类由小插件回填的数字。
+ * 插件自己会找 `className` 的元素、读它的 `data-path`、把结果写进 textContent。
+ */
+export interface CommentStat {
+  /** 插件脚本地址（Waline 的 pageview.js / comment.js 都在 1KB 上下） */
+  js: string;
+  /** 插件里那个「去取数」的函数名，加载后调用一次 */
+  exportName: string;
+  /** 插件回填的 class 名，由 provider 提供 —— 组件不必知道是哪一家 */
+  className: string;
+  /** 查询用的路径 */
+  path: string;
+  /** 传给插件的固定参数，例如服务端地址 */
+  options: Record<string, string | number | boolean>;
+}
+
+/** 一个评论系统的构建期实现 */
+export interface CommentProvider<TConfig> {
+  readonly type: CommentType;
+  /** 报错、警告里用的名字 */
+  readonly label: string;
+  /** 从总配置里取出自己那一段 */
+  configOf(comment: CommentConfig): TConfig | undefined;
+  /** 配置够不够跑起来。不够就整块不渲染，构建期打一条警告 */
+  ready(config: TConfig | undefined): config is TConfig;
+  /** 不够的时候缺什么 —— 只为把警告说清楚 */
+  diagnose(): string;
+  /** 生成下发配置 */
+  build(config: TConfig, ctx: CommentContext): CommentPayload;
+  /**
+   * 可选：要提前握手的域名（`<link rel="preconnect">`）。
+   *
+   * 评论脚本是懒加载的，等它开始下载时再握手就晚了 —— 一个跨境 TLS 握手
+   * 差不多 100~300ms，比脚本本身还贵。页面 head 里先握好，滚到评论区时
+   * 只剩传输时间。
+   */
+  origins?(config: TConfig): string[];
+  /**
+   * 可选：文章页浏览量。不实现就是「这家没有这个功能」。
+   *
+   * 只有这一项可选能力 —— 接口里每留一个空位，就得有人实现、有人调用；
+   * 列表页的评论数、最近评论挂件这些目前都没接，等真要用了再加方法，
+   * 别先摆一个谁都不实现的位置。
+   */
+  pageview?(config: TConfig, ctx: CommentContext): CommentStat | null;
+}
+
+/** 一次解析的完整结果：评论区和浏览量各管各的 */
+export interface ResolvedComments {
+  /** 评论区；null = 这一页不渲染评论区 */
+  section: CommentSection | null;
+  /** 文章页浏览量；null = 不渲染 */
+  pageview: CommentStat | null;
+}

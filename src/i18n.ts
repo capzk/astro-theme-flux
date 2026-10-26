@@ -39,12 +39,15 @@ export const T = {
   nextPage: '下一页',
   pageN: (n: number) => `第 ${n} 页`,
   related: '相关文章',
-  /* 评论区。计数单位跟在 Waline 回填的数字后面，所以拆成两段 */
+  /* 评论区。计数单位跟在评论系统回填的数字后面，所以拆成两段 */
   comments: '评论',
   commentCountUnit: '条',
   commentLoadFailed: '评论没能加载出来，可能是网络或服务端的问题。',
   commentRetry: '重试',
   commentNoScript: '评论需要 JavaScript，开启后刷新页面即可。',
+  /* 浏览量。同样是「文案 + 数字 + 单位」三段，数字由插件回填 */
+  pageview: '阅读',
+  pageviewUnit: '次',
   notFound: '404',
   notFoundDesc: '你要找的页面掉进流体里了。',
   backHome: '返回首页',

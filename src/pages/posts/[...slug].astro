@@ -7,7 +7,7 @@
  *
  * 对应原版 post.ejs：banner + 白卡片（正文居中，右侧跟随滚动的目录）。
  * 保留阅读本身需要的部分：元信息、目录、标签、版权、上一篇/下一篇、相关文章，
- * 以及可选的评论（Waline，见 config.ts 的 comment 段）。
+ * 以及可选的评论与浏览量（评论系统可插拔，见 config.ts 的 comment 段）。
  */
 import { render } from 'astro:content';
 import { getImage } from 'astro:assets';
@@ -17,7 +17,9 @@ import Board from '../../components/Board.astro';
 import Icon from '../../components/Icon.astro';
 import Toc from '../../components/Toc.astro';
 import Comments from '../../components/Comments.astro';
+import PageView from '../../components/PageView.astro';
 import { SITE } from '../../config';
+import { commentContext, commentOrigins, hasCommentForm, resolvePageview } from '../../comments';
 import { T } from '../../i18n';
 import {
   getPosts,
@@ -58,13 +60,16 @@ const tocItems = headings
   .map((h) => ({ depth: h.depth, slug: h.slug, text: h.text }));
 const showToc = (post.data.toc ?? SITE.post.toc) && tocItems.length > 0;
 
-/* 评论要同时满足三件事：站点开了、这篇没关、而且真的填了服务端地址。
-   少了最后一条就整块不渲染 —— 不在页面上留一个注定失败的输入框。 */
-const showComments =
-  SITE.comment.enable &&
-  SITE.comment.type === 'waline' &&
-  Boolean(SITE.comment.waline.serverURL) &&
-  (post.data.comment ?? true);
+/* 评论：站点开关、这篇没关、而且评论系统真的配好了 —— 三条都满足才渲染。
+   少了最后一条就整块不渲染，不在页面上留一个注定失败的输入框。
+   具体是哪一家由 config 的 comment.type 决定，这里不写死。 */
+const showComments = hasCommentForm(SITE.comment, post.data.comment);
+
+/* 浏览量：和评论区互不依赖，评论关掉也能单独统计。评论系统不支持就是 null */
+const pageview = resolvePageview(
+  SITE.comment,
+  commentContext(Astro.url, { site: Astro.site, lang: SITE.lang }),
+);
 
 /* banner：单篇封面优先（`banner` 可优化 > `bannerImg` 字符串），其次站点默认图 */
 const bannerSource = post.data.banner ?? post.data.bannerImg ?? SITE.postBanner.img;
@@ -140,6 +145,7 @@ const jsonLd = articleJsonLd({
   article={{ published: date, modified: updated, section: categories[0], tags }}
   jsonLd={jsonLd}
   image={ogImage}
+  preconnect={commentOrigins(SITE.comment)}
 >
   <Banner
     title={title}
@@ -164,6 +170,9 @@ const jsonLd = articleJsonLd({
           </p>
         )
       }
+
+      {/* 阅读量紧挨着「最后更新于」：都是文章属性，放一起读起来是一组 */}
+      {pageview && <PageView stat={pageview} />}
 
       <div class="markdown-body">
         <Content />

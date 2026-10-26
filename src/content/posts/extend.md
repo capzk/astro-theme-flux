@@ -114,36 +114,38 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 ## 换一个评论系统
 
-主题自带 [Waline](https://waline.js.org/)，开关全在 `config.ts` 的 `comment` 段：填上自己的服务端地址、把 `enable` 改成 `true`，文章页文末就出现评论区。默认关着 —— 没有服务端地址的评论区是个空壳，不如不出现。
+主题内置两套：[Waline](https://waline.js.org/)（要自建服务端）和 [Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。开关全在 `config.ts` 的 `comment` 段：
 
-想换成 giscus、twikoo 这类，动手的地方是 `src/pages/posts/[...slug].astro` 里的 `<Comments />`：那一行在 `</article>` 之后、`<Board>` 闭合之前，也就是正文、版权卡片、上下篇、相关文章全部结束之后。
-
-以 giscus（基于 GitHub Discussions）为例，把那行换成：
-
-```astro
-</article>
-<div class="giscus" style="margin-top: 2rem"></div>
-<script is:inline src="https://giscus.app/client.js"
-  data-repo="你的用户名/你的仓库"
-  data-repo-id="R_xxx"
-  data-category="Announcements"
-  data-category-id="DIC_xxx"
-  data-mapping="pathname"
-  data-reactions-enabled="1"
-  data-theme="preferred_color_scheme"
-  data-lang="zh-CN"
-  crossorigin="anonymous"
-  async>
-</script>
+```ts
+comment: {
+  enable: true,
+  type: 'waline',   // 改成 'giscus' 就是另一套，页面、样式、加载逻辑都不用动
+  lazy: 600,        // 滚到距评论区 600px 时开始加载；0 = 进页面就加载
+  waline: { serverURL: 'https://comment.example.com', pageview: true },
+  giscus: { repo: 'owner/repo', repoId: 'R_kgDO…' },
+},
 ```
 
-三点提醒：
+默认关着 —— 没有服务端地址的评论区是个空壳，不如不出现。
 
-- 脚本用 `is:inline`，否则 Astro 会尝试打包它（外部 URL 打不了包，会报错）。
-- `data-theme="preferred_color_scheme"` 会跟随系统，但**不跟随主题的手动切换**。要让两者同步，得在 `theme.js` 的切换函数里给 giscus 的 `<iframe>` 发一条 `postMessage`。
-- 评论是一个第三方请求，也是主题里唯一会让「纯静态」出现运行时网络依赖的东西（Waline 同样如此）。加之前想清楚值不值。
+要注意的是：**这个「改一行就换」不是靠 if 堆出来的**。评论区被拆成两层，中间只过一份 JSON：
 
-如果只是想换掉 Waline、但想留住「标题 + 计数 + 懒加载 + 失败重试」这套外壳，改 `src/scripts/comments.js` 里的 `toOptions()` 和那句 `client.init(...)` 就够了，`Comments.astro` 一行都不用动。
+```
+构建期  src/comments/waline.ts   →  算出 { js, css, init, lazy }   ← src/comments/giscus.ts
+                    ↓ 写进页面的 <script type="application/json">
+运行期  src/scripts/comments.js  →  懒加载、失败重试、骨架屏（不认任何一家）
+                    ↓ 按 type 派发
+        src/comments/client/waline.js / giscus.js  →  真正把东西挂到 DOM 上
+```
+
+所以加第三个（Twikoo、Artikle、Valine……）是四步，其中三步是各写一个文件：`config.ts` 里加一段配置、`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，Waline 和 Giscus 就是两个方向的样板 —— 前者是 ES 模块 + 自定义 CSS + 独立计数插件，后者是传统 `<script>` + iframe + `postMessage` 换肤。
+
+几个实现上的坑，加新系统时会撞到：
+
+- **下发的配置必须是纯 JSON**。`imageUploader`、`texRenderer`、自定义 `search` 这些函数型选项传不过去，要用就在 mounter 里写。
+- **失败重试得换 URL key**。动态 `import()` 的失败结果会被浏览器按 URL 记住，重试时带 `?retry=N`，否则第二次拿到的还是同一个失败的 Promise。
+- **`dark` 这类选择器交给对方自己盯**。Waline 认 `html[data-user-color-scheme="dark"]`，Giscus 得自己 `postMessage` —— 后者在 mounter 里挂了 `MutationObserver`，主题这边不用改。
+- **评论是一个第三方请求**，也是主题里唯一会让「纯静态」出现运行时网络依赖的东西。加之前想清楚值不值 —— 所以默认关，且什么都没配时连加载器都不进构建产物。
 
 ## 换掉搜索
 

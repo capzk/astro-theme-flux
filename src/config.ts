@@ -30,7 +30,7 @@ export interface NavItem {
 }
 
 /**
- * 评论（Waline）
+ * 评论 · Waline
  * ---------------------------------------------------------------------------
  * 大部分字段都有合适的默认值，真要填的只有 `serverURL` —— 也就是你自己部署
  * 的那个 Waline 服务端地址。其余项的默认值写在这里的注释里，需要时再往
@@ -83,35 +83,129 @@ export interface WalineConfig {
   login?: 'enable' | 'disable' | 'force';
   /**
    * 表情包目录地址，默认只有微博那一套。
-   * 想加 QQ / B 站 / 贴吧，在这里追加对应 CDN 目录即可。
+   * 官方预设直接抄地址即可（`@1.4.0` 是当前版本，换版本时所有地址一起换）：
+   *   微博        https://unpkg.com/@waline/emojis@1.4.0/weibo
+   *   QQ          https://unpkg.com/@waline/emojis@1.4.0/qq
+   *   哔哩哔哩     https://unpkg.com/@waline/emojis@1.4.0/bilibili
+   *   哔哩小黄脸   https://unpkg.com/@waline/emojis@1.4.0/bmoji
+   *   贴吧        https://unpkg.com/@waline/emojis@1.4.0/tieba
+   *   Twitter     https://unpkg.com/@waline/emojis@1.4.0/tw-emoji
+   * 数组里排几个就出几个选项卡。设成 `false` 去掉表情按钮。
    */
-  emoji?: string[];
-  /** 表情面板里的 GIF 图片搜索（依赖服务端配置）。默认关 */
+  emoji?: string[] | boolean;
+  /** 表情面板里的 GIF 图片搜索（走 Giphy，依赖服务端配置）。默认关 */
   search?: boolean;
-  /** 文末「反应」表情，给一组图片地址才会出现。默认不显示 */
-  reaction?: string[];
+  /**
+   * 文末「反应」表情，给一组图片地址才会出现（最多 8 个）；`true` 用内置的那套。
+   * 默认不显示。读者不用写评论也能表个态。
+   */
+  reaction?: string[] | boolean;
   /** 评论字数上限，`0` 不限。默认 0 */
   wordLimit?: number;
   /** 每页评论条数。默认 10 */
   pageSize?: number;
+  /** 评论列表排序：'latest' 最新在前（默认）/ 'oldest' 最早在前 / 'hottest' 按热度 */
+  commentSorting?: 'latest' | 'oldest' | 'hottest';
   /**
    * 允许在评论里上传图片（走服务端配置的存储）。
-   * 默认**关闭** —— 上传是一个写入型攻击面，个人博客多数用不上；
-   * 服务端配好存储（S3 / 图床）之后再来这里打开。
+   * 默认**关闭** —— 不开是「不能传」，开了才是「能传」：
+   * 服务端没配存储时 Waline 会退回把图片转成 Base64 塞进评论体，
+   * 一条评论几十 KB 地进数据库，长期看不划算。
    */
   imageUpload?: boolean;
   /** 隐藏 Waline 页脚的版权署名。默认显示，建议保留以支持上游 */
   noCopyright?: boolean;
-  /** 滚动到评论区附近再拉客户端脚本。默认开 */
-  lazy?: boolean;
+  /** 隐藏评论框旁边的 RSS 订阅链接 */
+  noRss?: boolean;
+  /** Google reCAPTCHA v3 的网站密钥。服务端要同步配 `RECAPTCHA_V3_SECRET` */
+  recaptchaV3Key?: string;
+  /** Cloudflare Turnstile 的网站密钥。服务端要同步配 `TURNSTILE_SECRET` */
+  turnstileKey?: string;
+  /**
+   * 浏览量统计：在文章页显示「阅读 N 次」，每访问一次 +1。
+   *
+   * 用的是 Waline 的独立小插件（gzip < 1KB），**不依赖评论区是否加载** ——
+   * 评论关掉、甚至懒加载从没触发，数字照样统计。
+   *
+   * - `true`  按 `js` 的地址推同版本插件（`waline-3.16.1.js` → `pageview-3.16.1.js`）
+   * - 字符串  直接指定插件地址
+   *
+   * 自托管时记得把 `pageview.js` 也放进同一个目录；文件名按上面的规律改。
+   */
+  pageview?: boolean | string;
 }
 
-/** 评论系统总配置。目前只接 Waline，`type` 留着是为了以后加别的不用改结构 */
+/**
+ * 评论 · Giscus
+ * ---------------------------------------------------------------------------
+ * 把评论存在 GitHub Discussions 里，不需要任何服务端：读者用 GitHub 账号登录后发言。
+ * 适合开源项目、技术博客；不适合面向「不玩 GitHub」的中文读者 —— 这一条决定了
+ * 它多半只能当备选。
+ *
+ * 三个 id 都在 https://giscus.app 填完仓库信息后生成，照抄即可。
+ */
+export interface GiscusConfig {
+  /** 仓库，格式 `owner/repo`。必须是公开仓库，且已在设置里开启 Discussions */
+  repo: string;
+  /** 仓库 ID（`R_kgDO…`） */
+  repoId: string;
+  /** Discussion 分类名，如 `Announcements`。留空用仓库最近用过的分类 */
+  category?: string;
+  /** 分类 ID（`DIC_kwDO…`）。填了 `category` 一般也要一起填 */
+  categoryId?: string;
+  /**
+   * 文章与 Discussion 的映射方式。
+   * - `'pathname'` 用页面路径（推荐，和 Waline 的 path 行为一致）
+   * - `'url'` / `'title'` / `'og:title'` 用地址或标题 —— 改标题／换域名就会丢评论
+   * - `'specific'` 全部指到同一个 Discussion，做留言板时用，配合 `term`
+   */
+  mapping?: 'pathname' | 'url' | 'title' | 'og:title' | 'specific';
+  /** `mapping: 'specific'` 时，指向的那个 Discussion 标题 */
+  term?: string;
+  /** 只有标题与 `term` 完全一致才复用已有 Discussion */
+  strict?: boolean;
+  /** 显示 reaction（文章底部的表情回应）。默认开 */
+  reactionsEnabled?: boolean;
+  /** 评论框在上还是在下。默认在下 */
+  inputPosition?: 'top' | 'bottom';
+  /**
+   * 配色。两个值分别对应亮色与暗色，主题切换时 Giscus 会跟着换。
+   * 可选值见 https://giscus.app 的 Theme 一栏（也支持 `preferred_color_scheme`）。
+   */
+  theme?: { light?: string; dark?: string };
+  /** 界面语言，如 `'zh-CN'`。留空由 Giscus 按浏览器判断 */
+  lang?: string;
+}
+
+/**
+ * 评论系统
+ * ---------------------------------------------------------------------------
+ * 换评论系统只改 `type` 一行，再把对应那一段填好 —— 用不到的段留着不影响构建，
+ * 所以「先填两套、随时切」是常态。
+ *
+ * 内置两个实现：
+ *   'waline' —— 自建服务端，功能最全（评论 / 浏览量 / 反应 / 登录 / 表情包）
+ *   'giscus' —— 寄生在 GitHub Discussions，零服务端，只有评论
+ *
+ * 加第三个见 README「再加一个评论系统」：四步，其中三步是各写一个文件。
+ */
 export interface CommentConfig {
-  /** 总开关。关掉后文章页不渲染评论区，也不会请求任何外部资源 */
+  /** 总开关。关掉后文章页不渲染评论区，也不请求任何评论相关的资源 */
   enable: boolean;
-  type: 'waline';
-  waline: WalineConfig;
+  /** 用哪一套。改这里即可切换 */
+  type: 'waline' | 'giscus';
+  /**
+   * 懒加载：浏览器滚到「距评论区还有 N 像素」时才开始拉脚本。
+   * `0` 表示不懒加载、进页面就拉。默认 600 —— 大约「再滚一屏就到了」。
+   *
+   * 调大（如 1800）能让读者刚开始往下读就开始预取，滚到评论区时已经就绪；
+   * 代价是这一页一定会拉评论脚本，哪怕读者根本不看评论。
+   */
+  lazy: number;
+  /** Waline 的私有配置（`type === 'waline'` 时生效） */
+  waline?: WalineConfig;
+  /** Giscus 的私有配置（`type === 'giscus'` 时生效） */
+  giscus?: GiscusConfig;
 }
 
 export interface SiteConfig {
@@ -282,11 +376,14 @@ export const SITE: SiteConfig = {
     wpm: 300,
   },
 
-  /* 评论默认关闭：Waline 得先有一个自己的服务端，示例站没有。
-     部署完之后把 serverURL 填上、enable 改 true，评论区就出现在文章页文末。 */
+  /* 评论默认关闭：Waline 得先有一个自己的服务端，示例站没有；Giscus 得先开
+     Discussions，示例站也没有。部署完之后把 serverURL / repo 填上、enable 改 true，
+     评论区就出现在文章页文末。想换 Giscus 就把 type 改成 'giscus'，其余不用动。 */
   comment: {
     enable: false,
     type: 'waline',
+    /* 滚到距评论区 600px 时开始加载。想让脚本更早就位就调大，见字段说明 */
+    lazy: 600,
     waline: {
       serverURL: '',
       locale: {
@@ -295,7 +392,16 @@ export const SITE: SiteConfig = {
       /* 昵称必填、邮箱选填。想全匿名改成 []，想要邮箱也必填再加 'mail' */
       requiredMeta: ['nick'],
       pageSize: 10,
-      lazy: true,
+      /* 文章页显示「阅读 N 次」。不需要就设 false —— 关掉后连那 1KB 插件都不发 */
+      pageview: true,
+    },
+    giscus: {
+      repo: '',
+      repoId: '',
+      mapping: 'pathname',
+      reactionsEnabled: true,
+      inputPosition: 'bottom',
+      theme: { light: 'light', dark: 'dark' },
     },
   },
 

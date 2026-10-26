@@ -1,0 +1,48 @@
+---
+/**
+ * PageView —— 文章页的「阅读 N 次」
+ * ---------------------------------------------------------------------------
+ * 数字由评论系统的计数插件回填（Waline 的 pageview.js），但这里不认识它的名字：
+ * 占位元素的 class 来自 provider，主题只提供外壳。
+ *
+ * 为什么要独立成组件，而不是塞进 banner 的元信息里：
+ *   · banner 的 metas 是一串静态字符串，填不了异步回填的数字；
+ *   · 浏览量是「这篇文章被读过多少次」，跟字数、阅读时长同属文章属性，
+ *     放在正文开头的 meta 行里正好 —— 那边已经有一条「最后更新于」。
+ */
+import { T } from '../i18n';
+import Icon from './Icon.astro';
+import type { CommentStat } from '../comments';
+
+interface Props {
+  /** 由 resolvePageview() 算出来的占位描述 */
+  stat: CommentStat;
+}
+
+const { stat } = Astro.props;
+
+/* 插件只需要这四样：地址、导出名、选择器、查询路径 */
+const payload = JSON.stringify({
+  js: stat.js,
+  exportName: stat.exportName,
+  className: stat.className,
+  path: stat.path,
+  options: stat.options,
+}).replace(/</g, '\\u003c');
+---
+
+<p class="post-meta post-meta-pageview">
+  <Icon name="eye" />
+  <span>{T.pageview}</span>
+  <span class="post-pageview-value">
+    <span class={stat.className} data-path={stat.path}></span>
+  </span>
+  <span>{T.pageviewUnit}</span>
+</p>
+
+{/* 配置与脚本放在 <p> 外面：<p> 只留内容，别在里面塞 script */}
+<script type="application/json" class="pageview-config" is:inline set:html={payload} />
+
+<script>
+  import '../scripts/pageview.js';
+</script>

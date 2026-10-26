@@ -35,6 +35,12 @@ interface Props {
   article?: ArticleMeta;
   /** 结构化数据（JSON-LD 对象或其数组），由页面用 utils/seo 生成 */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  /**
+   * 提前握手的域名（`<link rel="preconnect">`）。只给「要等到很后面才用得上、
+   * 但用上时希望连接已经热着」的第三方 —— 目前是评论服务端与它的客户端脚本。
+   * 站内地址不用传，浏览器本来就有连接。
+   */
+  preconnect?: string[];
 }
 
 const {
@@ -45,6 +51,7 @@ const {
   image,
   article,
   jsonLd,
+  preconnect = [],
 } = Astro.props;
 
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
@@ -55,6 +62,9 @@ const path = Astro.url.pathname;
 /* 分享封面必须是绝对地址，且不能是 SVG（平台会渲染成空白卡片） */
 const shareImg = absoluteUrl(shareImage([image]), origin);
 const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
+
+/* 同源的不必再握手（评论服务端和博客挂同一个域时会出现这种情况） */
+const preconnectList = preconnect.filter((item) => item !== origin.origin);
 
 /* 浏览器地址栏配色。亮色跟随配置里的顶栏色，暗色取 main.css 里那套固定值 ——
    用户手动切换过主题时可能与实际不符，但地址栏只是装饰，不值得为此加脚本。 */
@@ -87,6 +97,17 @@ const colorVars =
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+    {/* 放在 </head> 最前面几条里：握手要趁早，评论脚本是懒加载的，
+        等它开始下载再握手就白等一个 RTT 了 */}
+    {
+      preconnectList.map((item) => (
+        <>
+          <link rel="preconnect" href={item} />
+          {/* 老浏览器没有 preconnect 时退化成 DNS 预解析，聊胜于无 */}
+          <link rel="dns-prefetch" href={item} />
+        </>
+      ))
+    }
     <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={DARK_CHROME} media="(prefers-color-scheme: dark)" />
 

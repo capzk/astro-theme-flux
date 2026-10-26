@@ -7,6 +7,72 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-26
+
+### Added
+
+- **评论系统改成可插拔，新增 Giscus 实现**。`config.ts` 的 `comment` 段多了一个 `type`
+  字段，改一行就换评论系统，页面模板、样式、加载逻辑一律不动：
+
+  | `type` | 服务端 | 评论数 | 浏览量 |
+  | --- | --- | --- | --- |
+  | `'waline'` | 要自己部署 | ✓ | ✓ |
+  | `'giscus'` | 不要，存在 GitHub Discussions | ✕ | ✕ |
+
+  做法是把评论拆成两层，中间只过一份 JSON：构建期由 `src/comments/<name>.ts` 把配置翻成
+  `{ js, css, init, lazy }` 写进页面，运行期由 `src/scripts/comments.js` 负责懒加载、
+  骨架屏、失败重试（它不认识任何一家），再按 `type` 派发给 `src/comments/client/<name>.js`
+  去挂载。加第三个系统是四步：配置加一段、写一个 provider、写一个 mounter、两个注册表各加一行，
+  契约在 `src/comments/types.ts`。
+
+  顺带解决了两处「模板里写死 Waline 类名」的地方：评论数徽标的占位 class 改由 provider 给
+  （`countClass`，不给就说明这家不暴露评论数，徽标整枚不渲染）；样式里那条「计数空着就藏起来」
+  的规则也从 `.waline-comment-count` 改成了通用的 `:has(span:empty)`。
+
+- **浏览量统计**。`waline.pageview: true` 后，文章页「最后更新于」下面多一行「阅读 N 次」。
+  用的是 Waline 单独的 `pageview.js`（gzip 不到 1KB），在 `window.load` 之后才发请求。
+  **和评论区解耦**：评论关掉、懒加载从没触发，阅读数照样统计 —— 所以「不要评论、只要阅读数」
+  这种配法是成立的。插件地址默认从 `js` 推同版本（`waline-x.y.z.js` → `pageview-x.y.z.js`），
+  推不出来或想自己指定就写 `pageview: '/waline/pageview-3.16.1.js'`。
+
+- Waline 的选项补齐到官方那一套：`commentSorting`、`noRss`、`recaptchaV3Key`、
+  `turnstileKey`；`emoji` / `reaction` 现在也接受 `true`（用内置那套）。函数型选项
+  （`imageUploader` / `texRenderer` / 自定义 `search`）过不了 JSON，仍然要改 mounter。
+
+### Changed
+
+- **导航改成悬停预取**（`prefetch: { prefetchAll: true, defaultStrategy: 'hover' }`）。
+  静态站导航的感知延迟不是带宽，是「点下去才开始拿文档」那一两个往返；悬停到点击之间
+  通常有 100~300ms，正好够把目标页的 HTML 取回来，其余资源本来就在长缓存里。
+  代价是每页多一个 1.1KB（gzip）的预取脚本。不想预取某条链接就在 `<a>` 上写
+  `data-astro-prefetch="false"`。
+
+  用 `hover` 而不是 `viewport`：后者会在页面加载后把所有站内链接拉一遍，归档页
+  一百多篇就是一百多个请求。
+
+- **文章页预连接评论服务端**。`<link rel="preconnect">` 由 provider 的 `origins()`
+  给出（Waline 是服务端 + 客户端 CDN，Giscus 是 `giscus.app`），只出现在真正会用到的
+  文章页。评论脚本是懒加载的，等它开始下载再握手就白等一个 RTT（跨境约 100~300ms）。
+
+- **搜索索引提前一步取**。原先要等读者敲下第一个字才 `fetch('/searchindex.json')`
+  （中文站动辄几十 KB）；现在鼠标移到搜索按钮上、或弹层一打开就开始取，
+  第一次搜索不会卡在等索引上。
+
+- **`comment.waline.lazy` 搬到 `comment.lazy`，并从布尔改成像素数**（默认 `600`）。
+  `0` 表示不懒加载。调大（如 `1800`）能让读者刚开始往下读就预取脚本，滚到评论区时已经就绪；
+  原先只能二选一「进页面就拉」或「600px」，中间没有档位。
+  **升级注意**：老配置里 `waline.lazy` 不会报错，会被忽略 —— 默认值仍是 600，行为不变；
+  想改距离就把它挪到外面。
+
+- 文章页的评论区判定收敛到 `hasCommentForm()`，不再在模板里写
+  `SITE.comment.type === 'waline' && Boolean(SITE.comment.waline.serverURL)`；
+  少配一项时构建期会打印一条明确的警告，而不是静默不渲染。
+
+### Fixed
+
+- 评论区标题的计数徽标在 Waline 回填数字后仍可能不显示 —— 上一版靠 `:has()` 判断「数字空着
+  就藏起来」，规则盯的是具体类名，换评论系统就失效。现在只判断「里面的 span 还空着」。
+
 ## [1.4.0] - 2026-10-26
 
 ### Added

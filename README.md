@@ -4,7 +4,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.23.4-339933.svg?logo=node.js&logoColor=white)](./package.json)
 
-> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, Waline comments.
+> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus), page views.
 
 **在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
 
@@ -18,7 +18,7 @@
 
 **Flux** 是一套 Material Design 风格的 Astro 博客主题。设计概念与视觉语言迁移自 [hexo-theme-fluid](https://github.com/fluid-dev/hexo-theme-fluid)：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深浅色主题 —— 观感对齐原版，而运行时依赖归零。
 
-不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮是原生的滚动监听，图标是内联 SVG，代码高亮在构建期由 Shiki 完成，图片灯箱自己写了几十行。唯一的例外是评论：Waline 客户端从 CDN 按需加载，默认关闭，不给不评论的站点增加一个字节。
+不引 Bootstrap、iconfont、jQuery、tocbot、clipboard.js、highlight.js、fancybox、nprogress。目录高亮是原生的滚动监听，图标是内联 SVG，代码高亮在构建期由 Shiki 完成，图片灯箱自己写了几十行。唯一的例外是评论：客户端从 CDN 按需加载，默认关闭，不给不评论的站点增加一个字节（连加载器本身都不会出现在产物里）。
 
 ## 特性
 
@@ -45,7 +45,8 @@
 | 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta + JSON-LD（`WebSite` / `BlogPosting`），封面自动绝对化 |
-| 评论 | Waline：填一个服务端地址即开，滚到评论区才加载客户端，配色与深浅色跟随主题 |
+| 评论 | 可插拔：Waline（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
+| 浏览量 | 「阅读 N 次」，走评论系统的独立计数插件（Waline 的不到 1KB），评论关掉也能统计 |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap` |
 
 ## 开始使用
@@ -102,9 +103,20 @@ banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banne
 
 配色除了可以在 `config.ts` 覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
 
-### 评论（Waline）
+### 评论
 
-评论区接的是 [Waline](https://waline.js.org/)，默认**关闭** —— 它需要一个自己的服务端，示例站没有。三步打开：
+评论是**可插拔**的：主题内置两个实现，改 `type` 一行就换，页面模板、样式、加载逻辑都不用动。
+
+| `type` | 服务端 | 适合 | 评论数 | 浏览量 |
+| --- | --- | --- | --- | --- |
+| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ | ✓ |
+| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ | ✕ |
+
+两段配置都在 `src/config.ts` 里，用不到的留着不影响构建 —— 所以「两套都填好、随时切」是常态，切的时候只改 `type`。
+
+#### Waline
+
+默认**关闭**，因为它需要一个自己的服务端，示例站没有。三步打开：
 
 1. 按[官方教程](https://waline.js.org/guide/get-started/)部署一个服务端（Vercel、Cloudflare Workers、Docker 都行），拿到域名；
 2. 把域名填进 `src/config.ts` 的 `comment.waline.serverURL`；
@@ -113,31 +125,89 @@ banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banne
 ```ts
 comment: {
   enable: true,
-  type: 'waline',
+  type: 'waline',          // 换 Giscus 就改成 'giscus'
+  lazy: 600,               // 滚到距评论区 600px 时开始加载；0 = 进页面就加载
   waline: {
     serverURL: 'https://comment.example.com',
     locale: { placeholder: '说点什么吧，支持 Markdown…' },
     requiredMeta: ['nick'],   // 昵称必填、邮箱选填；要邮箱也必填就加 'mail'
     pageSize: 10,
-    lazy: true,
+    pageview: true,           // 文章页显示「阅读 N 次」
   },
+  giscus: { /* … */ },
 },
 ```
 
-单篇想关掉，在 front matter 里写 `comment: false`。
+单篇想关掉评论区，在 front matter 里写 `comment: false`（浏览量照常统计，它俩互不依赖）。
 
 评论是**按 URL 归属**的（Waline 的 `path` 就是文章地址）。所以改文章的 `slug` 或目录名之前先想一下 —— 地址变了，老评论不会跟过去。想让多站（比如旧域名与新域名）共用一份评论数据，就把 `waline.path` 写死成固定字符串。
+
+**Waline 的功能都能开**，配置名和[官方客户端选项](https://waline.js.org/reference/client/props.html)一一对应，常用几个：
+
+| 想要 | 配什么 |
+| --- | --- |
+| 表情包 | `emoji: ['https://unpkg.com/@waline/emojis@1.4.0/weibo', '…/bmoji']`，官方预设地址见[文档](https://waline.js.org/guide/features/emoji.html) |
+| 文末「反应」 | `reaction: true`（或给一组图片地址，最多 8 个） |
+| 评论排序 | `commentSorting: 'latest' \| 'oldest' \| 'hottest'` |
+| 字数限制 | `wordLimit: 500` |
+| 只允许登录后评论 | `login: 'force'` |
+| 匿名不许留邮箱 / 网址 | `meta: ['nick']`、`requiredMeta: ['nick']` |
+| 人机验证 | `recaptchaV3Key` 或 `turnstileKey`（服务端要配对应的 secret） |
+| GIF 表情搜索 | `search: true`（依赖服务端配置） |
+| 评论里传图 | `imageUpload: true` —— 默认**关**：服务端没配存储时会退回把图片转成 Base64 塞进评论体，一条评论几十 KB 进库 |
+
+函数型选项（`imageUploader` / `texRenderer` / 自定义 `search`）过不了 JSON，要用就得在 `src/comments/client/waline.js` 里自己传 —— 这是刻意的：配置只承载数据，代码留在代码里。
 
 几个实现上的选择，知道一下有好处：
 
 - **客户端走 CDN**（jsDelivr 上的 `@waline/client@3`），不进依赖树、不进构建产物。想锁版本、换 CDN 或自托管，改 `waline.js` / `waline.css` 两个地址，**两个必须同版本**。
-- **滚到评论区附近才加载**（`lazy: true`，提前 600px），首屏不为评论付流量；关掉它就是进页面就加载。
+- **滚到评论区附近才加载**，首屏不为评论付流量。距离由 `comment.lazy` 控制：调大（如 `1800`）能让脚本在读者刚开始往下读时就开始预取，滚到评论区已经就绪；代价是这一页一定会拉脚本。
 - **深色模式不用配**：切到暗色时 `html` 上带 `data-user-color-scheme="dark"`，Waline 自己认这个选择器。
 - **不用维护第二套颜色**：`main.css` 的「评论区」一节把 Waline 的 CSS 变量接到了主题令牌上，改配色、切暗色，评论区跟着走。
 - **评论挂了不影响阅读**：脚本加载失败只显示一句话和「重试」，不白屏，也不把正文挤走。
-- **评论里默认不能传图**（`imageUpload: false`）。上传是写入型攻击面，服务端没配存储时点上传还会报错；配好 S3 / 图床之后再来配置里打开。
+- **什么都不配就什么都不渲染**：`enable: false` 或 `serverURL` 为空时，页面里连骨架屏和配置 JSON 都不出现，构建产物里也找不到评论脚本。
 
-评论数显示在标题右侧（Waline 回填 `.waline-comment-count`）。浏览量统计没接 —— 主题里没有放这个数字的位置。
+#### 浏览量
+
+`waline.pageview` 打开后，文章页「最后更新于」下面会多一行「阅读 N 次」。
+
+用的是 Waline 单独的 `pageview.js`（gzip 不到 1KB），**不依赖评论区**：评论关掉、懒加载从没触发、读者滚都不滚，数字照样统计。它在 `window.load` 之后才发请求，不跟正文抢带宽。
+
+自托管时记得把 `pageview.js` 也放进同一个目录，文件名按 `waline-x.y.z.js` → `pageview-x.y.z.js` 的规律改；对不上就自己写 `pageview: '/waline/pageview-3.16.1.js'` 指定。
+
+#### Giscus
+
+评论存在 GitHub Discussions 里，不需要服务端，但读者要有 GitHub 账号才能发言。三个 id 在 [giscus.app](https://giscus.app) 填完仓库信息后生成：
+
+```ts
+comment: {
+  enable: true,
+  type: 'giscus',
+  lazy: 600,
+  giscus: {
+    repo: 'owner/repo',
+    repoId: 'R_kgDO…',
+    category: 'Announcements',
+    categoryId: 'DIC_kwDO…',
+    mapping: 'pathname',        // 和 Waline 的 path 一样按路径归属，换域名不丢评论
+    reactionsEnabled: true,
+    theme: { light: 'light', dark: 'dark' },   // 切深浅色时 iframe 会跟着换
+  },
+},
+```
+
+Giscus 没有浏览量和评论数接口，所以选它时那两处自动不渲染 —— 不需要额外开关。
+
+#### 再加一个评论系统
+
+主题把评论拆成「构建期算配置」和「运行期挂载」两层，中间只过一份 JSON。加一个系统要动四处，其中三处是各写一个文件：
+
+1. `src/config.ts` —— 加一段 `XxxConfig`，在 `CommentConfig` 里加 `xxx?: XxxConfig`，`type` 联合里加 `'xxx'`；
+2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有浏览量就顺手实现 `pageview`；
+3. `src/comments/client/xxx.js` —— 导出 `mount({ el, section, attempt, loadModule })`，负责把脚本拉下来挂到 `el` 上；
+4. 两个注册表各加一行：`src/comments/index.ts` 的 `LIST`、`src/comments/client/index.js` 的 `MOUNTERS`。
+
+契约在 `src/comments/types.ts`，Waline（ES 模块 + 自定义样式 + 计数插件）和 Giscus（传统脚本 + iframe + postMessage 换肤）各是一个样板，照着抄就行。
 
 想把评论放到关于页或留言板，在那一页里 `<Comments />` 即可（`path` 默认取当前页路径）。
 
@@ -151,7 +221,7 @@ Waline 服务端那边至少做三件事：
 | 抢占管理员 | 部署完立刻访问 `<serverURL>/ui/register` 注册第一个账号，之后在后台开两步验证 | 第一个注册的人就是管理员，拖着不注册等于把后台敞开 |
 | 先审后发 | `COMMENT_AUDIT=true`；频率限制用 `IPQPS`（默认 60 秒一条） | 评论一旦上线，垃圾广告是分钟级的 |
 
-评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行 `cdn.jsdelivr.net`（script / style）与 `serverURL`（connect）。
+评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行 `cdn.jsdelivr.net`（script / style）与 `serverURL`（connect）；用 Giscus 则要放行 `giscus.app`（script / frame）。
 
 ## 写文章
 
@@ -219,8 +289,8 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 
 | 原版功能 | Flux | 原因 |
 | --- | --- | --- |
-| 评论（13 种第三方服务） | 只接 Waline | 一个够用；13 套适配是插件该干的活，主题背不动 |
-| 浏览量统计（Waline / 不蒜子） | ✕ | 主题里没有放这个数字的位置，接了也是摆设 |
+| 评论（13 种第三方服务） | 内置 2 种（Waline / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 两个样板，要第三种照着抄 |
+| 浏览量统计（Waline / 不蒜子） | Waline 的计数插件 | 只认评论系统自带的，不为它再引一个第三方脚本 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
 | 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
 | fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
@@ -244,18 +314,47 @@ src/
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /
-│                        # Comments / Icon / Footer
+│                        # Comments / PageView / Icon / Footer
 ├── pages/               # 文件即路由
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链
 ├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶
 ├── scripts/search.js    # 站内搜索
-├── scripts/comments.js  # 评论区的懒加载与初始化
+├── scripts/comments.js  # 评论区加载器（懒加载 / 失败重试，不认具体哪一家）
+├── scripts/pageview.js  # 浏览量：调评论系统的计数插件
+├── comments/            # 评论系统抽象层
+│   ├── types.ts         #   契约：CommentProvider / CommentPayload / CommentStat
+│   ├── index.ts         #   注册表 + resolveComments()
+│   ├── waline.ts        #   Waline 的构建期实现
+│   ├── giscus.ts        #   Giscus 的构建期实现
+│   └── client/          #   浏览器里怎么挂（每家一个文件）
 ├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计
 ├── utils/slug.ts        # URL 规范化（含中文转拼音）
 ├── utils/image.ts       # 图片两种写法的统一处理
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
 └── styles/main.css      # 全部样式（变量分亮暗两套）
 ```
+
+## 性能
+
+没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有分析脚本，也没有图标字体。首屏必须的请求只有 5 个：HTML、一份 CSS、banner 图、主题脚本、预取脚本；卡片封面是 `loading="lazy"`，滚到才取。
+
+| 资源 | 原始 | gzip |
+| --- | --- | --- |
+| 首页 HTML（含 6 张卡片） | 24 KB | 5.4 KB |
+| CSS（全站共用一份） | 34 KB | 7.3 KB |
+| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱 / 搜索） | 7 KB | 2.8 KB |
+| 预取脚本 | 2.5 KB | 1.1 KB |
+| 搜索索引（按需，不阻塞） | 48 KB | 22 KB |
+| banner webp（720w ~ 1600w） | 5.9 ~ 10.5 KB | — |
+
+几个刻意的取舍：
+
+- **导航用悬停预取**（`astro.config.mjs` 的 `prefetch`）。鼠标停在链接上就把目标页取回来，点击几乎是即时的。用 `hover` 不用 `viewport`：后者会在每个页面加载后把所有站内链接拉一遍，归档页就是一百多个请求。不想预取某条链接，在 `<a>` 上写 `data-astro-prefetch="false"`。
+- **文章页预连接评论服务端**，握手（跨境约 100~300ms）不算在「滚到评论区」那一刻里。
+- **评论与浏览量都是懒加载的**，且各自独立；评论从 CDN / 自托管取，`lazy` 控制提前多少像素开始。
+- **搜索索引不参与首屏**：鼠标移到搜索按钮或弹层打开时才开始取，敲字时索引通常已经就位。
+- **CSS 保持外链不内联**。内联能省掉首屏的一个往返，但会让每一页的 HTML 都背上 34KB（gzip 后约 +6.5KB），而多页浏览时外链只需取一次、之后全命中缓存。想换成内联，把 `astro.config.mjs` 的 `build.inlineStylesheets` 改成 `'always'` 即可。
+- **没启用 experimental 的 `clientPrerender`**（用 Speculation Rules 把目标页在后台完整渲染）。它确实更快，但会执行目标页的脚本 —— 浏览量会被多记一次，评论区也可能提前发请求。预取 HTML 已经能消掉大部分等待，不值得为这点差距换来错误的计数。
 
 ## 已知限制
 
@@ -266,7 +365,7 @@ src/
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
-- 评论的客户端默认从 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css` 放进 `public/`，再把配置里两个地址改成 `/waline.js` 这一级别的绝对路径即可。
+- 评论的客户端默认从 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css`（要开浏览量就再加 `pageview.js`）放进 `public/waline/`，再把配置里两个地址改成 `/waline/…` 这一级别的绝对路径即可 —— 文件名带版本号 + `_headers` 里给它 `immutable` 缓存，升级只换文件。
 
 ## 更新日志
 
