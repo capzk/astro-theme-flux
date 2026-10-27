@@ -7,6 +7,107 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-27
+
+### Changed
+
+- **BREAKING：配置从单文件改成目录，分成「类型 / 默认值 / 你的值」三层。**
+
+  | 以前 | 现在 |
+  | --- | --- |
+  | `src/config.ts`（476 行：370 行类型 + 100 行值） | `src/config/types.ts` 类型、`defaults.ts` 默认值、`user/*.ts` 你的值 |
+  | `src/data/links.ts` | `src/config/user/links.ts` |
+
+  原来的问题是「一个文件里塞了三件不同的事」：类型定义（主题作者维护）、默认值（出厂设置）、
+  实际配置（使用者要改的十几行）。想改站名要滚过 370 行 interface；升级主题时要先把自己的值
+  复制出来、整目录覆盖、再贴回去 —— 忘一处就丢配置。
+
+  现在 `src/config/user/` 是使用者的独立目录，主题升级只替换 `types.ts` / `defaults.ts` /
+  `merge.ts` / `index.ts`，`user/` 原样保留。**升级不再需要手工还原配置。**
+
+  拆法按「你要解决的问题」而不是配置树：`site.ts`（站名 / 导航 / 头像）、`appearance.ts`
+  （banner / 配色 / 暗色）、`content.ts`（卡片 / 文章页开关 / 分页 / 搜索）、`comment.ts`、
+  `links.ts`。使用者只写和默认值不同的部分，其余继承。
+
+  迁移旧配置：把 `SITE` 里你改过的项搬到对应的 `user/*.ts`，用
+  `export default defineConfig({ ... })` 包起来即可；没改过的项不用搬。
+
+- **对外 API 不变**：仍然是 `import { SITE } from '../config'`（目录的 `index.ts`），
+  组件、页面、评论模块一行都没改。类型也照旧从同一个地方导出。
+
+- 默认值不再引用 `src/assets/` 里的示例图，改用 `public/` 路径。以前 `config.ts` 里
+  `import bannerAsset from './assets/banner.webp'`，导致**没有 `src/assets/` 目录的站点
+  （比如 figma 拷图放 public 的）升级时构建直接失败**，得手工删 import。现在默认值零依赖示例资源，
+  想要图片优化就在自己的 `user/appearance.ts` 里 import。
+
+- RSS 摘要长度从写死的 160 字变成配置项 `rss.excerptLength`（默认 300）。
+
+### Added
+
+- **`defineConfig()`**（`src/config/merge.ts`）：配置的类型检查入口。字段名拼错、类型不对、
+  `type` 填了不存在的评论系统，`npm run check` 当场报错。这一点很关键 ——
+  `astro build` **不做类型检查**，写错的配置会被静默忽略（v1.5.0 升级生产站时，
+  `comment.waline.js` 这个字段已被改名，构建照常成功，自托管文件白放了两天）。
+
+- **配置体检**（`src/config/index.ts`）：构建时检查几类「合法但显然不对」的配置，集中在
+  构建输出里说一次，不刷屏：评论区开了却没填 `serverURL` / `repo`、`serverURL` 不像地址、
+  `ogImage` 指向 SVG（社交平台不渲染）、`pageSize < 1`、`nav` 为空。只提示，不阻断构建。
+
+- **深合并**（`src/config/merge.ts`，零依赖）：对象逐层合并、数组整体替换、`undefined`
+  不覆盖默认值、图片资源对象整体替换。同一块配置可以分在两个文件里写。
+
+- **首页 banner 补齐**（`banner` 段）：打字机副标题（`typing`，可调速度 / 光标 / 循环 / 延迟）、
+  视差滚动（`parallax`）、移动端最小宽高比（`minRatio`，防竖屏把横图裁得太狠）、
+  多句轮播（`slogan` 给数组）。两个动画都是手写零依赖（`src/scripts/banner.js`），
+  并且**尊重系统的「减少动态效果」**：读者开了这个偏好就整段跳过，不做动画。
+
+  同时把 banner 彻底变成「配出来的」而不是「改出来的」：`enable` 控制整块要不要、
+  `pageHeight` 给第 2 页起的列表页单独设高度（原来写死在模板里的 `50vh`）、
+  `img` 不写即纯色底。以后调整首页第一屏，不用再动 `Banner.astro` 或页面文件。
+
+- **`/` 开头的图片路径纳入构建体检**：`banner.img`、`postBanner.img`、`ogImage`、
+  `index.defaultImg` 指向的文件在 `public/` 里不存在时，构建输出会直接点名是哪个字段。
+  这类错误原本是静默的 —— 页面照常生成，只是那一块空着（banner 退化成纯色），
+  要肉眼比对才发现。
+
+- **首屏图 preload**：banner 用字符串路径（`/img/x.webp`）时，图是 CSS background 加载的，
+  浏览器要等 CSSOM 解析完才发现它，比 `<Image>` 生成的 `<img>` 晚一拍。现在按需补一条
+  `<link rel="preload" as="image" fetchpriority="high">`，只出现在带 banner 的列表页。
+
+- **CI**（`.github/workflows/ci.yml`）：push 到 main 和每个 PR 都跑 `npm ci` →
+  `npm run check` → `npm run build`。类型问题在合并前暴露，而不是部署后发现。
+
+- **sitemap 输出 `lastmod`**（`scripts/sitemap-lastmod.mjs`）：取文章 front matter 的
+  `updated`（没有则取 `date`），不是构建时间 —— 所以每天重建不会把日期刷成今天。
+  页面清单仍由 `@astrojs/sitemap` 生成（它认得所有分页路由），我们只补一列时间。
+  URL 匹配不上就跳过，最坏情况退回 v1.5.0 的行为，不会漏条目。
+
+### Fixed
+
+- `main.css` 的分节编号断了（9 之后直接跳到 11），重新编号为 1–21。
+
+- **Waline 的客户端配置补齐到官方 props 表**，对着
+  [官方文档](https://waline.js.org/reference/client/props.html)逐项核过：
+
+  | 项 | 之前 | 现在 |
+  | --- | --- | --- |
+  | `wordLimit` | 只接受数字 | `number \| [最小, 最大]` |
+  | `emoji` | 只接受地址字符串 | 也接受 `WalineEmojiInfo` 对象（自己的一套表情，给目录 + 文件名列表即可） |
+  | `search` | 有个布尔开关 | **删掉** —— 它要传的是函数，写 `true` 什么都不会发生 |
+  | `lang` 映射 | 缺西班牙语 | 补 `es` |
+
+- **人机验证的域名补齐 preconnect**：配了 Turnstile 时提前连
+  `challenges.cloudflare.com`，配了 reCAPTCHA v3 时连 `www.google.com` + `www.gstatic.com`。
+  这两个脚本是评论区渲染后才注入的，等那时再握手，读者已经点开评论框了。
+
+- **构建期体验新增两条**（都是「合法但必然出问题」的组合）：
+  - `turnstileKey` 与 `recaptchaV3Key` 同时配 —— 服务端只按自己的顺序验一个，另一个白配
+  - `requiredMeta` 里有 `meta` 里没有的项 —— 字段不显示却要求必填，评论永远提交不了
+
+- README 补「反垃圾与人机验证」小节：四件服务端防护（审核 / 限速 / Akismet / 来源域）+
+  验证码**三处配对**表（主题配置 / 服务端 KEY / 服务端 SECRET）+ CSP 要放行的域名。
+
+
 ## [1.5.0] - 2026-10-26
 
 ### Added
