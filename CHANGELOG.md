@@ -7,6 +7,34 @@
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-10-27
+
+### Fixed
+
+- **配了 Turnstile 之后，第二条评论和「回复」永远发不出去。** 不是样式问题 ——
+  Waline 3.x 把 `turnstile.render()` 的返回值（widgetId）丢了，也从不 `remove` /
+  `reset`。而 Cloudflare 对同一个容器重复 `render` 是**直接拒绝**的，api.js 原文：
+
+  > Turnstile has already been rendered in this container. The render attempt was rejected.
+
+  被拒绝时它连 `callback` 都不调，于是 Waline 的 `await execute()` 永久挂起，发送按钮
+  一直转 —— 表现出来就是「验证完不消失、后面再也发不出去」，回复同样卡死。
+
+  新增 `src/comments/client/turnstile.js`，给 `window.turnstile` 套一层：`render`
+  之前先 `remove` 上一个 widget（`remove` 会把它从 Cloudflare 的 widgetMap 里摘掉，
+  重复检测才放行），拿到 token 之后再 `remove` 一次，验证框随之消失、容器回到干净
+  状态。`waline.js` 在 `turnstileKey` 存在时于 `init()` 前装钩。
+
+### Changed
+
+- **验证码的渲染参数改成官方推荐的组合**：`size: 'flexible'`（跟着容器宽度，不再
+  是 150×140 的 `compact` 方块）、`appearance: 'interaction-only'`（不需要人工交互
+  时整个不显示）、`theme` / `language` 跟着主题明暗与页面语言走（默认的 `auto` 只认
+  `prefers-color-scheme`，和本主题手动切换的暗色对不上，暗色下会闪一个白框）。
+
+  受此影响，`main.css` 里那段「验证码独占一行」的规则收窄成只在真的渲染出 `iframe`
+  时生效，平时不再占位。
+
 ## [2.0.1] - 2026-10-27
 
 ### Fixed

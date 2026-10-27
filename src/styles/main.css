@@ -1722,32 +1722,29 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 /* ── 人机验证（Turnstile）──────────────────────────────────────────────
    这是全文件唯一覆写 Waline 类名的例外，得把来龙去脉写清楚：
 
-   Waline 3.x 的 render 参数把 size 写死成 'compact'。按 Cloudflare 现行文档，
-   compact 是 150×140 —— 比 normal（300×65）还高一倍多，本来是给手机侧栏那种
-   窄容器用的。它被塞进 .wl-footer 之后，整条工具栏从 24px 撑到 140px，
-   左边的表情/上传图标和右边的字数、「发送」全悬在中间；而 Waline 自己对
-   .wl-captcha-container 一条规则都没有（连基本对齐都没做）。这就是验证码
-   跟评论框看着不协调的由来，不是站点哪里配错了。
+   Waline 3.x 的 render 参数把 size 写死成 'compact' —— 按 Cloudflare 文档这是
+   150×140，比 normal（300×65）还高一倍多，本是给手机侧栏那种窄容器用的。
+   上游又对这几种 .wl-captcha* 元素一条规则都没写，它塞进 .wl-footer 之后整条
+   工具栏就被撑到 140px，左边的图标和右边的字数、「发送」全悬在中间。
 
-   size 没被暴露成配置项，所以只能从外面把它摆正：
-   .wl-info 用 display:contents 把子项提升成 .wl-footer 的直接子项，验证码
-   于是能独占一行，工具栏回到正常高度。判据用 :has(iframe) —— 验证码是提交
-   时才渲染的，没渲染前那个空 div 不该参与排布。
+   尺寸和生命周期在 src/comments/client/turnstile.js 里改（换成 flexible、
+   并在拿到 token 后立刻把 widget 撤掉），所以这里只剩「万一它真的显示出来，
+   让它独占一行」这一件事 —— 平时那个容器是空的，不该凭空多出一行。
 
-   上游哪天改成 size:'flexible'（100% 宽 × 65，官方推荐的桌面用法）或者换掉
-   这几个类名，这一段就该整块删掉。 */
+   上游哪天自己改成 flexible 并接管 remove，或者换掉这几个类名，整段删掉。 */
 .comment-body .wl-info {
   display: contents;
 }
 .comment-body .wl-footer {
   align-items: center;
+}
+/* 验证码和下面那条工具栏之间留一点气口，只在它真的出现时给 */
+.comment-body .wl-footer:has(.wl-captcha-container iframe) {
   row-gap: 0.5em;
 }
 .comment-body .wl-captcha-container:has(iframe) {
   order: -1;
   flex: 0 0 100%;
-  display: flex;
-  justify-content: flex-end;
 }
 
 /* 骨架屏：形状照着「一个输入面板 + 几条评论」勾，加载完不会跳一下 */

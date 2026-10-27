@@ -260,6 +260,11 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 - **客户端由 `comment.waline.cdn` 决定**（默认 jsDelivr 上的 `@waline/client@3`），不进依赖树、不进构建产物。换 CDN、锁版本、自托管都只改这一行，详见下面「客户端从哪加载」。
 - **滚到评论区附近才加载**，首屏不为评论付流量。距离由 `comment.lazy` 控制：调大（如 `1800`）能让脚本在读者刚开始往下读时就开始预取，滚到评论区已经就绪；代价是这一页一定会拉脚本。
 - **深色模式不用配**：切到暗色时 `html` 上带 `data-user-color-scheme="dark"`，Waline 自己认这个选择器。
+- **验证码的生命周期由主题接管**：Waline 自己不给 Turnstile 收尾 —— 同一个容器第二次
+  `render` 会被 Cloudflare 直接拒绝（并且不回调），于是第二条评论和「回复」会一直卡在
+  发送中、验证框也赖在页面上不消失。`src/comments/client/turnstile.js` 包了一层
+  `render`：渲染前 `remove` 掉上一个 widget，拿到 token 后再 `remove` 一次；顺手换成
+  `size: 'flexible'` + `appearance: 'interaction-only'`，多数读者根本看不到验证框。
 - **不用维护第二套颜色**：`main.css` 的「评论区」一节把 Waline 的 CSS 变量接到了主题令牌上，改配色、切暗色，评论区跟着走。
 - **评论挂了不影响阅读**：脚本加载失败只显示一句话和「重试」，不白屏，也不把正文挤走。
 - **什么都不配就什么都不渲染**：`enable: false` 或 `serverURL` 为空时，页面里连骨架屏和配置 JSON 都不出现，构建产物里也找不到评论脚本。
