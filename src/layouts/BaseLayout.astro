@@ -90,7 +90,10 @@ const colorVars =
   `--navbar-bg-color:${SITE.color.navbar};` +
   `--body-bg-color:${SITE.color.bodyBg};` +
   `--board-bg-color:${SITE.color.board};` +
-  `--link-hover-color:${SITE.color.accent};}`;
+  `--link-hover-color:${SITE.color.accent};}` +
+  /* 顶栏透明态那层渐变压暗不分亮暗 —— 它压的是照片，不是主题色，
+     所以单独写在 :root 上，暗色下同样生效 */
+  `html:root{--navbar-scrim:${SITE.color.navbarScrim};}`;
 ---
 
 <!doctype html>

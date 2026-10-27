@@ -19,6 +19,9 @@
   --line-color: #eaecef;
   --navbar-bg-color: #2f4154;
   --navbar-text-color: #ffffff;
+  /* 未滚动时顶栏压在 banner 上，顶部那层黑色渐变的深度（0~1）。
+     见第 4 节 .navbar::before；由 config 的 color.navbarScrim 覆盖 */
+  --navbar-scrim: 0.35;
   --subtitle-color: #ffffff;
   --scrollbar-color: #c4c6c9;
   --scrollbar-hover-color: #a6a6a6;
@@ -230,6 +233,42 @@ table {
   padding: 0.4rem 0;
 }
 
+/* 未滚动时顶栏是透明的，文字直接躺在 banner 图上 —— 而图是可以换成任何一张的，
+   所以不能指望「白色字恰好压得住」。这里补一层自上而下的渐变压暗（scrim）：
+   - 用渐变而不是整条实色底：实色会在图中间切出一条硬边，一眼就看出是「贴了个条」；
+   - 渐变顶端正好盖住文字、往下几十像素内收干净，看起来像照片本身的暗角；
+   - 用伪元素而不是 background-image，是为了能和 .is-solid 的实色「交叉淡化」：
+     滚动时实色淡入、scrim 淡出，两者叠化，不会先变灰再变深跳一下。
+   z-index: -1 让它压在文字下面 —— .navbar 自己有 z-index，已经是独立层叠上下文，
+   所以这一层不会漏到页面背景上去。 */
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -1.75rem;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--navbar-scrim)) 0%,
+    rgba(0, 0, 0, calc(var(--navbar-scrim) * 0.4)) 62%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  /* 时长与 .navbar 的 background-color 过渡保持一致：两层一起交叉淡化，
+     加起来的「暗度」几乎是常数，滚过触发点时不会一暗一亮 */
+  transition: opacity 0.5s ease-in-out;
+}
+.navbar.is-solid::before {
+  opacity: 0;
+}
+
+/* 透明态的文字保险：即便把 navbarScrim 调到 0，一层极浅的投影也能把白字托起来。
+   实色态不需要 —— 深底色上叠阴影只会让字发毛。 */
+.navbar:not(.is-solid) .navbar-brand,
+.navbar:not(.is-solid) .nav-link,
+.navbar:not(.is-solid) .icon-btn {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
 .nav-inner {
   display: flex;
   align-items: center;
@@ -276,6 +315,23 @@ table {
 .nav-link.is-active {
   color: var(--link-hover-color);
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 透明态（刚打开首页、还没滚动）的悬停与选中：一律保持白色，靠**底**区分而不是靠色相。
+   原因很实际 —— accent 是 #30a9de 一类的蓝，压在浅色照片上等于隐形；
+   而同一块底在某些图上是深色、某些图上是浅色，只有「白色字 + 半透明白底」两种图都成立。
+   滚动变成实色顶栏后，自动回到上面的 accent 蓝。 */
+.navbar:not(.is-solid) .nav-link:hover {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.navbar:not(.is-solid) .nav-link.is-active {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.navbar:not(.is-solid) .icon-btn:hover {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.16);
 }
 .nav-link .icon {
   font-size: 0.9rem;

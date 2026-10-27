@@ -113,6 +113,7 @@ const DEFAULT_CONFIG: SiteConfig = {
     bodyBg: '#eee',
     board: '#ffffff',
     accent: '#30a9de',
+    navbarScrim: 0.35,
   },
 
   pageSize: 6,

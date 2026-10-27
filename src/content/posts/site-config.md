@@ -49,7 +49,7 @@ export const SITE = {
   banner:     { enable, title, img, height, pageHeight, maskAlpha, slogan, typing, parallax, minRatio, scrollDown },
   postBanner: { img, height, maskAlpha },
   darkMode:   { enable, default },
-  color:      { navbar, bodyBg, board, accent },
+  color:      { navbar, bodyBg, board, accent, navbarScrim },
 
   // user/content.ts
   index:  { defaultImg, excerptLength, showDate, showCategory, showTags },
@@ -252,6 +252,7 @@ color: {
   bodyBg: '#eee',
   board: '#ffffff',
   accent: '#30a9de',
+  navbarScrim: 0.35,
 },
 ```
 
@@ -263,8 +264,29 @@ color: {
 | `bodyBg` | `--body-bg-color` | 页面底色，也就是卡片外的那圈背景 |
 | `board` | `--board-bg-color` | 白卡片底色、页脚底色、回到顶部按钮底色 |
 | `accent` | `--link-hover-color` | 链接悬停、标题里的强调、返回顶部悬停 |
+| `navbarScrim` | `--navbar-scrim` | 顶栏透明时顶部那层渐变压暗的深度（0~1，见下） |
 
-<div class="note note-warning">这四项<strong>只作用于亮色模式</strong>。暗色那套变量写在 <code>main.css</code> 的 <code>[data-user-color-scheme="dark"]</code> 里，如果这里无条件覆盖会连暗色一起盖掉。想连暗色一起定制，直接改 CSS 变量，见《换成你自己的样子》。</div>
+<div class="note note-warning">前四项<strong>只作用于亮色模式</strong>。暗色那套变量写在 <code>main.css</code> 的 <code>[data-user-color-scheme="dark"]</code> 里，如果这里无条件覆盖会连暗色一起盖掉。想连暗色一起定制，直接改 CSS 变量，见《换成你自己的样子》。<code>navbarScrim</code> 是例外 —— 它压的是照片，不分亮暗。</div>
+
+### 顶栏压在图上时怎么保证看得清
+
+首页刚打开、还没滚动时，顶栏是透明的，导航文字直接躺在 banner 图上。**这件事不能指望「白色字恰好压得住」**，因为图可以换成任何一张：浅色天空上白字发虚，深色夜景里深色图又吃掉一半对比度。
+
+做法是给顶栏加一层**自上而下的渐变压暗**（scrim），而不是给整条加实色底：
+
+- 用渐变而不是实色，是因为实色会在图片中间切出一条硬边，一眼就看出是「贴了根条」；渐变从顶栏顶部开始、几十像素内收干净，看起来像照片自带的暗角。
+- 深色顶栏和透明顶栏之间是**叠化**的：滚动时实色淡入、压暗层淡出，两者交叉过渡，不会先变灰再变深跳一下。
+- 透明态下，导航的悬停和选中**不再用 `accent` 蓝**，改成「白色字 + 半透明白底」。蓝色压在浅色照片上等于隐形，而白底在深色图、浅色图上都成立；滚动之后自动回到 `accent`。
+
+`navbarScrim` 就是压暗的深度：
+
+| 值 | 效果 |
+| --- | --- |
+| `0` | 完全不压暗，图片原样（文字仍带一层极浅投影兜底） |
+| `0.35` | 默认值，浅色图也够用 |
+| `0.6` 以上 | 图特别花时才需要，代价是顶部明显发暗 |
+
+它只影响**顶栏那一条**的顶部，和 banner 自己的 `maskAlpha` 是两回事 —— 后者压的是整张图。
 
 ## 分页与搜索
 
@@ -308,7 +330,7 @@ export const SITE: SiteConfig = {
   post: { meta: { author: false, date: true, wordcount: true, min2read: true }, toc: true, copyright: false, prevNext: true, wpm: 300 },
 
   darkMode: { enable: true, default: 'auto' },
-  color: { navbar: '#2f4154', bodyBg: '#f2f2f2', board: '#ffffff', accent: '#c0392b' },
+  color: { navbar: '#2f4154', bodyBg: '#f2f2f2', board: '#ffffff', accent: '#c0392b', navbarScrim: 0.35 },
 
   pageSize: 8,
   search: true,

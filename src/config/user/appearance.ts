@@ -55,13 +55,20 @@ export default defineConfig({
 
   /**
    * 配色。不写就用默认那套（见 defaults.ts 的 color）。
-   * 想换只在下面加一段，四项分别对应顶栏 / 页面底色 / 卡片底色 / 强调色：
+   * 四项是颜色，分别对应顶栏 / 页面底色 / 卡片底色 / 强调色：
    *
    *   color: { navbar: '#2f4154', bodyBg: '#eee', board: '#ffffff', accent: '#30a9de' },
    *
-   * 注意：这里只覆盖**亮色**。暗色那套写在 `src/styles/main.css` 的
+   * 注意：颜色只覆盖**亮色**。暗色那套写在 `src/styles/main.css` 的
    * `[data-user-color-scheme="dark"]` 里，要改得连那边一起改。
+   *
+   * `navbarScrim` 不是颜色，是「顶栏透明时顶部那层渐变压暗有多深」（0~1）：
+   * 首页刚打开、还没滚动时导航是压在 banner 图上的，这一步保证文字看得清。
+   * 0 = 不压暗（图片原样），0.6+ = 图特别花时才需要。
    */
+  color: {
+    navbarScrim: 0.32,
+  },
 
   /**
    * 暗色模式。`enable: false` 会把切换按钮也一起藏掉；
