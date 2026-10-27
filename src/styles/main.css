@@ -400,6 +400,16 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   background-repeat: no-repeat;
 }
 
+/* 背景层：单独一层，视差只动它 —— 把 transform 写在 <header> 上会把标题一起拖走 */
+.banner-bg {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform-origin: center center;
+}
+
 /* 优化过的 banner 图（<Image> 渲染的 <img>）：铺满容器并裁切，
    与原来 background-size: cover 的观感一致。字符串图仍走 CSS 背景图。 */
 .banner-img {
@@ -445,6 +455,39 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   font-weight: 400;
   opacity: 0.9;
   animation: banner-fade-up 0.8s 0.12s ease both;
+}
+
+/* 打字机：占住一行高度，免得文字变长变短时下面的元信息上下跳 */
+.banner-subtitle[data-banner-typing] {
+  min-height: 1.6em;
+}
+/* 光标。字符由 data-cursor 决定（构建期写入），空字符串就不显示 */
+.banner-subtitle[data-banner-typing]::after {
+  content: attr(data-cursor);
+  margin-left: 0.12em;
+  animation: banner-cursor 1s step-end infinite;
+}
+
+@keyframes banner-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* 读者开了「减少动态效果」：光标不再闪，动效全部让位给静态文字 */
+@media (prefers-reduced-motion: reduce) {
+  .banner-subtitle[data-banner-typing]::after {
+    animation: none;
+  }
+  .banner-title,
+  .banner-subtitle,
+  .banner-metas {
+    animation: none;
+  }
 }
 
 /* 标题下方的元信息：一个 .banner-metas 是一行，行内是若干 .banner-meta。
@@ -1334,7 +1377,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   color: var(--shiki-light);
 }
 
-/* ---------- 11. 文末版权 / 上下篇 ---------- */
+/* ---------- 10. 文末版权 / 上下篇 ---------- */
 .post-footer {
   margin-top: 2.5rem;
   padding-top: 1.5rem;
@@ -1537,7 +1580,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   height: 1em;
 }
 
-/* ---------- 12. 评论区（可插拔；Waline 是参考实现） ----------
+/* ---------- 11. 评论区（可插拔；Waline 是参考实现） ----------
    结构只有三件东西：标题、挂载点、加载/失败状态 —— 外壳由主题给，
    里面那一坨由评论系统自己渲染（src/comments/client/ 里各家负责挂载）。
    所以这套样式对任何评论系统都成立，换一家也不改。
@@ -1693,7 +1736,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   display: none;
 }
 
-/* ---------- 13. 归档 ---------- */
+/* ---------- 12. 归档 ---------- */
 .archive-year {
   margin: 2rem 0 0.5rem;
   font-size: 1.5rem;
@@ -1744,7 +1787,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   color: var(--link-hover-color);
 }
 
-/* ---------- 14. 分类 / 标签 ---------- */
+/* ---------- 13. 分类 / 标签 ---------- */
 .term-cloud {
   display: flex;
   flex-wrap: wrap;
@@ -1806,7 +1849,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- 15. 友链 ---------- */
+/* ---------- 14. 友链 ---------- */
 .link-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -1854,7 +1897,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   white-space: nowrap;
 }
 
-/* ---------- 16. 分页 ---------- */
+/* ---------- 15. 分页 ---------- */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1892,7 +1935,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   padding: 0 0.25rem;
 }
 
-/* ---------- 17. 页脚 ---------- */
+/* ---------- 16. 页脚 ---------- */
 /* 页脚不参与 flex 压缩：宁可让页面滚动，也不要把备案号挤掉一行 */
 footer {
   flex-shrink: 0;
@@ -1919,7 +1962,7 @@ footer {
   gap: 1.5rem;
 }
 
-/* ---------- 18. 搜索弹层 ---------- */
+/* ---------- 17. 搜索弹层 ---------- */
 .search-modal {
   position: fixed;
   inset: 0;
@@ -2005,7 +2048,7 @@ footer {
   font-size: 0.9rem;
 }
 
-/* ---------- 19. 回到顶部 ----------
+/* ---------- 18. 回到顶部 ----------
    原版 #scroll-top-button：白卡片色、4px 圆角（不是圆）、40px 见方、
    32px 灰图标、双层阴影，从底部滑入；悬停时图标上下浮动。 */
 #scroll-top {
@@ -2052,7 +2095,7 @@ footer {
   }
 }
 
-/* ---------- 20. 正文图片灯箱 ----------
+/* ---------- 19. 正文图片灯箱 ----------
    原版用 fancybox，这里自己写一份等效实现，不引第三方库。
    点正文插图放大到全屏遮罩，ESC / 点遮罩 / 点按钮都能关。
    只接管没有被 <a> 包着的图，带链接的图保持原来的跳转行为。 */
@@ -2122,7 +2165,7 @@ footer {
   }
 }
 
-/* ---------- 21. 404 / 空状态 ---------- */
+/* ---------- 20. 404 / 空状态 ---------- */
 .empty-state {
   text-align: center;
   padding: 1rem 0;
@@ -2170,7 +2213,7 @@ footer {
   text-align: left;
 }
 
-/* ---------- 22. 响应式 ---------- */
+/* ---------- 21. 响应式 ---------- */
 /* 三栏要装得下 1088 的卡片，视口不够就退回单栏 */
 @media (max-width: 1199.98px) {
   /* 原版用 Bootstrap 的 .container，宽度是分档的：1140 / 960 / 720 / 540 */

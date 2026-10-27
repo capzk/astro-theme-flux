@@ -122,7 +122,7 @@ cover: ../../assets/covers/cover-3.webp
 
 卡片封面是**固定高度 10rem、宽度 240px**（窄屏变成上下堆叠），图片用 `object-fit: cover` 裁切，所以原图比例不重要，别把关键内容放在边缘就行。
 
-两个都不写就用 `config.ts` 的 `index.defaultImg`；那个也留空，卡片就退化成纯文字块，不带图。
+两个都不写就用 `src/config/user/content.ts` 的 `index.defaultImg`；那个也留空，卡片就退化成纯文字块，不带图。
 
 ## 正文能用什么
 

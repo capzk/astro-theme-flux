@@ -1,7 +1,7 @@
 ---
-title: 站点配置详解：config.ts 的每个字段
+title: 站点配置详解：src/config 的每个字段
 date: 2026-10-22 09:00:00
-description: 站名、菜单、banner、卡片、目录、版权、深色模式、配色 —— 全部集中在一个带类型校验的文件里，逐段说明取值与效果。
+description: 站名、菜单、banner、卡片、目录、版权、深色模式、配色 —— 分成「类型 / 默认值 / 你的值」三层，改哪一层一目了然。
 tags:
   - 配置
   - config
@@ -11,26 +11,51 @@ categories:
 cover: ../../assets/covers/cover-2.webp
 ---
 
-主题的配置只有一个入口：**`src/config.ts`**。它导出一个 `SITE` 常量，页面组件只读取它，不读别的地方。
+主题的配置只有一个入口：**`src/config`**。它导出一个 `SITE` 常量，页面组件只读它，不读别的地方。
 
-好处是：改配置不需要翻组件，也不需要记 YAML 缩进。写错字段名、把字符串塞进数字位，`npm run build` 会当场报错并指出位置。
+但「一个入口」不等于「一个文件」。目录里是这样分工的：
 
-<div class="note note-info">这份文件用 TypeScript 的 <code>interface</code> 描述了每个字段的类型和含义。编辑器里把鼠标悬停在字段上，就能看到对应注释 —— 和这篇文档是同一份信息来源。</div>
+| 文件 | 是什么 | 你会改吗 |
+| --- | --- | --- |
+| `user/*.ts` | 你的配置，只写和默认值不同的部分 | ✓ 就改这里 |
+| `defaults.ts` | 出厂默认值，每一项都有注释 | 读，别改 |
+| `types.ts` | 字段类型与详细说明 | 查字段含义 |
+| `merge.ts` | 深合并规则，三十行 | 想知道合并细节时看 |
+| `index.ts` | 合并 + 体检 + 导出 `SITE` | 不用动 |
+
+这么分是为了**升级主题时不动你的配置**：`user/` 是独立目录，升级只替换其余几个文件，你的站名、导航、配色原样留着。
+
+<div class="note note-info">
+字段含义写在 <code>types.ts</code> 的注释里 —— 编辑器里把鼠标悬停在字段上就能看到，和这篇文档同一个来源。
+写错字段名会在 <code>npm run check</code> 阶段报错；<code>astro build</code> 不检查类型，别指望它替你发现。
+</div>
+
+三条合并规则，记住就不会踩坑：
+
+- **对象逐层合并** —— 同一块配置可以分在两个文件里写
+- **数组整体替换** —— 导航、友链写几项就是几项
+- **不写就是默认** —— 删掉一行等于恢复出厂设置
 
 ## 全景
 
 ```ts
-export const SITE: SiteConfig = {
-  title, subtitle, description, author, lang, avatar, since, beian,
+// src/config/index.ts 合并出来的最终形状（每一段都标了它该写在哪）
+export const SITE = {
+  // user/site.ts
+  title, subtitle, description, author, lang, avatar, ogImage, since, beian,
   nav: [...],
-  banner:    { img, height, maskAlpha, slogan, scrollDown },
-  postBanner:{ img, height, maskAlpha },
-  index:     { defaultImg, excerptLength, showDate, showCategory, showTags },
-  post:      { meta: {...}, toc, copyright, prevNext, wpm },
-  darkMode:  { enable, default },
-  color:     { navbar, bodyBg, board, accent },
-  pageSize,
-  search,
+
+  // user/appearance.ts
+  banner:     { enable, title, img, height, pageHeight, maskAlpha, slogan, typing, parallax, minRatio, scrollDown },
+  postBanner: { img, height, maskAlpha },
+  darkMode:   { enable, default },
+  color:      { navbar, bodyBg, board, accent },
+
+  // user/content.ts
+  index:  { defaultImg, excerptLength, showDate, showCategory, showTags },
+  post:   { meta: {...}, toc, copyright, prevNext, related, wpm },
+  pageSize, archive: { pageSize }, search,
+  rss:    { excerptLength },
 };
 ```
 
@@ -41,7 +66,7 @@ export const SITE: SiteConfig = {
 ```ts
 title: 'Flux',
 subtitle: '一个 Material Design 风格的 Astro 博客主题',
-description: '流体般的阅读体验：卡片式首页、全屏 banner、暗色模式、跟随滚动的目录。',
+description: '丝滑的阅读体验：卡片式首页、全屏 banner、暗色模式、跟随滚动的目录。',
 author: 'capzk',
 lang: 'zh-CN',
 avatar: '/img/avatar.svg',
@@ -78,42 +103,87 @@ nav: [
 
 ## 首页 banner
 
-```ts
-import bannerImg from './assets/banner.webp';
+首页第一屏。左边是配置，右边是它能做的所有事：
 
+```ts
 banner: {
-  img: bannerImg,           // import 进来的图会被优化；也可以写 '/img/banner.svg' 或完整 URL
+  enable: true,             // 首页要不要这一块；false 则直接从卡片流开始
+  title: 'Hi，我是 capz',    // 大标题。不写就用站名；写 '' 则整块不渲染
+  img: '/img/banner.webp',  // 背景图。不写 / 写 '' 就是纯色底
   height: '100vh',          // 任意 CSS 长度：60vh / 400px / 32rem
-  maskAlpha: 0.3,           // 0~1，黑色蒙版，越大字越清楚
-  slogan: '流体般的阅读体验',
-  scrollDown: true,
+  pageHeight: '50vh',       // 第 2 页起的列表页高度（不写就跟 height 一样）
+  maskAlpha: 0.3,           // 0~1，黑色蒙版，越大字越清楚；0 = 不压暗，保持原图亮度
+  slogan: [                 // 副标题。给数组 = 多句轮播，给字符串 = 一句
+    '丝滑的阅读体验',
+    '零依赖 · 卡片式布局 · 暗色模式',
+  ],
+  typing: {                 // 打字机。不写这一行就是静态文字
+    typeSpeed: 90,          // 每个字的间隔（毫秒），越大越慢
+    cursor: '|',            // 光标字符，空字符串则不显示
+    loop: false,            // 只有一句时要不要反复重打
+    startDelay: 300,        // 开始前等待（毫秒）
+  },
+  parallax: true,           // 视差：往下滚时背景图走得比文字慢
+  minRatio: 1,              // 最小宽高比，见下面「手机上」
+  scrollDown: true,         // 底部那个上下浮动的向下箭头
 },
 ```
 
-`img` 有两种写法，差别只在**要不要 Astro 帮你压图**：
+**整块要不要**由 `enable` 决定：设 `false` 后首页和第 2 页起都直接从卡片流开始，顶栏照旧。想做成纯列表风格的博客，改这一个开关就行，不用动页面代码。
+
+**图片**四种写法，差别只在**要不要 Astro 帮你压图**：
 
 | 写法 | 效果 |
 | --- | --- |
-| `import x from './assets/banner.webp'` | 生成 720 / 1080 / 1440 / 1920 四档 webp，浏览器按屏宽挑一张，首屏图还会带上 `fetchpriority="high"` |
-| `'/img/banner.svg'` 或外链 | 原样输出，不处理 |
+| `import x from '../../assets/banner.webp'` | 生成 720 / 1080 / 1440 / 1920 四档 webp，浏览器按屏宽挑一张，首屏图还带 `fetchpriority="high"` |
+| `'/img/banner.webp'` | public/ 里的文件原样输出；构建时会自动补一条 `<link rel="preload">` 抢 LCP |
+| `'https://…/a.jpg'` | 外链，原样用。别处挂了图就没了 |
+| 不写 / `''` | 不要图，banner 退化成纯色底（顶栏色），标题和副标题照常显示 |
 
-`img` 留空则退化成纯色底，标题照样显示。`maskAlpha` 是**文字可读性**的唯一旋钮 —— 背景图越花，这个值越要大。
+一句话选：**图放 `public/img/` 就写 `/img/xxx.webp`**，最省事；在意首屏体积再换成 `import`。
 
-`slogan` 不写字就用 `SITE.subtitle`。
+`/` 开头的路径写错（文件名大小写、扩展名、图还在 `src/assets` 没搬过来）不会让构建失败，只会静悄悄地少一块 —— 所以构建时会体检一遍，直接告诉你哪个文件找不到：
 
-滚动提示箭头（那块会上下浮动的向下箭头）由 `scrollDown` 单独控制，首页高度不是 `100vh` 时建议关掉，不然箭头会压在内容上。
+```
+[Flux] 配置检查发现 1 处需要注意的地方：
+  1. banner.img 写的是 "/img/banner-9.webp"，但 public/ 下找不到这个文件 —— 那一块会是空白或纯色。
+```
+
+`maskAlpha` 是**文字可读性**的唯一旋钮 —— 背景图越花，这个值越要大。设成 `0` 就完全不压暗，
+图片保持原始亮度；此时不再输出蒙版那一层。没有图时它相当于把纯色底压暗一点。
+
+**标题**不写就用站名。这两件事经常想分开：站名要出现在标题栏、搜索结果和 RSS 里，而首页第一屏往往想写点别的。设成空字符串 `''` 则标题整块不渲染。
+
+**副标题**给字符串就是一句，给数组就是候选句：
+
+| 配法 | 效果 |
+| --- | --- |
+| `slogan: '一句话'` + 不开打字机 | 静态显示这一句 |
+| `slogan: ['A', 'B']` + 不开打字机 | 只显示第一句 A（确定性输出，不影响缓存和 diff） |
+| `slogan: ['A', 'B']` + 打字机 | 打完 A、删掉、打 B，无限轮播 |
+| 不配 | 回落到站点配置的 `subtitle` |
+
+**打字机**默认关着（不写 `typing` 就行）。开启后浏览器里逐字打出；读者系统里开了「减少动态效果」时不动画，直接显示第一句 —— 这是无障碍要求，不是可选项。
+
+**视差**默认开：往下滚时背景图以四分之一的速度移动，文字正常滚走。实现上只 `transform` 背景层（`.banner-bg`），不动文字，所以标题不会跟着飘。它和打字机一样尊重「减少动态效果」。
+
+**手机上**：竖屏时 `100vh` 比宽度大得多，横图会被裁掉左右两边。`minRatio` 把 banner 高度限制在「宽度 ÷ minRatio」以内 —— `1` 表示最高不超过宽度，`0` 表示不限制（一屏铺满，但裁得狠）。只有手机竖屏会触发，桌面端这个值远大于 `100vh`，等于不生效。
+
+滚动提示箭头由 `scrollDown` 单独控制，首页高度不是 `100vh` 时建议关掉，不然箭头会压在内容上。
 
 ## 文章页 banner
 
 ```ts
 postBanner: {
-  img: bannerImg,   // 同上，本地资源会被优化
+  img: '/img/banner.webp',  // 同上四种写法；不写就是纯色底
   height: '60vh',
   maskAlpha: 0.35,
 },
 ```
 
 文章页 banner 比首页矮一档，蒙版更深一点 —— 因为上面要压两行元信息（作者/日期、字数/阅读时长），字多了更需要对比度。
+
+这里**没有 `enable` 开关**：标题和元信息都住在 banner 上，关掉就得给它们另找地方，那是改版不是配置。不想要图，把 `img` 去掉即可。
 
 单篇文章可以用 front matter 的 `banner`（相对本文档的图片，会优化）或 `bannerImg`（根路径字符串）覆盖，`bannerMaskAlpha` 同理。
 
@@ -231,7 +301,7 @@ export const SITE: SiteConfig = {
     { label: '关于', href: '/about/', icon: 'user' },
   ],
 
-  banner: { img: '/img/banner.jpg', height: '80vh', maskAlpha: 0.4, slogan: '半山腰上', scrollDown: true },
+  banner: { enable: true, title: '半山腰上', img: '/img/banner.jpg', height: '80vh', pageHeight: '40vh', maskAlpha: 0.4, slogan: '写点别的', scrollDown: true },
   postBanner: { img: '/img/banner.jpg', height: '50vh', maskAlpha: 0.45 },
 
   index: { defaultImg: '/img/cover-default.svg', excerptLength: 160, showDate: true, showCategory: true, showTags: false },

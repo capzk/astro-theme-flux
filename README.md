@@ -47,7 +47,9 @@
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta + JSON-LD（`WebSite` / `BlogPosting`），封面自动绝对化 |
 | 评论 | 可插拔：Waline（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
 | 浏览量 | 「阅读 N 次」，走评论系统的独立计数插件（Waline 的不到 1KB），评论关掉也能统计 |
-| RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap` |
+| RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间） |
+| 配置 | 三层：类型 / 出厂默认值 / 你的值。`defineConfig` 保类型检查，构建期体检静默失效的配置，升级主题不覆盖你的配置 |
+| CI | push 与 PR 都跑 `astro check` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡 |
 
 ## 开始使用
 
@@ -71,7 +73,7 @@ npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
 | 文章 | 讲什么 |
 | --- | --- |
 | 快速开始 | 环境要求、三步启动、目录结构 |
-| 站点配置详解 | `config.ts` 每个字段的取值与效果 |
+| 站点配置详解 | `src/config/` 的结构、每一项的取值与效果 |
 | 写一篇文章 | front matter、分类与标签、正文可用语法 |
 | URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
 | 换成你自己的样子 | 配色、字体、版心与字号 |
@@ -82,14 +84,70 @@ fork 之后整批删掉即可，不影响任何功能。
 
 ## 配置
 
-几乎全部在 **`src/config.ts`** 一个文件里：站名、副标题、头像、分享封面、菜单、banner（图 / 高度 / 蒙版 / 标语）、文章页 banner、首页卡片（默认封面 / 摘要长度 / meta 开关）、文章 meta（作者 / 日期 / 字数 / 阅读时长）、目录、文末版权、上下篇、相关文章、深色模式默认值、配色（顶栏 / 页面底 / 卡片底 / 强调色）、每页条数、搜索开关。
+配置分三层，各管各的：
 
-图片有两套写法，差别只在要不要构建器压图：
+| 位置 | 是什么 | 你要动吗 |
+| --- | --- | --- |
+| `src/config/user/` | **你的配置**，只写和默认值不一样的部分 | ✓ 就改这里 |
+| `src/config/defaults.ts` | 主题的出厂默认值，每一项都有注释 | 读，但别改（升级时被替换） |
+| `src/config/types.ts` | 字段的类型契约与详细说明 | 查某个字段什么意思时读 |
+
+**为什么拆成三层。** 配置和主题代码混在一个文件里，升级主题时就得分清「哪几行是我改的」——
+以前的流程是：把定制复制出来、整目录覆盖、再贴回去，每次升级都要重来一遍，忘一处就丢配置。
+现在 `user/` 是个独立目录，升级只替换主题文件，你的配置原样留着，不用备份也不用还原。
+
+顺带解决的另一件事：默认值不再依赖 `src/assets/` 里的示例图（改用 `public/` 路径），
+所以「按图优化」不再是主题的硬前提 —— 想要就自己 `import`，不想要也没有任何东西会断。
+
+`user/` 里五个文件，按「你要解决的问题」分，而不是按配置树的层级分：
+
+| 文件 | 管什么 |
+| --- | --- |
+| `site.ts` | 站名、副标题、描述、作者、头像、分享封面、备案号、导航菜单 |
+| `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式 |
+| `content.ts` | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
+| `comment.ts` | 评论系统（Waline / Giscus） |
+| `links.ts` | 友链 |
+
+写法就是普通 TS 对象，外面包一层 `defineConfig`：
 
 ```ts
-import banner from './assets/banner.webp';   // 本地资源：生成多档 webp + srcset
-banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banner.svg' 或外链
+// src/config/user/site.ts
+import { defineConfig } from '../merge';
+
+export default defineConfig({
+  title: '我的博客',
+  // 其余全都不用写 —— subtitle、avatar、nav… 继承默认值
+});
 ```
+
+`defineConfig` 只做一件事：**让 TypeScript 在这里检查字段名**。写错一个字母、往不存在的
+字段里塞值、`type` 填了没有的评论系统，`npm run check` 当场报错。
+
+这一点不是洁癖。`astro build` **不做类型检查**，写错的配置会被静默忽略 —— 真实发生过：
+某次升级后 `comment.waline.js` 这个字段在新版里已不存在，构建照常成功、页面照常出，
+只是自托管的客户端文件白放了，直到有人去翻产物才发现。现在这类问题在 `check` 阶段就拦住；
+CI（`.github/workflows/ci.yml`）在每次 push 时跑一遍 `check` + `build`，PR 也跑。
+
+三条合并规则：
+
+- **对象逐层合并** —— 同一块配置可以分在两个文件里写（banner 的图在 `appearance.ts`，高度用默认值）
+- **数组整体替换** —— 导航、友链写几项就是几项，不会和默认值拼起来变成 8 项
+- **不写就是默认** —— `undefined` 不会覆盖默认值，删掉一行配置等于恢复出场设置
+
+图片有三套写法，差别只在要不要构建器压图：
+
+```ts
+banner: {
+  img: '/img/banner.webp',   // ① public/ 里的文件：原样输出（构建自动补 preload）
+  // img: banner,            // ② import 进来的本地资源：多档 webp + srcset
+  // img: 'https://…/a.jpg', // ③ 外链
+  // 不写 / ''               // ④ 不要图：纯色底，标题照常显示
+}
+```
+
+`/` 开头的路径打错不会报错，只会静默少一块，所以构建时会体检一遍并直接指出哪个文件找不到。
+首页整块 banner 还能用 `banner.enable: false` 关掉，不用改页面代码。
 
 上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS、sitemap、canonical 与 OG 里的绝对地址。本仓库里它填的是示例站的地址（`https://astro-theme-flux.pages.dev`），fork 之后第一件事就是换成你自己的域名 —— 忘了换，分享出去的链接会指向示例站。
 
@@ -101,7 +159,7 @@ banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banne
 
 `/robots.txt` 是从 `site` 现算出来的（`src/pages/robots.txt.ts`），不需要另外维护；`public/_headers` 是 Cloudflare Pages 的缓存策略，用别的平台会忽略它。
 
-配色除了可以在 `config.ts` 覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
+配色除了可以在 `src/config/user/appearance.ts` 里覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
 
 ### 评论
 
@@ -112,14 +170,14 @@ banner: { img: banner, /* … */ }             // 也可以继续写 '/img/banne
 | `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ | ✓ |
 | `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ | ✕ |
 
-两段配置都在 `src/config.ts` 里，用不到的留着不影响构建 —— 所以「两套都填好、随时切」是常态，切的时候只改 `type`。
+两段配置都在 `src/config/user/comment.ts` 里，用不到的留着不影响构建 —— 所以「两套都填好、随时切」是常态，切的时候只改 `type`。
 
 #### Waline
 
 默认**关闭**，因为它需要一个自己的服务端，示例站没有。三步打开：
 
 1. 按[官方教程](https://waline.js.org/guide/get-started/)部署一个服务端（Vercel、Cloudflare Workers、Docker 都行），拿到域名；
-2. 把域名填进 `src/config.ts` 的 `comment.waline.serverURL`；
+2. 把域名填进 `src/config/user/comment.ts` 的 `comment.waline.serverURL`；
 3. 把 `comment.enable` 改成 `true`。
 
 ```ts
@@ -146,17 +204,56 @@ comment: {
 
 | 想要 | 配什么 |
 | --- | --- |
-| 表情包 | `emoji: ['https://unpkg.com/@waline/emojis@1.4.0/weibo', '…/bmoji']`，官方预设地址见[文档](https://waline.js.org/guide/features/emoji.html) |
+| 表情包 | `emoji: ['https://unpkg.com/@waline/emojis@1.4.0/weibo', '…/bmoji']`，官方预设地址见[文档](https://waline.js.org/guide/features/emoji.html)；也可以给 `WalineEmojiInfo` 对象用自己的一套 |
 | 文末「反应」 | `reaction: true`（或给一组图片地址，最多 8 个） |
 | 评论排序 | `commentSorting: 'latest' \| 'oldest' \| 'hottest'` |
-| 字数限制 | `wordLimit: 500` |
+| 字数限制 | `wordLimit: 500`；也可以 `[10, 500]` 同时限制下限 |
 | 只允许登录后评论 | `login: 'force'` |
 | 匿名不许留邮箱 / 网址 | `meta: ['nick']`、`requiredMeta: ['nick']` |
-| 人机验证 | `recaptchaV3Key` 或 `turnstileKey`（服务端要配对应的 secret） |
-| GIF 表情搜索 | `search: true`（依赖服务端配置） |
+| 人机验证 | `turnstileKey` 或 `recaptchaV3Key` —— **客户端和服务端要配对配**，见下面「反垃圾与人机验证」 |
 | 评论里传图 | `imageUpload: true` —— 默认**关**：服务端没配存储时会退回把图片转成 Base64 塞进评论体，一条评论几十 KB 进库 |
 
-函数型选项（`imageUploader` / `texRenderer` / 自定义 `search`）过不了 JSON，要用就得在 `src/comments/client/waline.js` 里自己传 —— 这是刻意的：配置只承载数据，代码留在代码里。
+函数型选项（`imageUploader` / `texRenderer` / `search`）过不了 JSON，要用就得在 `src/comments/client/waline.js` 里自己传 —— 这是刻意的：配置只承载数据，代码留在代码里。
+
+所以**「GIF 表情搜索」没有开关**：它要传的是一个函数（`{ search: (word) => Promise<图片列表> }`），写成布尔值只会让人以为开了、实际什么都不发生。摆一个能写但无效的配置项，比没有它更糟。
+
+#### 反垃圾与人机验证
+
+评论一上线，垃圾广告是分钟级的。这几件事全在**服务端**，主题这边只负责客户端那一半：
+
+| 事项 | 环境变量 | 说明 |
+| --- | --- | --- |
+| 先审后发 | `COMMENT_AUDIT=true` | 评论经管理员审核后才显示 |
+| 频率限制 | `IPQPS=60` | 同一 IP 60 秒一条（默认值），`0` 不限制 |
+| 反垃圾服务 | `AKISMET_KEY` | 默认自带一个公共 key，建议换成自己的；不想要设 `false` |
+| 限制来源域 | `SECURE_DOMAINS` | 博客域名和评论服务端域名都写，**不带 `https://`** |
+
+**人机验证是三处配对，少一处就打不通**：
+
+| 在哪 | Turnstile | reCAPTCHA v3 |
+| --- | --- | --- |
+| 主题配置 | `waline.turnstileKey`（Site Key，公开） | `waline.recaptchaV3Key`（网站密钥，公开） |
+| 服务端 | `TURNSTILE_KEY`（同一个 Site Key） | `RECAPTCHA_V3_KEY`（同一个网站密钥） |
+| 服务端 | `TURNSTILE_SECRET`（Secret，保密） | `RECAPTCHA_V3_SECRET`（私钥，保密） |
+
+三种配错的后果，症状完全不同：
+
+- 只配客户端、服务端没配 Secret：**验证框能点，点完提交 403** —— 最容易误判成「Waline 坏了」
+- 只配服务端、客户端没配 Key：页面上根本不出现验证框，评论提交直接被拒
+- 两个都配：服务端按自己的顺序只验一个，另一个白配 —— 主题会在构建期警告
+
+Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Cloudflare 面板 → Turnstile 里申请。
+
+配了验证码之后，如果站点有 CSP，还要额外放行：
+
+| 验证码 | 需要放行 |
+| --- | --- |
+| Turnstile | `challenges.cloudflare.com`（`script-src` / `frame-src` / `connect-src`） |
+| reCAPTCHA v3 | `www.google.com` 与 `www.gstatic.com` |
+
+主题会自动给这些域名加 `<link rel="preconnect">`（`CommentProvider.origins()`），但 CSP 得你自己写在托管平台那侧。
+
+构建期体检会拦下三类必然出问题的组合：两个验证码同时配、`requiredMeta` 里有 `meta` 里没有的项（字段不显示却要求必填，评论永远提交不了）、评论区开着却没填服务端地址。
 
 几个实现上的选择，知道一下有好处：
 
@@ -228,7 +325,7 @@ Giscus 没有浏览量和评论数接口，所以选它时那两处自动不渲�
 
 主题把评论拆成「构建期算配置」和「运行期挂载」两层，中间只过一份 JSON。加一个系统要动四处，其中三处是各写一个文件：
 
-1. `src/config.ts` —— 加一段 `XxxConfig`，在 `CommentConfig` 里加 `xxx?: XxxConfig`，`type` 联合里加 `'xxx'`；
+1. `src/config/types.ts` —— 加一段 `XxxConfig`，在 `CommentConfig` 里加 `xxx?: XxxConfig`，`type` 联合里加 `'xxx'`，再到 `user/comment.ts` 填值；
 2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有浏览量就顺手实现 `pageview`；
 3. `src/comments/client/xxx.js` —— 导出 `mount({ el, section, attempt, loadModule })`，负责把脚本拉下来挂到 `el` 上；
 4. 两个注册表各加一行：`src/comments/index.ts` 的 `LIST`、`src/comments/client/index.js` 的 `MOUNTERS`。
@@ -264,8 +361,8 @@ tags: [Astro, 主题]
 categories: [公告]
 cover: ../../assets/covers/cover-1.webp   # 卡片封面（会优化；兼容写法 indexImg: /img/x.png）
 sticky: true                   # 置顶
-toc: false                     # 单篇关掉右侧目录；不写则跟随 config.ts
-comment: false                 # 单篇关掉评论；不写则跟随 config.ts
+toc: false                     # 单篇关掉右侧目录；不写则跟随站点配置
+comment: false                 # 单篇关掉评论；不写则跟随站点配置
 draft: false                   # true 则不进列表 / 搜索 / RSS
 banner: ../../assets/banner.webp  # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
 bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
@@ -300,8 +397,8 @@ bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
 | Hexo | Flux |
 | --- | --- |
 | `source/_posts/*.md` | `src/content/posts/*.md` |
-| `_config.yml` | `src/config.ts` |
-| `_data/links.yml` | `src/data/links.ts` |
+| `_config.yml` | `src/config/user/*.ts` |
+| `_data/links.yml` | `src/config/user/links.ts` |
 | `layout/*.ejs` | `src/pages/*.astro` + `src/components/*.astro` |
 | `languages/*.yml` | `src/i18n.ts` |
 | `hexo-generator-searchdb` | `src/pages/searchindex.json.ts` |
@@ -331,12 +428,16 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 
 ```
 src/
-├── config.ts            # ★ 站点配置
+├── config/              # ★ 配置
+│   ├── index.ts         #   总出口：合并默认值 + 你的值，导出 SITE
+│   ├── types.ts         #   字段类型与说明
+│   ├── defaults.ts      #   出厂默认值（升级时被替换）
+│   ├── merge.ts         #   深合并规则（30 行）
+│   └── user/            #   ★ 你的配置：site / appearance / content / comment / links
 ├── i18n.ts              # 界面文案
 ├── content.config.ts    # 集合与 front matter 校验
 ├── content/posts/       # 文章
 ├── assets/              # 参与优化的图片源文件（封面、banner）
-├── data/links.ts        # 友链
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /

@@ -1,19 +1,17 @@
 /**
- * Flux · 站点配置 —— 主题使用者的唯一入口
+ * Flux · 配置的类型契约
  * ---------------------------------------------------------------------------
- * 这里对应 Hexo 版 `_config.yml` 的常用项，但只保留核心：改站名、菜单、banner、
- * 配色、文章元信息开关、评论，全在这一个文件里，不用碰任何组件。
+ * 只放类型，不放值 —— 值在 `defaults.ts`（主题的默认值）和 `user/`（你自己的值）。
  *
- * 配色是普通 CSS 变量（见 src/styles/main.css 顶部的 T 段），覆盖 `color` 即可。
+ * 为什么要拆：类型是主题作者维护的「能力清单」，默认值是「出厂设置」，
+ * 而使用者真正要改的只有其中几项。三者混在一个文件里，改配置要滚过几百行
+ * 类型定义，升级主题时又分不清「哪些是我改的、哪些是主题自带的」。
  *
- * 图片有两套写法（详见 src/utils/image.ts）：写字符串是「原图直接用」，
- * 写 `import` 进来的本地图是「交给 Astro 优化」。下面三条演示用的是后者。
+ * 这里的所有字段都是**必填**的（少数标了 `?` 的除外）：默认值已经把每一项填满，
+ * 所以业务代码拿到 `SITE` 时不需要写 `??` 兜底。你在 `user/` 里只需要写
+ * 「和默认值不一样的那几项」，其余自动继承。
  */
-import type { ImageSource } from './utils/image';
-/* 示例图带优化：src/assets 下的图会被处理成多档宽度 + webp。
-   换成自己的图时，把文件放进 src/assets 再 import，或者改回 '/img/xxx.png' */
-import bannerAsset from './assets/banner.webp';
-import coverDefaultAsset from './assets/covers/cover-default.webp';
+import type { ImageSource } from '../utils/image';
 
 export interface NavItem {
   /**
@@ -60,13 +58,38 @@ export type WalineCdn =
   | (string & {});
 
 /**
- * 评论 · Waline
+ * 一套自定义表情（一个选项卡）。
+ * 三种写法里最完整的一种：不用把每个 emoji 文件名都列出来，只要给目录结构和文件名。
+ *
+ * ```ts
+ * { name: '我的表情', icon: 'https://cdn.example.com/emoji/1.png',
+ *   folder: 'https://cdn.example.com/emoji', type: 'png', items: ['1', '2', '3'] }
+ * ```
+ * 展开成 `https://cdn.example.com/emoji/1.png`、`…/2.png`…
+ */
+export interface WalineEmojiInfo {
+  /** 选项卡上显示的名字 */
+  name: string;
+  /** 图标地址（选项卡按钮的封面） */
+  icon: string;
+  /** 图片文件名主干列表，按顺序渲染 */
+  items: string[];
+  /** 所在文件夹地址 */
+  folder?: string;
+  /** 通用路径前缀（和 folder 二选一，folder 更常用） */
+  prefix?: string;
+  /** 图片扩展名，默认按 `svg` 处理 */
+  type?: string;
+}
+
+/**
+ * Waline 客户端配置
  * ---------------------------------------------------------------------------
  * 大部分字段都有合适的默认值，真要填的只有 `serverURL` —— 也就是你自己部署
  * 的那个 Waline 服务端地址。其余项的默认值写在这里的注释里，需要时再往
  * config 里加一行即可。
  *
- * @see https://waline.js.org/reference/client/
+ * @see https://waline.js.org/reference/client/props.html
  */
 export interface WalineConfig {
   /**
@@ -130,26 +153,32 @@ export interface WalineConfig {
   /** `enable` 允许登录（默认）/ `disable` 只能匿名 / `force` 必须登录 */
   login?: 'enable' | 'disable' | 'force';
   /**
-   * 表情包目录地址，默认只有微博那一套。
-   * 官方预设直接抄地址即可（`@1.4.0` 是当前版本，换版本时所有地址一起换）：
-   *   微博        https://unpkg.com/@waline/emojis@1.4.0/weibo
-   *   QQ          https://unpkg.com/@waline/emojis@1.4.0/qq
-   *   哔哩哔哩     https://unpkg.com/@waline/emojis@1.4.0/bilibili
-   *   哔哩小黄脸   https://unpkg.com/@waline/emojis@1.4.0/bmoji
-   *   贴吧        https://unpkg.com/@waline/emojis@1.4.0/tieba
-   *   Twitter     https://unpkg.com/@waline/emojis@1.4.0/tw-emoji
-   * 数组里排几个就出几个选项卡。设成 `false` 去掉表情按钮。
+   * 表情包。三处可选：
+   *
+   * - **不写**：用 Waline 内置的微博那套（`//unpkg.com/@waline/emojis@1.x/weibo`）
+   * - **字符串数组**：元素是表情目录地址，一个元素一个选项卡。官方预设照抄即可
+   *   （版本自己跟着换，`@1.4.0` 只是当时的值）：
+   *   `https://unpkg.com/@waline/emojis@1.4.0/weibo`（微博）、`/qq`、`/bilibili`、
+   *   `/bmoji`（哔哩小黄脸）、`/tieba`、`/tw-emoji`（Twitter）
+   * - **对象数组**（`WalineEmojiInfo`）：自己的一套表情，只要给目录和文件名列表
+   *
+   * `false` 去掉表情按钮；`true` 等同不写。
    */
-  emoji?: string[] | boolean;
-  /** 表情面板里的 GIF 图片搜索（走 Giphy，依赖服务端配置）。默认关 */
-  search?: boolean;
+  emoji?: (string | WalineEmojiInfo)[] | boolean;
+  /* 这里刻意没有「GIF 表情搜索」开关：Waline 的 `search` 要传的是一个函数
+     （`{ search: (word) => Promise<图片列表> }`），函数过不了 JSON，配置层根本开不了。
+     真要用就在 `src/comments/client/waline.js` 里自己传 —— 摆一个能写但无效的
+     布尔开关，比没有这个开关更糟。 */
   /**
    * 文末「反应」表情，给一组图片地址才会出现（最多 8 个）；`true` 用内置的那套。
    * 默认不显示。读者不用写评论也能表个态。
    */
   reaction?: string[] | boolean;
-  /** 评论字数上限，`0` 不限。默认 0 */
-  wordLimit?: number;
+  /**
+   * 评论字数上限。单个数字是上限，`0` 不限；也可以写 `[最小, 最大]` 限制区间。
+   * 默认 0。
+   */
+  wordLimit?: number | [number, number];
   /** 每页评论条数。默认 10 */
   pageSize?: number;
   /** 评论列表排序：'latest' 最新在前（默认）/ 'oldest' 最早在前 / 'hottest' 按热度 */
@@ -165,9 +194,39 @@ export interface WalineConfig {
   noCopyright?: boolean;
   /** 隐藏评论框旁边的 RSS 订阅链接 */
   noRss?: boolean;
-  /** Google reCAPTCHA v3 的网站密钥。服务端要同步配 `RECAPTCHA_V3_SECRET` */
+  /**
+   * Google reCAPTCHA v3。
+   *
+   * ⚠️ 三处必须**同时**配好，少一处就是「看得见验证码、提交一定失败」：
+   *
+   * | 在哪 | 配什么 |
+   * | --- | --- |
+   * | 这里 | `recaptchaV3Key`（网站密钥，公开） |
+   * | 服务端 | `RECAPTCHA_V3_KEY`（同一个网站密钥） |
+   * | 服务端 | `RECAPTCHA_V3_SECRET`（私密钥，不可泄漏） |
+   *
+   * 和 Turnstile **只能选一个**：两个都配，服务端会按自己的顺序验，另一个形同虚设。
+   */
   recaptchaV3Key?: string;
-  /** Cloudflare Turnstile 的网站密钥。服务端要同步配 `TURNSTILE_SECRET` */
+  /**
+   * Cloudflare Turnstile（推荐，不用翻墙就能过验证）。
+   *
+   * ⚠️ 同样三处配对，缺一不可：
+   *
+   * | 在哪 | 配什么 |
+   * | --- | --- |
+   * | 这里 | `turnstileKey`（Site Key，公开） |
+   * | 服务端 | `TURNSTILE_KEY`（同一个 Site Key） |
+   * | 服务端 | `TURNSTILE_SECRET`（Secret Key，不可泄漏） |
+   *
+   * 只配客户端、服务端没配 Secret，表现是「验证码能点、点完提交 403」；
+   * 反过来只配服务端，页面上根本不出现验证框，评论提交直接被拒。
+   *
+   * 配了它之后，页面的 CSP 要放行 `challenges.cloudflare.com`
+   * （script / frame / connect 三处），主题会自动加 preconnect，但 CSP 得你自己写。
+   *
+   * Site Key 和 Secret 在 Cloudflare 面板 → Turnstile 里申请。
+   */
   turnstileKey?: string;
   /**
    * 浏览量统计：在文章页显示「阅读 N 次」，每访问一次 +1。
@@ -256,6 +315,94 @@ export interface CommentConfig {
   giscus?: GiscusConfig;
 }
 
+/**
+ * 打字机效果。
+ * ---------------------------------------------------------------------------
+ * 对应原版 Fluid 的 `fun_features.typing`。零依赖手写，约 60 行。
+ *
+ * 行为：
+ *   · `slogan` 是单句且 `loop: false` → 打一遍就停（光标继续闪）
+ *   · `slogan` 是数组，或 `loop: true` → 打完停顿、退回、再打下一句，无限轮播
+ *   · 读者系统里开了「减少动态效果」（`prefers-reduced-motion`）→ 直接显示完整文字，不动画
+ */
+export interface TypingConfig {
+  /** 每个字的间隔，毫秒。越大越慢。默认 70 */
+  typeSpeed?: number;
+  /** 光标字符。默认 `'|'`；不想要就设空字符串 */
+  cursor?: string;
+  /** 循环播放。默认 false */
+  loop?: boolean;
+  /** 开始前等多久（毫秒），给首屏动画留点时间。默认 300 */
+  startDelay?: number;
+}
+
+/** 首页 banner */
+export interface BannerConfig {
+  /**
+   * 首页要不要这一块。`false` 时直接从顶栏进入卡片流 ——
+   * 想做成纯列表风格的博客就关掉它，不用去改页面代码。
+   */
+  enable: boolean;
+  /**
+   * 首页大标题。**不写就用站点名**（`SITE.title`）。
+   *
+   * 单独设它是因为这两件事经常不一样：站点名要出现在浏览器标题栏、
+   * 搜索结果、RSS 里（「capz 的博客」），而首页第一屏往往想写点别的
+   * （「Hi，我是 capz」）。写空字符串则整个大标题不出现，只剩背景图。
+   */
+  title?: string;
+  /**
+   * 背景图。**三种写法**：
+   *
+   *   1. `import` 进来的本地图 → 会被优化（多档宽度 + webp/avif）
+   *   2. `'/img/x.webp'`        → public/ 里的文件，原样输出
+   *   3. `https://…`            → 外链，原样用
+   *
+   * **不写（或写空字符串）＝ 不要图片**：banner 用顶栏色作纯色底，
+   * 标题和副标题照常显示。这是「有图 / 无图」的唯一开关，不需要改组件。
+   */
+  img?: ImageSource;
+  /** 高度：如 '100vh'、'60vh'、'400px' */
+  height: string;
+  /**
+   * 第 2 页起的列表页（`/page/2/`）用的高度。
+   * 不写就跟 `height` 一样 —— 但首页 100vh、翻页还铺满一屏会很烦，
+   * 所以默认给了个矮的（见 defaults.ts）。
+   */
+  pageHeight?: string;
+  /** 黑色蒙版透明度 0~1，越大字越清楚 */
+  maskAlpha: number;
+  /**
+   * 大标题下面那行字。留空则用 `SITE.subtitle`。
+   *
+   * **可以给数组**：开启打字机时按顺序轮播；不开打字机则只显示第一句
+   * （不随机 —— 静态站每次构建出不同内容会让缓存和 diff 都变脏）。
+   * 对应原版 Fluid 的 `slogan.text` 支持列表。
+   */
+  slogan?: string | string[];
+  /**
+   * 打字机效果。`true` 用默认参数，给对象可细调。
+   * 不写就关闭，直接显示静态文字。
+   */
+  typing?: boolean | TypingConfig;
+  /**
+   * 视差滚动：往下滚时背景图以更慢的速度移动，文字层正常滚走。
+   * 默认开启（与原版 `banner.parallax: true` 一致），首页和文章页都生效。
+   * 读者开了「减少动态效果」时不启用。
+   */
+  parallax?: boolean;
+  /**
+   * 最小宽高比，防移动端竖屏把图横向裁得太狠。默认 1。
+   *
+   * 作用是把 banner 高度限制在「宽度 ÷ minRatio」以内：
+   * 手机竖屏 390×844、`height: 100vh` 时，1.0 会让 banner 最高 390px，
+   * 图片基本不被裁边。想要整屏铺满就设 0（关闭限制）。
+   */
+  minRatio?: number;
+  /** 底部滚动提示箭头 */
+  scrollDown: boolean;
+}
+
 export interface SiteConfig {
   title: string;
   subtitle: string;
@@ -280,26 +427,21 @@ export interface SiteConfig {
   nav: NavItem[];
 
   /** 首页 banner */
-  banner: {
-    /**
-     * 背景图：`import` 进来的本地图（会被优化），或 public/ 路径 / 外链（原样用）。
-     * 留空则用纯色底色。
-     */
-    img: ImageSource;
-    /** 高度：如 '100vh'、'60vh'、'400px' */
-    height: string;
-    /** 黑色蒙版透明度 0~1，越大字越清楚 */
-    maskAlpha: number;
-    /** 首页大标题下面的副标题；留空则用 SITE.subtitle */
-    slogan?: string;
-    /** 底部滚动提示箭头 */
-    scrollDown: boolean;
-  };
+  banner: BannerConfig;
 
-  /** 文章页默认 banner（单篇可用 front matter 覆盖） */
+  /**
+   * 文章页默认 banner（单篇可用 front matter 的 `banner` / `bannerImg` 覆盖）。
+   *
+   * 和首页 banner 一样，`img` 不写就是纯色底 —— 标题和作者/日期/字数
+   * 那两行元信息都住在 banner 上，所以这里**没有「整个关掉」的开关**：
+   * 关了就得给标题另找地方，那是改版不是配置。
+   */
   postBanner: {
-    /** 同 banner.img：本地资源会被优化，字符串原样输出 */
-    img: ImageSource;
+    /**
+     * 同 `banner.img`：不写 = 纯色底；字符串 = public/ 路径或外链；
+     * `import` 的资源会被优化。
+     */
+    img?: ImageSource;
     height: string;
     maskAlpha: number;
   };
@@ -371,106 +513,15 @@ export interface SiteConfig {
 
   /** 站内搜索（构建期生成索引） */
   search: boolean;
+
+  /** RSS 输出 */
+  rss: {
+    /**
+     * 摘要字数上限。RSS 只输出纯文本摘要，没有全文 ——
+     * 全文要渲染 Markdown，得用 Astro 的 experimental Container API，
+     * 主题不想为了这个把实验性接口写进依赖面。300 是个折中：
+     * 够读者判断值不值得点进来，又不至于让订阅器变成全文阅读器。
+     */
+    excerptLength: number;
+  };
 }
-
-export const SITE: SiteConfig = {
-  title: 'Flux',
-  subtitle: '一个 Material Design 风格的 Astro 博客主题',
-  description: '流体般的阅读体验：卡片式首页、全屏 banner、暗色模式、跟随滚动的目录。',
-  author: 'capzk',
-  lang: 'zh-CN',
-  avatar: '/img/avatar.svg',
-  ogImage: '/img/og.png',
-  since: 2026,
-  beian: '',
-
-  nav: [
-    { labelKey: 'home', href: '/', icon: 'home' },
-    { labelKey: 'archive', href: '/archives/', icon: 'archive' },
-    { labelKey: 'categories', href: '/categories/', icon: 'category' },
-    { labelKey: 'tags', href: '/tags/', icon: 'tag' },
-    { labelKey: 'friends', href: '/links/', icon: 'link' },
-    { labelKey: 'about', href: '/about/', icon: 'user' },
-  ],
-
-  banner: {
-    img: bannerAsset,
-    height: '100vh',
-    maskAlpha: 0.3,
-    slogan: '流体般的阅读体验',
-    scrollDown: true,
-  },
-
-  postBanner: {
-    img: bannerAsset,
-    height: '60vh',
-    maskAlpha: 0.35,
-  },
-
-  index: {
-    defaultImg: coverDefaultAsset,
-    excerptLength: 200,
-    showDate: true,
-    showCategory: true,
-    showTags: true,
-  },
-
-  post: {
-    meta: { author: true, date: true, wordcount: true, min2read: true },
-    toc: true,
-    copyright: true,
-    prevNext: true,
-    related: true,
-    wpm: 300,
-  },
-
-  /* 评论默认关闭：Waline 得先有一个自己的服务端，示例站没有；Giscus 得先开
-     Discussions，示例站也没有。部署完之后把 serverURL / repo 填上、enable 改 true，
-     评论区就出现在文章页文末。想换 Giscus 就把 type 改成 'giscus'，其余不用动。 */
-  comment: {
-    enable: false,
-    type: 'waline',
-    /* 滚到距评论区 600px 时开始加载。想让脚本更早就位就调大，见字段说明 */
-    lazy: 600,
-    waline: {
-      serverURL: '',
-      /* 脚本与样式从哪加载：'jsdelivr'（默认）/ 'unpkg' / 'npmmirror'，
-         也可以写自托管模板 —— 换 CDN 只改这一行，见上方 WalineConfig.cdn 的表格 */
-      // cdn: 'jsdelivr',
-      locale: {
-        placeholder: '说点什么吧，支持 Markdown…',
-      },
-      /* 昵称必填、邮箱选填。想全匿名改成 []，想要邮箱也必填再加 'mail' */
-      requiredMeta: ['nick'],
-      pageSize: 10,
-      /* 文章页显示「阅读 N 次」。不需要就设 false —— 关掉后连那 1KB 插件都不发 */
-      pageview: true,
-    },
-    giscus: {
-      repo: '',
-      repoId: '',
-      mapping: 'pathname',
-      reactionsEnabled: true,
-      inputPosition: 'bottom',
-      theme: { light: 'light', dark: 'dark' },
-    },
-  },
-
-  darkMode: {
-    enable: true,
-    default: 'auto',
-  },
-
-  color: {
-    navbar: '#2f4154',
-    bodyBg: '#eee',
-    board: '#ffffff',
-    accent: '#30a9de',
-  },
-
-  pageSize: 6,
-  archive: {
-    pageSize: 10,
-  },
-  search: true,
-};

@@ -6,11 +6,16 @@
  * `.banner-text`，里面依次是标题、若干行 `.post-meta`。原版文章页的标题、
  * 日期、字数、阅读时长全部在这里显示，白色卡片里不再重复标题。
  *
- * 视差与打字机属于锦上添花且有额外 JS 依赖，暂不引入。
+ * 背景图单独放一层（`.banner-bg`），是为了让视差只动图、不动文字 ——
+ * 直接把 transform 写在 `<header>` 上会连标题一起拖走。
+ *
+ * 打字机、视差都在 `src/scripts/banner.js`，本组件只负责把参数写进 data 属性。
+ * 没有 JS 时页面显示的是第一句完整文案，不是空白 —— 渐进增强。
  */
 import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
 import { isAsset, type ImageSource } from '../utils/image';
+import { SITE, type TypingConfig } from '../config';
 
 /** banner 上的一条元信息（图标 + 文字） */
 interface BannerMeta {
@@ -19,8 +24,16 @@ interface BannerMeta {
 }
 
 interface Props {
-  title: string;
-  subtitle?: string;
+  /**
+   * 大标题。留空（`''` 或不传）就整块不渲染 —— 首页可以只要一张图，
+   * 或者把标题写进背景图里。文章页总是有标题，不受影响。
+   */
+  title?: string;
+  /**
+   * 副标题。给数组就是「候选句子」：不开打字机时随机挑一句，
+   * 开了打字机就按顺序轮播。空数组 / 空字符串 = 不显示。
+   */
+  subtitle?: string | string[];
   /**
    * 背景图。两种写法都认：
    * - 本地资源（`import` 进来的）→ `<Image>` 出多档宽度 + webp + srcset
@@ -42,6 +55,12 @@ interface Props {
    * 「字数 + 阅读时长」一行，两行之间间距更小。
    */
   metas?: BannerMeta[][];
+  /** 打字机。不传就静态显示 */
+  typing?: boolean | TypingConfig;
+  /** 视差滚动 */
+  parallax?: boolean;
+  /** 最小宽高比（宽度 ÷ 高度），0 或负数 = 不限制 */
+  minRatio?: number;
 }
 
 const {
@@ -53,38 +72,83 @@ const {
   scrollDown = false,
   headingTag = 'h1',
   metas = [],
+  typing,
+  /* 视差与宽高比是全站开关（原版 `banner.parallax` 也是全局的），
+     所以默认值从配置里读 —— 十几个页面不用各传一遍，改配置就全站生效 */
+  parallax = SITE.banner.parallax ?? false,
+  minRatio = SITE.banner.minRatio ?? 0,
 } = Astro.props;
 
 const Heading = headingTag;
 
-/* 本地资源走 <Image>（下面单独渲染），字符串继续用 CSS 背景图 —— 
+/* 文案归一化成数组：单句也当只有一句的列表处理，后面逻辑只有一条路径 */
+const lines = (Array.isArray(subtitle) ? subtitle : subtitle ? [subtitle] : [])
+  .map((line) => line.trim())
+  .filter(Boolean);
+const firstLine = lines[0] ?? '';
+
+/**
+ * 打字机参数。`true` 用默认值，对象则逐项覆盖。
+ * 这里把默认值定死并把结果写进 data 属性 —— 运行期脚本只管照着做，
+ * 不再自己判断「没配某项该用什么」，免得两处默认值各说一套。
+ */
+const typingOptions = !typing
+  ? null
+  : (() => {
+      const custom = typing === true ? {} : typing;
+      return {
+        typeSpeed: custom.typeSpeed ?? 70,
+        cursor: custom.cursor ?? '|',
+        loop: custom.loop ?? false,
+        startDelay: custom.startDelay ?? 300,
+      };
+    })();
+
+/* 本地资源走 <Image>（下面单独渲染），字符串走背景层 ——
    后者不产生额外 DOM，也不会因为 <img> 的宽高比把 banner 撑变形。 */
 const bgImage = img && !isAsset(img) ? img : '';
 
 const style = [
   `height:${height}`,
-  bgImage ? `background-image:url('${bgImage}')` : '',
+  /* 防移动端竖屏把图横向裁太狠：banner 高度不超过「宽度 ÷ minRatio」。
+     桌面端这个值通常远大于 100vh，等于不生效。 */
+  minRatio > 0 ? `max-height:calc(100vw / ${minRatio})` : '',
 ].filter(Boolean).join(';');
 ---
 
-<header class="banner" style={style}>
+<header class="banner" style={style} data-parallax={parallax ? '' : undefined}>
   {
-    isAsset(img) && (
-      <Image
-        class="banner-img"
-        src={img}
-        alt=""
-        widths={[720, 1080, 1440, 1920]}
-        sizes="100vw"
-        loading="eager"
-        fetchpriority="high"
-      />
-    )
+    isAsset(img) ? (
+      <div class="banner-bg">
+        <Image
+          class="banner-img"
+          src={img}
+          alt=""
+          widths={[720, 1080, 1440, 1920]}
+          sizes="100vw"
+          loading="eager"
+          fetchpriority="high"
+        />
+      </div>
+    ) : bgImage ? (
+      <div class="banner-bg" style={`background-image:url('${bgImage}')`} />
+    ) : null
   }
-  <div class="banner-mask" style={`opacity:${maskAlpha}`}></div>
+  {/* maskAlpha 为 0 就不压暗，整层不渲染 —— 留一个 opacity:0 的全屏元素也是白算 */}
+  {maskAlpha > 0 && <div class="banner-mask" style={`opacity:${maskAlpha}`}></div>}
   <div class="banner-text">
-    <Heading class="banner-title">{title}</Heading>
-    {subtitle && <p class="banner-subtitle">{subtitle}</p>}
+    {title && <Heading class="banner-title">{title}</Heading>}
+    {
+      firstLine && (
+        <p
+          class="banner-subtitle"
+          data-cursor={typingOptions?.cursor}
+          data-banner-typing={typingOptions && JSON.stringify({ lines, ...typingOptions })}
+        >
+          {firstLine}
+        </p>
+      )
+    }
     {
       metas.filter((row) => row.length > 0).map((row) => (
         <div class="banner-metas">

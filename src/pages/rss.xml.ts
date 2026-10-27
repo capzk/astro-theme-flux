@@ -16,7 +16,8 @@ export async function GET(context: APIContext) {
     items: posts.map((post) => ({
       title: post.data.title,
       pubDate: post.data.date,
-      description: post.data.description || plainText(post.body ?? '').slice(0, 160),
+      description:
+        post.data.description || plainText(post.body ?? '').slice(0, SITE.rss.excerptLength),
       link: postUrl(post),
     })),
     customData: `<language>${SITE.lang}</language>`,

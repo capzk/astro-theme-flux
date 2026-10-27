@@ -24,14 +24,20 @@ const jsonLd = websiteJsonLd(Astro.site ?? Astro.url.origin);
 ---
 
 <BaseLayout isHome jsonLd={jsonLd}>
-  <Banner
-    title={SITE.title}
-    subtitle={SITE.banner.slogan || SITE.subtitle}
-    img={SITE.banner.img}
-    height={SITE.banner.height}
-    maskAlpha={SITE.banner.maskAlpha}
-    scrollDown={SITE.banner.scrollDown}
-  />
+  {
+    /* banner 显不显示、长什么样，全看 src/config/user/appearance.ts —— 不用改这里 */
+    SITE.banner.enable && (
+      <Banner
+        title={SITE.banner.title ?? SITE.title}
+        subtitle={SITE.banner.slogan || SITE.subtitle}
+        img={SITE.banner.img}
+        height={SITE.banner.height}
+        maskAlpha={SITE.banner.maskAlpha}
+        scrollDown={SITE.banner.scrollDown}
+        typing={SITE.banner.typing}
+      />
+    )
+  }
 
   <Board>
     <PostList posts={posts} currentPage={1} lastPage={lastPage} />

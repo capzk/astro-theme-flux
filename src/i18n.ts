@@ -7,7 +7,7 @@
  */
 export const T = {
   skipToContent: '跳到主要内容',
-  /* 导航文案：config.ts 的 nav 用 labelKey 引用这几个键；
+  /* 导航文案：src/config 的 nav 用 labelKey 引用这几个键；
      想给某一项单独起名，在那个 nav 项上写 label 覆盖即可 */
   home: '首页',
   archive: '归档',
@@ -49,7 +49,7 @@ export const T = {
   pageview: '阅读',
   pageviewUnit: '次',
   notFound: '404',
-  notFoundDesc: '你要找的页面掉进流体里了。',
+  notFoundDesc: '你要找的页面不存在，或者已经搬走了。',
   backHome: '返回首页',
   totalPosts: (n: number) => `共 ${n} 篇文章`,
   totalTags: (n: number) => `共 ${n} 个标签`,

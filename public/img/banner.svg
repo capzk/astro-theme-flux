@@ -34,7 +34,7 @@
   <rect width="1600" height="900" fill="url(#glowB)"/>
   <rect width="1600" height="900" fill="url(#glowC)"/>
 
-  <!-- 流体曲线：三条正弦波，越靠下越淡 -->
+  <!-- 波浪曲线：三条正弦波，越靠下越淡 -->
   <g fill="none" stroke="url(#wave)" stroke-width="2">
     <path d="M-100 560 C 220 470, 420 660, 760 560 S 1320 430, 1700 520"/>
     <path d="M-100 640 C 260 560, 480 740, 820 640 S 1360 520, 1700 600" stroke-opacity="0.6"/>

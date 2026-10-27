@@ -1,7 +1,7 @@
 ---
 title: 换成你自己的样子：配色与排版
 date: 2026-10-23 10:00:00
-description: 三种改法分别管什么 —— config.ts 换颜色、CSS 变量换整套配色、选择器改版心与字号。附全部设计令牌清单。
+description: 三种改法分别管什么 —— 站点配置换颜色、CSS 变量换整套配色、选择器改版心与字号。附全部设计令牌清单。
 tags:
   - CSS
   - 配色
@@ -19,7 +19,7 @@ Flux 的样式全在一个文件里：`src/styles/main.css`。没有 Stylus / Sa
 
 | 层 | 位置 | 管什么 | 影响范围 |
 | --- | --- | --- | --- |
-| 一 | `config.ts` 的 `color` | 四个主色 | 只亮色 |
+| 一 | `src/config/user/appearance.ts` 的 `color` | 四个主色 | 只亮色 |
 | 二 | `main.css` 的 CSS 变量 | 全部颜色与字体 | 亮暗两套 |
 | 三 | `main.css` 的选择器 | 版心、字号、行高、间距 | 具体某个组件 |
 
@@ -146,7 +146,7 @@ html { font-size: 16px; letter-spacing: 0.02em; }
 .banner-title { font-size: 2rem; font-weight: 600; letter-spacing: 0.04em; }
 ```
 
-高度不在 CSS 里，在 `config.ts` 的 `banner.height`（写 `100vh`、`60vh`、`400px` 都行），通过内联样式传给组件。
+高度不在 CSS 里，在 `src/config/user/appearance.ts` 的 `banner.height`（写 `100vh`、`60vh`、`400px` 都行），通过内联样式传给组件。
 
 标题本身没有单独的移动端字号 —— 它跟着 `html` 的 `font-size` 走（手机上是 `15px`，所以 `2rem` 变成 30px）。站名超过 12 个字的话，建议直接把 `font-size` 调到 `1.75rem`，比让它换行好看。
 

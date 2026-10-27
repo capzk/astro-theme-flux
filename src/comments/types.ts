@@ -11,7 +11,7 @@
  */
 import type { CommentConfig } from '../config';
 
-/** 站点支持的评论系统。加一个就在 config.ts 的 `type` 里加一项 */
+/** 站点支持的评论系统。加一个就在 src/config 的 `type` 里加一项 */
 export type CommentType = 'waline' | 'giscus';
 
 /** 构建期传给 provider 的上下文 */

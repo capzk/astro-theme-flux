@@ -66,12 +66,20 @@ const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.s
 /* 同源的不必再握手（评论服务端和博客挂同一个域时会出现这种情况） */
 const preconnectList = preconnect.filter((item) => item !== origin.origin);
 
+/**
+ * 首页 banner 用字符串路径（`/img/x.webp`）时，图是 CSS background 加载的：
+ * 浏览器要等 CSSOM 解析完才发现它，比 `<Image>` 生成的 `<img>` 晚一拍。
+ * 补一条 preload 把 LCP 抢回来。import 的资源自带 fetchpriority，不用管。
+ */
+const bannerImg = isHome && SITE.banner.enable ? SITE.banner.img : undefined;
+const bannerPreload = typeof bannerImg === 'string' ? bannerImg.trim() : '';
+
 /* 浏览器地址栏配色。亮色跟随配置里的顶栏色，暗色取 main.css 里那套固定值 ——
    用户手动切换过主题时可能与实际不符，但地址栏只是装饰，不值得为此加脚本。 */
 const DARK_CHROME = '#1f3144';
 
 /**
- * config.ts 的 color 段 → 覆盖 main.css 里亮色那组变量。
+ * src/config 的 color 段 → 覆盖 main.css 里亮色那组变量。
  * 只作用于亮色：暗色那套留在 main.css 的 [data-user-color-scheme="dark"] 里，
  * 这里若无条件写 :root 会把暗色一起盖掉。想连暗色改，去改 main.css 的变量。
  * 选择器用 html:root:not(...) 是为了稳定赢过 main.css 的 :root（特异性 0,2,1 > 0,1,0），
@@ -97,6 +105,12 @@ const colorVars =
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+    {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload 的说明 */}
+    {
+      bannerPreload && (
+        <link rel="preload" as="image" href={bannerPreload} fetchpriority="high" />
+      )
+    }
     {/* 放在 </head> 最前面几条里：握手要趁早，评论脚本是懒加载的，
         等它开始下载再握手就白等一个 RTT 了 */}
     {
@@ -111,7 +125,7 @@ const colorVars =
     <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={DARK_CHROME} media="(prefers-color-scheme: dark)" />
 
-    <!-- 配色来自 config.ts 的 color 段，只覆盖亮色（见 frontmatter 里的说明） -->
+    <!-- 配色来自 src/config 的 color 段，只覆盖亮色（见 frontmatter 里的说明） -->
     <style is:inline set:html={colorVars} />
 
     <!--
@@ -196,6 +210,7 @@ const colorVars =
 
     <script>
       import '../scripts/theme.js';
+      import '../scripts/banner.js';
       /* 搜索只在站点开启时打包进页面（未开启时这段引用会被摇掉） */
       import '../scripts/search.js';
     </script>

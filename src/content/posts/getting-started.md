@@ -60,11 +60,14 @@ npx degit capzk/astro-theme-flux my-blog
 
 ```
 src/
-├── config.ts            # ★ 站点配置，90% 的改动都在这里
+├── config/              # ★ 站点配置
+│   ├── user/            #   ★ 你的配置：site / appearance / content / comment / links
+│   ├── defaults.ts      #   出厂默认值（升级时被替换）
+│   ├── types.ts         #   字段类型与说明
+│   └── merge.ts         #   深合并规则
 ├── i18n.ts              # 界面文案（中文一份）
 ├── content.config.ts    # 文章 front matter 的 Zod 校验
 ├── content/posts/       # ★ 文章 Markdown
-├── data/links.ts        # 友链
 ├── layouts/BaseLayout.astro   # <head>、主题、全局脚本
 ├── components/          # Navbar / Banner / Board / PostCard / Toc …
 ├── pages/               # 一个文件一个路由
@@ -80,16 +83,18 @@ src/
 
 按顺序做这三件事，站点就变成「你的」了：
 
-**1. 改站名和作者** —— `src/config.ts`
+**1. 改站名和作者** —— `src/config/user/site.ts`
 
 ```ts
-export const SITE: SiteConfig = {
+import { defineConfig } from '../merge';
+
+export default defineConfig({
   title: '你的站名',
   subtitle: '一句话副标题',
   description: '给搜索引擎和 RSS 用的描述',
   author: '你的名字',
-  // …
-};
+  // 剩下的都不用写 —— 没写的项继承默认值
+});
 ```
 
 **2. 改域名** —— `astro.config.mjs`
@@ -128,11 +133,11 @@ date: 2026-10-25 10:00:00
 
 **中文 URL 会不会乱码**：标签和分类页的路径是 `/tags/前端/`，构建产物里是 `dist/tags/前端/index.html`。静态托管一般没问题，但如果你的服务器不做 URL 解码，改用英文标签更省事。
 
-**改了 `config.ts` 没生效**：dev 下改配置会触发整页重载，等一两秒。如果还是旧的，`Ctrl+C` 重开一次。
+**改了 `src/config/user/` 里的东西没生效**：dev 下改配置会触发整页重载，等一两秒。如果还是旧的，`Ctrl+C` 重开一次。
 
 ## 接下来读什么
 
-- 《站点配置详解》—— `config.ts` 每一个字段的取值与效果
+- 《站点配置详解》—— `src/config` 每一个字段的取值与效果
 - 《写一篇文章》—— front matter 全字段、分类与标签的区别、图片怎么放
 - 《换成你自己的样子》—— 配色、字号、版心宽度
 - 《部署上线》—— 三种托管方案与常见坑

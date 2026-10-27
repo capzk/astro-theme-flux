@@ -32,7 +32,7 @@ cover: ../../assets/covers/cover-2.webp
 | `Icon.astro` | 内联 SVG 图标表 | 到处 |
 | `Footer.astro` | 页脚、备案号 | `BaseLayout` |
 
-数据层只有两个：`src/utils/posts.ts`（取文章、排序、统计、摘要）和 `src/config.ts`（站点配置）。**页面不直接读 `getCollection`**，都过 `utils/posts.ts` —— 想换排序规则或加「相关文章」，改一个函数就够了。
+数据层只有两个：`src/utils/posts.ts`（取文章、排序、统计、摘要）和 `src/config`（站点配置）。**页面不直接读 `getCollection`**，都过 `utils/posts.ts` —— 想换排序规则或加「相关文章」，改一个函数就够了。
 
 ## 加一个页面
 
@@ -66,7 +66,7 @@ const title = '留言板';
 
 内容想用 Markdown 排版，就包一层 `<div class="markdown-body">`；想铺满卡片不留白，给 `<Board wide>` —— 但它适合放图片或表格，文字贴边不好看。
 
-加完页面别忘了在 `config.ts` 的 `nav` 里加一项，否则没人能找到它。
+加完页面别忘了在 `src/config/user/site.ts` 的 `nav` 里加一项，否则没人能找到它。
 
 ## 加一个图标
 
@@ -114,7 +114,7 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 ## 换一个评论系统
 
-主题内置两套：[Waline](https://waline.js.org/)（要自建服务端）和 [Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。开关全在 `config.ts` 的 `comment` 段：
+主题内置两套：[Waline](https://waline.js.org/)（要自建服务端）和 [Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。开关全在 `src/config/user/comment.ts`：
 
 ```ts
 comment: {
@@ -128,6 +128,10 @@ comment: {
 
 默认关着 —— 没有服务端地址的评论区是个空壳，不如不出现。
 
+开人机验证时注意它是**三处配对**：主题填 `turnstileKey`、服务端填 `TURNSTILE_KEY`（同一个值）和
+`TURNSTILE_SECRET`。只配客户端、服务端漏了 Secret，症状是「验证框能点、点完提交 403」，
+很容易误判成 Waline 坏了。reCAPTCHA v3 同理，两者只能留一个。详见 README「反垃圾与人机验证」。
+
 要注意的是：**这个「改一行就换」不是靠 if 堆出来的**。评论区被拆成两层，中间只过一份 JSON：
 
 ```
@@ -138,7 +142,7 @@ comment: {
         src/comments/client/waline.js / giscus.js  →  真正把东西挂到 DOM 上
 ```
 
-所以加第三个（Twikoo、Artikle、Valine……）是四步，其中三步是各写一个文件：`config.ts` 里加一段配置、`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，Waline 和 Giscus 就是两个方向的样板 —— 前者是 ES 模块 + 自定义 CSS + 独立计数插件，后者是传统 `<script>` + iframe + `postMessage` 换肤。
+所以加第三个（Twikoo、Artikle、Valine……）是四步，其中三步是各写一个文件：`src/config/types.ts` 里加类型、`user/comment.ts` 里填值，`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，Waline 和 Giscus 就是两个方向的样板 —— 前者是 ES 模块 + 自定义 CSS + 独立计数插件，后者是传统 `<script>` + iframe + `postMessage` 换肤。
 
 几个实现上的坑，加新系统时会撞到：
 

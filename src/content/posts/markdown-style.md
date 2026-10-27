@@ -32,7 +32,7 @@ cover: ../../assets/covers/cover-3.webp
 
 1. `npm install`
 2. `npm run dev`
-3. 改 `src/config.ts` 里的站名与菜单
+3. 改 `src/config/user/site.ts` 里的站名与菜单
 4. `npm run build`
 
 ## 引用

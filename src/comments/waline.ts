@@ -71,7 +71,7 @@ function checkExactVersion(template: string, version: string): void {
 /**
  * 把模板展开成一个文件的实际地址。
  *
- * 模板里的占位符（说明见 config.ts 的 WalineCdn）：
+ * 模板里的占位符（说明见 src/config 的 WalineCdn）：
  *   {name}     npm 包名，`@waline/client`
  *   {version}  上面 config.version 的值
  *   {file}     包内相对路径，如 `dist/waline.js`
@@ -112,6 +112,8 @@ function walineLang(lang: string): string {
   if (l.startsWith('ru')) return 'ru';
   if (l.startsWith('fr')) return 'fr';
   if (l.startsWith('pt')) return 'pt-BR';
+  /* Waline 只认 'es' / 'es-MX'，其它西语变体统一给 es */
+  if (l.startsWith('es')) return 'es';
   return 'en';
 }
 
@@ -152,8 +154,6 @@ export const waline: CommentProvider<WalineConfig> = {
         requiredMeta: config.requiredMeta || [],
         login: config.login,
         emoji: config.emoji,
-        /* GIF 搜索依赖服务端配置，默认关 —— 开了而服务端没配，按钮点了没反应 */
-        search: config.search ?? false,
         reaction: config.reaction,
         commentSorting: config.commentSorting,
         wordLimit: config.wordLimit,
@@ -164,19 +164,31 @@ export const waline: CommentProvider<WalineConfig> = {
         noRss: config.noRss,
         recaptchaV3Key: config.recaptchaV3Key,
         turnstileKey: config.turnstileKey,
-        /* 顺带回填标题上的评论数（找 .waline-comment-count，见上面 countClass）。
-           页面里没有那个元素时它什么都不做，所以不必再判断一次 */
+        /* 在 el 里渲染评论区本身。v3 用 comment / commentCount 控制「渲染哪一块」，
+           不传只挂一个空容器。评论数徽标走它默认的选择器 `.waline-comment-count`，
+           正好和上面的 countClass 对上，所以不用额外传 commentCount */
         comment: true,
       },
     };
   },
 
-  /** 服务端要握手，客户端脚本（CDN 或自托管）也要握手 */
+  /**
+   * 要提前握手的域名。
+   *
+   * 除服务端和客户端脚本之外，两个验证码各有自己的域名 —— 它们的脚本是
+   * Waline 在**评论区渲染之后**才注入的，等那时候再握手，用户已经点开评论框了。
+   * 这里提前握好，代价只是一个 preconnect（不配就少这行，功能不受影响）。
+   */
   origins(config): string[] {
     return originsOf(
       config.serverURL,
       asset(config, 'dist/waline.js'),
       asset(config, 'dist/waline.css'),
+      /* Turnstile：脚本、iframe、校验请求都在这一个域名下 */
+      config.turnstileKey ? 'https://challenges.cloudflare.com' : undefined,
+      /* reCAPTCHA v3：api.js 在 google.com，实际脚本与图标在 gstatic.com */
+      config.recaptchaV3Key ? 'https://www.google.com' : undefined,
+      config.recaptchaV3Key ? 'https://www.gstatic.com' : undefined,
     );
   },
 

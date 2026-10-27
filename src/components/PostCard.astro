@@ -24,7 +24,7 @@ const url = postUrl(post);
 const summary = SITE.index.excerptLength;
 
 /* 封面三级取用：front matter 的 cover（可优化）> indexImg（字符串）> 站点默认图。
-   默认图在 config.ts 里也可能是 import 进来的资源，所以统一按 ImageSource 处理。 */
+   默认图在 src/config 里也可能是 import 进来的资源，所以统一按 ImageSource 处理。 */
 const coverSrc: ImageSource | undefined = cover ?? indexImg ?? SITE.index.defaultImg;
 
 /* 摘要：description 优先，否则取正文纯文本（构建期算好，无运行时开销） */

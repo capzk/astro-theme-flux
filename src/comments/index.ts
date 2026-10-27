@@ -30,7 +30,7 @@ export const DARK_SELECTOR = 'html[data-user-color-scheme="dark"]';
  *
  * 这里把各家统一存成 `CommentProvider<any>`：调用方只按 `type` 取，不关心具体配置，
  * 而 `never` / `unknown` 这种「安全的擦除」在调用 build(config) 时都会把参数收窄成
- * never，反而要一堆断言。配置本身在 config.ts 里已经按 type 约束过一遍了。
+ * never，反而要一堆断言。配置本身在 src/config 里已经按 type 约束过一遍了。
  */
 type AnyProvider = CommentProvider<any>;
 
@@ -48,7 +48,7 @@ function providerOf(comment: CommentConfig): AnyProvider | null {
   if (!provider) {
     warnOnce(
       `type:${comment.type}`,
-      `[flux] config.ts 里的 comment.type = ${JSON.stringify(comment.type)} 没有实现，` +
+      `[flux] src/config 里的 comment.type = ${JSON.stringify(comment.type)} 没有实现，` +
         `可选：${COMMENT_TYPES.join(' / ')}。评论区与浏览量都已跳过。`,
     );
   }

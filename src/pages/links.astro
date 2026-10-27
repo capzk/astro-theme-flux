@@ -2,13 +2,13 @@
 /**
  * 友链 —— /links/
  *
- * 原版是卡片网格（头像 + 站名 + 一句话）。数据在 src/data/links.ts。
+ * 原版是卡片网格（头像 + 站名 + 一句话）。数据在 src/config/user/links.ts。
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import { SITE } from '../config';
-import { LINKS } from '../data/links';
+import { LINKS } from '../config';
 
 const title = '友链';
 ---
@@ -34,6 +34,6 @@ const title = '友链';
         ))
       }
     </div>
-    {LINKS.length === 0 && <p class="search-empty">还没有友链，在 src/data/links.ts 里加一条即可。</p>}
+    {LINKS.length === 0 && <p class="search-empty">还没有友链，在 src/config/user/links.ts 里加一条即可。</p>}
   </Board>
 </BaseLayout>

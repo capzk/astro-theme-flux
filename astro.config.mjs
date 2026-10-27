@@ -4,6 +4,10 @@ import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 
 import { codeChrome, codeToolbar, headingAnchors, linkTargets } from './src/plugins/markdown.js';
+import { createLastmodResolver } from './scripts/sitemap-lastmod.mjs';
+
+/** 文章路径 → 最后修改日期。匹配不上返回 undefined，sitemap 就退回原样 */
+const lastmodOf = createLastmodResolver();
 
 /**
  * Flux · 配置
@@ -40,7 +44,19 @@ export default defineConfig({
     defaultStrategy: 'hover',
   },
 
-  integrations: [sitemap()],
+  /**
+   * sitemap：页面清单交给官方集成（它认得所有分页路由），
+   * 我们只补一列 `lastmod` —— 取文章 front matter 的 updated（没有就取 date）。
+   * 时间戳来自文章本身，不是构建时间，所以「每天重新构建」不会把它刷成今天。
+   */
+  integrations: [
+    sitemap({
+      serialize(item) {
+        const lastmod = lastmodOf(item.url);
+        return lastmod ? { ...item, lastmod } : item;
+      },
+    }),
+  ],
 
   markdown: {
     /* 双主题：亮色 github-light / 暗色 github-dark。

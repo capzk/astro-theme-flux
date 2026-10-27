@@ -17,8 +17,8 @@ cover: ../../assets/covers/cover-4.webp
 | Hexo | Astro |
 | --- | --- |
 | `source/_posts/*.md` | `src/content/posts/*.md` |
-| `source/_data/links.yml` | `src/data/links.ts` |
-| `themes/fluid/_config.yml` | `src/config.ts` |
+| `source/_data/links.yml` | `src/config/user/links.ts` |
+| `themes/fluid/_config.yml` | `src/config/user/*.ts` |
 | `themes/fluid/layout/*.ejs` | `src/pages/*.astro` + `src/components/*.astro` |
 | `themes/fluid/languages/*.yml` | `src/i18n.ts` |
 | `hexo-generator-searchdb` | `src/pages/searchindex.json.ts` |

@@ -12,7 +12,7 @@
  */
 import { MOUNTERS } from '../comments/client/index.js';
 
-/** 没配 lazy 时的兜底距离，和 config.ts 的默认值保持一致 */
+/** 没配 lazy 时的兜底距离，和 src/config 的默认值保持一致 */
 const DEFAULT_LAZY = 600;
 
 /**
