@@ -7,6 +7,26 @@
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-10-27
+
+### Fixed
+
+- **开启人机验证后，验证码方块会把评论工具栏撑变形。** Waline 3.x 的 `render`
+  把 Turnstile 的 `size` 写死成 `compact`，而按 Cloudflare 现行文档 compact 是
+  **150×140** —— 比 `normal`（300×65）还高一倍多，本来是给手机侧栏那种窄容器用的。
+  它被塞进 `.wl-footer` 之后，整条工具栏从 24px 撑到 140px，左边的表情/上传图标和
+  右边的字数、「发送」全悬在中间；而 Waline 自己对 `.wl-captcha-container` 连一条
+  对齐规则都没有。
+
+  `main.css` 现在用 `display: contents` 把 `.wl-info` 的子项提升成 `.wl-footer` 的直接
+  子项，验证码于是能独占一行、贴右对齐，工具栏回到正常高度。判据是
+  `.wl-captcha-container:has(iframe)` —— 验证码是提交时才渲染的，没渲染前那个空
+  `div` 不该参与排布。
+
+  这是主题**唯一**一处覆写 Waline 类名的地方（此前第 11 节明确写了不覆盖上游类名，
+  注释已同步说明例外）。上游哪天改成 `size: 'flexible'`（100% 宽 × 65，官方推荐的
+  桌面用法）或换掉这几个类名，那段样式就该整块删掉。
+
 ## [2.0.0] - 2026-10-27
 
 ### Changed

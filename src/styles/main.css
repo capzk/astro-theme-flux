@@ -1641,9 +1641,10 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
    里面那一坨由评论系统自己渲染（src/comments/client/ 里各家负责挂载）。
    所以这套样式对任何评论系统都成立，换一家也不改。
 
-   Waline 自带完整样式，这里不覆盖它的类名（上游一改版就会错位），
+   Waline 自带完整样式，这里基本不覆盖它的类名（上游一改版就会错位），
    只把它的 CSS 变量接到主题令牌上 —— 主题改配色、切暗色，评论区自动跟着走，
-   不用维护第二套颜色。变量名是 Waline 的公开接口：
+   不用维护第二套颜色。唯一一处例外是人机验证码的排布，原因见下面
+   「人机验证（Turnstile）」那一段。变量名是 Waline 的公开接口：
    https://waline.js.org/reference/client/style.html
 
    注意「暗色不需要另写一套」这件事：Waline 的暗色是往 <html> 上写一组变量，
@@ -1716,6 +1717,37 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 /* Waline 的面板自带 .5em 外边距，会把输入框往里缩一圈，跟标题对不齐 */
 .comment-body .wl-panel {
   margin: 0;
+}
+
+/* ── 人机验证（Turnstile）──────────────────────────────────────────────
+   这是全文件唯一覆写 Waline 类名的例外，得把来龙去脉写清楚：
+
+   Waline 3.x 的 render 参数把 size 写死成 'compact'。按 Cloudflare 现行文档，
+   compact 是 150×140 —— 比 normal（300×65）还高一倍多，本来是给手机侧栏那种
+   窄容器用的。它被塞进 .wl-footer 之后，整条工具栏从 24px 撑到 140px，
+   左边的表情/上传图标和右边的字数、「发送」全悬在中间；而 Waline 自己对
+   .wl-captcha-container 一条规则都没有（连基本对齐都没做）。这就是验证码
+   跟评论框看着不协调的由来，不是站点哪里配错了。
+
+   size 没被暴露成配置项，所以只能从外面把它摆正：
+   .wl-info 用 display:contents 把子项提升成 .wl-footer 的直接子项，验证码
+   于是能独占一行，工具栏回到正常高度。判据用 :has(iframe) —— 验证码是提交
+   时才渲染的，没渲染前那个空 div 不该参与排布。
+
+   上游哪天改成 size:'flexible'（100% 宽 × 65，官方推荐的桌面用法）或者换掉
+   这几个类名，这一段就该整块删掉。 */
+.comment-body .wl-info {
+  display: contents;
+}
+.comment-body .wl-footer {
+  align-items: center;
+  row-gap: 0.5em;
+}
+.comment-body .wl-captcha-container:has(iframe) {
+  order: -1;
+  flex: 0 0 100%;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* 骨架屏：形状照着「一个输入面板 + 几条评论」勾，加载完不会跳一下 */
