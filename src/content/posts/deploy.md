@@ -8,6 +8,8 @@ tags:
   - nginx
 categories:
   - 指南
+series: 从零建站
+seriesOrder: 6
 cover: ../../assets/covers/cover-1.webp
 ---
 
@@ -184,5 +186,5 @@ your-domain.com {
 ## 上线之后值得做的三件事
 
 1. 把站点提交到 [Google Search Console](https://search.google.com/search-console) 和百度站长平台，提交 `sitemap-index.xml`。
-2. 给 `robots.txt` 加一行 `Sitemap: https://your-domain.com/sitemap-index.xml`（`public/robots.txt`）。
+2. **看一眼线上真正的 `robots.txt`**：仓库里那份由 `src/pages/robots.txt.ts` 从 `site` 现算，`Sitemap:` 一行不用你填。但托管平台可能自己接管这个文件 —— Cloudflare Pages 开了 Managed robots.txt 就会覆盖它，并且默认挡掉 GPTBot / ClaudeBot / CCBot / Bytespider 这些 AI 爬虫。`curl https://你的域名/robots.txt` 看到的才是搜索引擎看到的那份。
 3. 自己用手机打开一次 —— 主题在窄屏会隐藏目录、把卡片改成上下堆叠，这些都是看桌面版看不出来的。

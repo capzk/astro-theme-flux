@@ -4,7 +4,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.23.4-339933.svg?logo=node.js&logoColor=white)](./package.json)
 
-> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus), page views.
+> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk), page views.
 
 **在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
 
@@ -37,17 +37,28 @@
 | 目录跟随高亮 | 原生滚动监听 + `requestAnimationFrame`（原版是 tocbot + jQuery） |
 | 图片灯箱 | 自己写的 60 行，替代 fancybox：ESC / 点遮罩 / 点按钮关闭，焦点归还 |
 | 站内搜索 | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起 |
-| 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 |
+| 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 + 行号；围栏 meta 写 `{1,3-5}` 高亮指定行、写 `nolinenos` 关掉行号 |
 | 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
 | 分页 | 首页 `/page/2/`、归档 `/archives/page/2/`、分类与标签同理，形态与 Hexo 一致 |
 | 图片优化 | 封面与 banner 走 `astro:assets`：按屏宽生成多档 webp + `srcset`，首屏图 `fetchpriority="high"` |
+| 图片占位色 | 构建期把每张图缩成 2×2 取出主色调（一张图 18 个字符），垫在图片下面 —— 图没到时不会先白一块 |
+| 配色 | 四个字面颜色，或者一个 `hue` 让 oklch 派生整套（构建期定好，不带运行时） |
+| 页面开关 | 关于 / 友链可关，导航、sitemap、页面本身三处一起变（301 回首页） |
+| 上下篇 | 默认按时间相邻；文章写了 `series` 就改成系列内前后，文章页顶部再列一份系列清单 |
+| 反抓取小件 | `mailto:` 降级成 `me [at] example.com`（脚本还原成链接）；防盗链图床的图自动补 `referrerpolicy` |
 | 相关文章 | 按标签（3 分）/ 分类（2 分）的重合度取前 3 篇，没有相关的一篇就不显示 |
+| 索引卫生 | 分页 / 单个标签页 / 单个分类页输出 `noindex, follow` 且不进 sitemap —— 它们的内容是文章清单，进索引只是重复 |
+| 中文排版 | `text-spacing-trim` 压行首标点、`text-autospace` 在中西文之间留气口、`orphans`/`widows` 防孤行。都是渐进增强，老浏览器无副作用 |
+| 页脚 | 两端渐隐的分割线；版权与站龄一行（天数按访问当天算），RSS / Atom / Sitemap 三个入口，ICP 备案默认关、开了才带链接 |
 | 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
-| 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta + JSON-LD（`WebSite` / `BlogPosting`），封面自动绝对化 |
-| 评论 | 可插拔：Waline（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
+| 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
+| 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
+| 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
 | 浏览量 | 「阅读 N 次」，走评论系统的独立计数插件（Waline 的不到 1KB），评论关掉也能统计 |
-| RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间） |
+| RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
+| Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
+| AI 爬虫策略 | `robots.txt` 里一行 `Content-Signal`（允许引用、不允许训练）+ 一段注释掉的分机器人模板，想单独拒绝某一家就取消注释 |
 | 配置 | 三层：类型 / 出厂默认值 / 你的值。`defineConfig` 保类型检查，构建期体检静默失效的配置，升级主题不覆盖你的配置 |
 | CI | push 与 PR 都跑 `astro check` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡 |
 
@@ -68,13 +79,14 @@ npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
 
 ## 示例文章
 
-`src/content/posts/` 自带 13 篇示例，其中「指南」分类的 7 篇就是这份主题的使用文档，同时也充当排版样例：
+`src/content/posts/` 自带 14 篇示例，其中「指南」分类的 8 篇就是这份主题的使用文档，同时也充当排版样例：
 
 | 文章 | 讲什么 |
 | --- | --- |
 | 快速开始 | 环境要求、三步启动、目录结构 |
 | 站点配置详解 | `src/config/` 的结构、每一项的取值与效果 |
 | 写一篇文章 | front matter、分类与标签、正文可用语法 |
+| 评论系统 | Waline / Giscus / Artalk 怎么搭起来、配置填哪几行、配完怎么验证 |
 | URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
 | 换成你自己的样子 | 配色、字体、版心与字号 |
 | 部署上线 | GitHub Pages / Vercel / nginx，以及常见坑 |
@@ -99,15 +111,17 @@ fork 之后整批删掉即可，不影响任何功能。
 顺带解决的另一件事：默认值不再依赖 `src/assets/` 里的示例图（改用 `public/` 路径），
 所以「按图优化」不再是主题的硬前提 —— 想要就自己 `import`，不想要也没有任何东西会断。
 
-`user/` 里五个文件，按「你要解决的问题」分，而不是按配置树的层级分：
+`user/` 里七个文件，按「你要解决的问题」分，而不是按配置树的层级分：
 
 | 文件 | 管什么 |
 | --- | --- |
-| `site.ts` | 站名、副标题、描述、作者、头像、分享封面、备案号、导航菜单 |
+| `site.ts` | 站名、副标题、描述、作者、头像、分享封面、X 账号、导航菜单 |
 | `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式 |
 | `content.ts` | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
-| `comment.ts` | 评论系统（Waline / Giscus） |
+| `comment.ts` | 评论系统（Waline / Giscus / Artalk） |
+| `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案（默认关） |
 | `links.ts` | 友链 |
+| `pages.ts` | 页面开关：关于 / 友链。关掉后导航、sitemap 与页面本身一起变 |
 
 写法就是普通 TS 对象，外面包一层 `defineConfig`：
 
@@ -149,28 +163,120 @@ banner: {
 `/` 开头的路径打错不会报错，只会静默少一块，所以构建时会体检一遍并直接指出哪个文件找不到。
 首页整块 banner 还能用 `banner.enable: false` 关掉，不用改页面代码。
 
+### 图片占位色（LQIP）
+
+卡片封面与 banner 都垫了一层「这张图的主色调」渐变：图片还没下载完时，那个位置显示的是
+它大致什么颜色，而不是一块白。
+
+生成一次即可，产物（`src/data/lqips.json`，一张图 18 个字符）会提交进仓库：
+
+```bash
+npm run lqips
+```
+
+**换图之后要重跑一次**，否则新图没有占位色（不会报错，只是那一条退回没有底色）。
+它不在构建流程里 —— 因为占位色缺席的代价是「少一点精致」，而让 CF Pages 的构建机
+去跑 sharp 遍历所有图片，代价是「整站可能构建失败」，不划算。
+
+查不到占位色就直接不输出 `style`，不猜、不留半成品；外链图不参与（它不在扫描目录里）。
+
+### 页面开关
+
+`src/config/user/pages.ts` 里两个布尔值：`about` / `links`。设成 `false` 之后：
+
+1. 顶栏与移动端菜单里那一条自动消失（按 href 匹配，不用动 `nav`）
+2. `sitemap` 里不再出现
+3. 页面本身不输出内容，返回 301 跳到首页
+
+归档、分类、标签没有开关 —— 它们是博客的骨架，关掉就不是同一个站了。
+`pages.ts` 是**唯一一个不用 `defineConfig` 的配置文件**：`astro.config.mjs` 要直接 import 它来
+过滤 sitemap，而配置文件由 esbuild 单独打包、不认识图片导入，所以它必须保持零依赖。
+类型仍是显式的（`SiteConfig['pages']`），写错类型 `npm run check` 照样报。
+
 上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS、sitemap、canonical 与 OG 里的绝对地址。本仓库里它填的是示例站的地址（`https://astro-theme-flux.pages.dev`），fork 之后第一件事就是换成你自己的域名 —— 忘了换，分享出去的链接会指向示例站。
 
 ### SEO 与分享
 
-每页都输出 canonical、`og:*`、`twitter:*` 与 JSON-LD；首页是 `WebSite`，文章页是 `BlogPosting`（含发布时间、更新、作者、分类、标签、字数）。这些值全部由页面数据现算，不用手填。
+每页都输出 canonical、`og:*`（含 `og:image:type`）、`twitter:*` 与 JSON-LD，值全部由页面数据现算，不用手填。
+
+**结构化数据按「实体」写，不是攒字段**：首页一个 `@graph` 里声明 `WebSite`、`Organization`（站点）、`Person`（作者）三个节点，各带稳定 `@id`；文章页的 `BlogPosting` 用 `@id` 指回同一个作者与发布方，`isPartOf` 指向 `WebSite`，另附一条 `BreadcrumbList`（首页 › 分类 › 标题）。这样「各页的 capzk 是同一个人」说得一致 —— E-E-A-T 判的就是这个。
+
+`SITE.twitter` 填了才会输出 `twitter:site` / `twitter:creator`，也会作为 `sameAs` 进 `Person` 节点；不填一行都不输出。头像只有本身是位图时才当 `Organization.logo` 用（Google 不收 SVG logo）。
+
+索引策略只写在 `src/layouts/BaseLayout.astro` 一处：
+
+| 页面 | `robots` 内容 | 为什么 |
+| --- | --- | --- |
+| 分页 / 单个标签页 / 单个分类页 | `noindex, follow` | 内容是一份文章清单，进索引只是重复；链接照跟，权重才能流向文章 |
+| 其余页面 | `max-image-preview:large` | 不写就只有默认的标准缩略图；它只是摘要指令，不带 index/noindex |
+| 404 | `noindex, follow` | 正常返回 404 码本来就进不去；万一被谁改成 200，也不至于变成软 404 |
+
+**刻意不写 `nosnippet` / `max-snippet:0`**：这两项会让页面失去被 AI 摘要引用的资格，而 AI Overviews 只引用「能出摘要」的页面。
 
 分享缩略图取 `SITE.ogImage`（默认 `public/img/og.png`，1200×630）。**社交媒体不渲染 SVG**，所以文章若配了位图封面（`bannerImg` / `indexImg`）就用那一张，配的是 SVG 就自动回落到站点图 —— 不会把空白卡片发给别人。换成自己的图时也请用 PNG / JPG。
 
-`/robots.txt` 是从 `site` 现算出来的（`src/pages/robots.txt.ts`），不需要另外维护；`public/_headers` 是 Cloudflare Pages 的缓存策略，用别的平台会忽略它。
+`og:image:width/height` **故意不写**：封面尺寸随文章而变，标错比不标更糟（平台会照着错的宽高裁）。`og:image:type` 从扩展名推，永远能推对。
 
-配色除了可以在 `src/config/user/appearance.ts` 里覆盖，也可以直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，改色不用碰任何组件。
+#### robots.txt 与 AI 爬虫
+
+`/robots.txt` 由 `src/pages/robots.txt.ts` 从 `site` 现算，除了 `Sitemap:` 还带一行 `Content-Signal`：
+
+```
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+```
+
+三类用途见 [contentsignals.org](https://contentsignals.org)：`search` 建索引、`ai-input` 把内容喂给模型当回答依据、`ai-train` 训练。现在的取值是「允许被引用、不允许拿去训练」—— `ai-input=yes` 是 AI 搜索能引用到你的前提，关掉等于自己选择隐身。
+
+文件里还留了一段**注释掉的分机器人模板**：想单独拒绝某一家就取消注释。注意给某个 UA 建了分组，它就不再读上面的 `*` 组，`Content-Signal` 要一起抄过去，否则那一家会「不受任何用途限制」。
+
+这些行目前只有 Cloudflare 真的读，别的爬虫直接忽略 —— 写了没有副作用，但别指望它立刻生效。
+
+> ⚠️ **部署在 Cloudflare Pages 的话**：一旦开了 Managed robots.txt，CF 会接管这个文件，并且**默认挡掉 GPTBot / ClaudeBot / CCBot / Bytespider / Google-Extended** —— 站点会在 AI 搜索里整个消失。上线后 `curl https://你的域名/robots.txt` 看一眼实际返回的内容，别只看仓库里这份。
+
+#### 订阅源
+
+`/rss.xml` 带 `atom:link rel="self"`（告诉聚合器这份 XML 的真身就是它）与 `lastBuildDate`（取全站最新一次改动的时间，**不是构建时刻** —— 否则每次构建都显示「刚更新」，同样的内容也会构建出不同字节，CDN 的 ETag 次次失效）。`/atom.xml` 是手写的 Atom 1.0，补 RSS 没有的 `<updated>` 与 `<id>`。
+
+`public/_headers` 是 Cloudflare Pages 的缓存策略，用别的平台会忽略它。
+
+### 配色
+
+两层，按「你想要的自由度」选：
+
+**一、四个字面颜色**（`src/config/user/appearance.ts` 的 `color`）—— 顶栏、页面底、卡片底、强调色。
+给什么用什么，观感完全可控，也是默认方式。
+
+**二、一个色相，整套派生**（`color.hue`，0~360）—— 写了它，顶栏与强调色就交给 oklch 现算：
+
+| | 亮色 | 暗色 |
+| --- | --- | --- |
+| 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)` |
+| 顶栏色 | `oklch(0.35 0.04 H)` | `oklch(0.29 0.035 H)` |
+
+明度和彩度是定值，变的只有色相 —— 所以整套配色永远保持同一种「深浅关系」，
+不会出现某个色相下白字糊在背景里。参考值：250 蓝（约等于默认）、165 青绿、35 橙、350 玫红、285 紫。
+
+色相在构建期就落定（`<html data-hue --hue>`），没有运行时切换，也没有额外脚本。
+浏览器不支持 oklch（2023 年以前的版本）时这组规则整体不生效，配色退回第一层的字面值。
+
+再往下还有一层：直接改 `src/styles/main.css` 顶部的 CSS 变量 —— 亮色一套、暗色一套，
+改色不用碰任何组件。
 
 ### 评论
 
-评论是**可插拔**的：主题内置两个实现，改 `type` 一行就换，页面模板、样式、加载逻辑都不用动。
+评论是**可插拔**的：主题内置三个实现，改 `type` 一行就换，页面模板、样式、加载逻辑都不用动。
 
-| `type` | 服务端 | 适合 | 评论数 | 浏览量 |
-| --- | --- | --- | --- | --- |
-| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ | ✓ |
-| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ | ✕ |
+| `type` | 服务端 | 适合 | 评论数 | 浏览量 | 最新评论 |
+| --- | --- | --- | --- | --- | --- |
+| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ | ✓ | ✓ |
+| `'artalk'` | 要自己部署（Go 单二进制，Docker / 二进制 / 包管理器） | 机器小、想少一个 Node 运行时 | ✕ | ✕ | ✕ |
+| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ | ✕ | ✕ |
 
-两段配置都在 `src/config/user/comment.ts` 里，用不到的留着不影响构建 —— 所以「两套都填好、随时切」是常态，切的时候只改 `type`。
+三段配置都在 `src/config/user/comment.ts` 里，用不到的留着不影响构建 —— 所以「三套都填好、随时切」是常态，切的时候只改 `type`。
+
+「最新评论」是文章页底部那一行：拉全站最近几条，让读者看到别处在聊什么。它需要评论系统有公开的「按时间倒序取评论」接口，目前只有 Waline 有 —— 换到别家这一块自动不出现，不会留一个转圈的空壳。
 
 #### Waline
 
@@ -303,6 +409,57 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 
 为什么做成配置而不是把文件塞进主题的 `public/`：塞进去等于让每个用主题的人都白背 300KB 第三方代码，升级 Waline 还得跟着发主题版本。模板法把「从哪取」留在使用者的配置里，主题只负责算地址。
 
+#### 最新评论
+
+文章页底部那一行，拉全站最近几条评论。默认关：
+
+```ts
+comment: {
+  enable: true,
+  recent: { enable: true, count: 5, length: 60 },  // length = 每条最多几个字
+},
+```
+
+它读的是 Waline 的公开接口 `GET <serverURL>/comment?type=recent`，不需要鉴权。几个取舍：
+
+- **滚到附近才发请求**（`rootMargin` 400px）。它是附加信息，不该和正文抢首屏的那一个往返；
+- **只用 `textContent` 渲染**。评论正文是访客写的 HTML，这里一律当纯文本 —— 一块「最近在聊什么」的预览不需要富文本，省掉的正是最容易出事的那部分；
+- **失败或零条就整块消失**。转圈和「暂无评论」比没有更冷清。
+
+换到 Giscus / Artalk 时这一块自动不出现：`CommentProvider` 的 `recent` 是可选方法，没实现就返回 `null`，组件直接不渲染。
+
+#### Artalk
+
+和 Waline 一样要自己部署，但后端是**单个 Go 二进制**，没有 Node 运行时 —— 一台 1 核 512MB 的小机器就能跑。代价是插件生态小一些（没有人机验证、没有独立的浏览量小插件），所以主题这边也不为它渲染「阅读 N 次」。
+
+1. 按[官方文档](https://artalk.js.org/guide/deploy.html)部署后端，拿到地址；
+2. 在 Artalk 后台「站点」里建一个站点，记住填的名字；
+3. 填 `src/config/user/comment.ts`：
+
+```ts
+comment: {
+  enable: true,
+  type: 'artalk',
+  artalk: {
+    server: 'https://comment.example.com',
+    site: '我的博客',          // 必须和后台建站时填的一致，否则评论落进「默认站点」
+  },
+},
+```
+
+`site` 这一项值得强调：Artalk 用它在同一个后端里隔离多个站点，名字对不上不会报错，评论会安静地进到另一个站点的列表里 —— 后台看不见，前端却能看到自己刚发的评论，最难查的那一类。
+
+客户端默认从 jsDelivr 取 `artalk@2` 的 **`.mjs`** 而不是 `Artalk.js`：后者是 UMD，动态 `import()` 拿不到导出，只会往 `window` 上挂全局。国内 jsDelivr 不稳时换镜像（或直接指向自己的服务端 —— Artalk 的镜像本身就带前端资源）：
+
+```ts
+artalk: {
+  js: 'https://registry.npmmirror.com/artalk/2.10.1/files/dist/Artalk.mjs',
+  css: 'https://registry.npmmirror.com/artalk/2.10.1/files/dist/Artalk.css',
+},
+```
+
+深色模式由主题的挂载器处理：构建期算不出「读者此刻是不是暗色」，所以挂载时读一次 `<html data-user-color-scheme>`，之后用 `MutationObserver` 盯住这个属性跟着切 —— 比在主题的切换按钮里埋一个「通知所有第三方」的钩子便宜，评论是唯一的外部依赖，不值得为它改全局逻辑。
+
 #### Giscus
 
 评论存在 GitHub Discussions 里，不需要服务端，但读者要有 GitHub 账号才能发言。三个 id 在 [giscus.app](https://giscus.app) 填完仓库信息后生成：
@@ -331,11 +488,11 @@ Giscus 没有浏览量和评论数接口，所以选它时那两处自动不渲�
 主题把评论拆成「构建期算配置」和「运行期挂载」两层，中间只过一份 JSON。加一个系统要动四处，其中三处是各写一个文件：
 
 1. `src/config/types.ts` —— 加一段 `XxxConfig`，在 `CommentConfig` 里加 `xxx?: XxxConfig`，`type` 联合里加 `'xxx'`，再到 `user/comment.ts` 填值；
-2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有浏览量就顺手实现 `pageview`；
+2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有浏览量就顺手实现 `pageview`，有「按时间倒序取评论」的公开接口就实现 `recent`；
 3. `src/comments/client/xxx.js` —— 导出 `mount({ el, section, attempt, loadModule })`，负责把脚本拉下来挂到 `el` 上；
 4. 两个注册表各加一行：`src/comments/index.ts` 的 `LIST`、`src/comments/client/index.js` 的 `MOUNTERS`。
 
-契约在 `src/comments/types.ts`，Waline（ES 模块 + 自定义样式 + 计数插件）和 Giscus（传统脚本 + iframe + postMessage 换肤）各是一个样板，照着抄就行。
+契约在 `src/comments/types.ts`。三个现成样板各代表一种形态：Waline（ES 模块 + 自定义样式 + 计数小插件 + 公开读接口）、Giscus（传统脚本 + iframe + postMessage 换肤）、Artalk（ES 模块 + 实例方法换肤 + 全局 `MutationObserver`），照着抄就行。
 
 想把评论放到关于页或留言板，在那一页里 `<Comments />` 即可（`path` 默认取当前页路径）。
 
@@ -371,10 +528,23 @@ comment: false                 # 单篇关掉评论；不写则跟随站点配�
 draft: false                   # true 则不进列表 / 搜索 / RSS
 banner: ../../assets/banner.webp  # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
 bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
+series: 从零建站              # 可选，系列名；同名的文章会连成一个系列
+seriesOrder: 3                 # 系列里的次序（从 1 开始）；不写就按发布时间排
 ---
 ```
 
 字段由 Zod 校验，写错会在构建期报错，并指出是哪一篇。`draft: true` 的文章不会进入列表、搜索索引与 RSS。
+
+### 系列
+
+写了 `series` 之后，那一篇的文章页会多两处东西：
+
+1. **正文之前一份清单**，列出整个系列并标出「第 3 / 5 篇」，当前这篇不可点；
+2. **底部的上下篇改成系列内的前后**，标签也变成「系列上一篇 / 系列下一篇」—— 读教程读到一半，读者想知道的是这个系列的下一步，而不是时间上更晚的那篇随笔。
+
+同名文章只有**一篇**时不算系列，两处都不出现。`seriesOrder` 可以不写：写了序号的按序号走，没写的按发布时间排在它们后面（所以「懒得编号、只关心顺序」也能用）。
+
+系列名直接给人看，不做 slug 化 —— 它不进 URL，改名字不会影响任何链接。
 
 ### URL 怎么生成
 
@@ -417,7 +587,7 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 
 | 原版功能 | Flux | 原因 |
 | --- | --- | --- |
-| 评论（13 种第三方服务） | 内置 2 种（Waline / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 两个样板，要第三种照着抄 |
+| 评论（13 种第三方服务） | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄 |
 | 浏览量统计（Waline / 不蒜子） | Waline 的计数插件 | 只认评论系统自带的，不为它再引一个第三方脚本 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
 | 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
@@ -438,32 +608,43 @@ src/
 │   ├── types.ts         #   字段类型与说明
 │   ├── defaults.ts      #   出厂默认值（升级时被替换）
 │   ├── merge.ts         #   深合并规则（30 行）
-│   └── user/            #   ★ 你的配置：site / appearance / content / comment / links
+│   └── user/            #   ★ 你的配置：site / appearance / content / comment / links / pages
 ├── i18n.ts              # 界面文案
 ├── content.config.ts    # 集合与 front matter 校验
 ├── content/posts/       # 文章
 ├── assets/              # 参与优化的图片源文件（封面、banner）
+├── data/lqips.json      # 每张图的主色调（`npm run lqips` 生成，入库）
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /
-│                        # Comments / PageView / Icon / Footer
-├── pages/               # 文件即路由
-├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链
-├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶
+│                        # Comments / RecentComments / PageView / Icon / Footer
+├── pages/               # 文件即路由（外加 llms.txt / llms-full.txt / atom.xml /
+│                        # rss.xml / searchindex.json / robots.txt 六个端点）
+├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链
+├── plugins/shiki.js     # 围栏 meta：行高亮 {1,3-5}、nolinenos
+├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶、邮箱还原
 ├── scripts/search.js    # 站内搜索
 ├── scripts/comments.js  # 评论区加载器（懒加载 / 失败重试，不认具体哪一家）
+├── scripts/recent.js    # 最新评论挂件（滚到附近才拉，只用 textContent）
 ├── scripts/pageview.js  # 浏览量：调评论系统的计数插件
 ├── comments/            # 评论系统抽象层
-│   ├── types.ts         #   契约：CommentProvider / CommentPayload / CommentStat
+│   ├── types.ts         #   契约：CommentProvider / CommentPayload / CommentStat / RecentCommentsSpec
 │   ├── index.ts         #   注册表 + resolveComments()
 │   ├── waline.ts        #   Waline 的构建期实现
 │   ├── giscus.ts        #   Giscus 的构建期实现
+│   ├── artalk.ts        #   Artalk 的构建期实现
 │   └── client/          #   浏览器里怎么挂（每家一个文件）
-├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计
+├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计（含构建期缓存）
 ├── utils/slug.ts        # URL 规范化（含中文转拼音）
 ├── utils/image.ts       # 图片两种写法的统一处理
+├── utils/lqip.ts        # 图片 → 占位色渐变（读 data/lqips.json）
+├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
+├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
 └── styles/main.css      # 全部样式（变量分亮暗两套）
+
+scripts/generate-lqips.mjs  # 手动跑的占位色生成器（不在构建流程里）
+
 ```
 
 ## 性能
@@ -493,7 +674,11 @@ src/
 - 封面与 banner 已走 `astro:assets`（见上方「配置」）。图片要放在 `src/assets/` 并用 `import` 或 `cover:` 引用才会被优化；`public/` 下的图永远原样输出 —— 这是 Astro 的规则，不是主题的限制。
 - 目录取 h2 / h3 / h4，h5 以下不收（缩到第五层已经读不清了）。单篇可用 `toc: false` 关掉。
 - 搜索是线性扫描 + 分档权重，没有分词。文章量上千后建议换 [Pagefind](https://pagefind.app/)。
-- 分享封面不会自动生成：每篇文章共用一张站点图，除非文章自己配了位图封面。想给每篇做单独的卡片图，得自己出图。
+- 分享封面不会「生成」：配了位图封面的文章会把封面裁成 1200×630 的 JPEG 给出去（社交平台
+  只认 1.91:1，原图会被居中裁掉一条），没有封面的文章共用站点图。**没有做「标题卡片」** ——
+  在图上画标题需要一个能把中文字形转成路径的渲染器，外加一份 5~10MB 的中文字体：
+  sharp 自己画 SVG 文本靠系统字体，在 CI 上会变成一排方框。这个功能值得做，但不该以
+  「主题多背一份字体」为代价，等它做成可选（自己提供字体 + 开关）再说。
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。

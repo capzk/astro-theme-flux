@@ -8,10 +8,12 @@ tags:
   - Node
 categories:
   - 指南
+series: 从零建站
+seriesOrder: 1
 cover: ../../assets/covers/cover-1.webp
 ---
 
-这篇是「指南」系列的第一篇。目标是：**从零到一个能在本地打开的站点，不超过十分钟。**
+这篇是「从零建站」系列的第一篇。目标是：**从零到一个能在本地打开的站点，不超过十分钟。**
 
 <div class="note note-info">这是示例站点自带的一篇文档。你 fork 之后可以直接删掉「指南」这个分类下的全部文章，不影响任何功能。</div>
 

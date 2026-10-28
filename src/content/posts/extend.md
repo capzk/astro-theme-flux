@@ -29,8 +29,9 @@ cover: ../../assets/covers/cover-2.webp
 | `Pagination.astro` | 上一页 / 下一页 | 首页、`/page/N/` |
 | `SearchModal.astro` | 搜索弹窗的 DOM | `BaseLayout` |
 | `Comments.astro` | 评论区外壳：标题、计数、骨架屏、失败重试；加载逻辑在 `scripts/comments.js` | 文章页（可复用到任何页面） |
+| `RecentComments.astro` | 「本站最新评论」挂件的外壳；取数与渲染在 `scripts/recent.js` | 文章页（只有 Waline 时出现） |
 | `Icon.astro` | 内联 SVG 图标表 | 到处 |
-| `Footer.astro` | 页脚、备案号 | `BaseLayout` |
+| `Footer.astro` | 页脚：版权与站龄、订阅入口、主题信息、备案号 | `BaseLayout` |
 
 数据层只有两个：`src/utils/posts.ts`（取文章、排序、统计、摘要）和 `src/config`（站点配置）。**页面不直接读 `getCollection`**，都过 `utils/posts.ts` —— 想换排序规则或加「相关文章」，改一个函数就够了。
 
@@ -114,7 +115,9 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 ## 换一个评论系统
 
-主题内置两套：[Waline](https://waline.js.org/)（要自建服务端）和 [Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。开关全在 `src/config/user/comment.ts`：
+主题内置三套：[Waline](https://waline.js.org/) 和 [Artalk](https://artalk.js.org/)（都要自建服务端，后者是 Go 单二进制）、[Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。
+
+只想把现成的一套装起来（部署服务端、填地址、开浏览量、验证通没通），看[评论系统：三选一](/posts/comments/)。这一节讲的是另一件事：**怎么再加第四家**。开关全在 `src/config/user/comment.ts`：
 
 ```ts
 comment: {
@@ -142,7 +145,7 @@ comment: {
         src/comments/client/waline.js / giscus.js  →  真正把东西挂到 DOM 上
 ```
 
-所以加第三个（Twikoo、Artikle、Valine……）是四步，其中三步是各写一个文件：`src/config/types.ts` 里加类型、`user/comment.ts` 里填值，`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，Waline 和 Giscus 就是两个方向的样板 —— 前者是 ES 模块 + 自定义 CSS + 独立计数插件，后者是传统 `<script>` + iframe + `postMessage` 换肤。
+所以加第四个（Twikoo、Valine……）是四步，其中三步是各写一个文件：`src/config/types.ts` 里加类型、`user/comment.ts` 里填值，`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，三个现成实现各代表一种形态：Waline 是 ES 模块 + 自定义 CSS + 独立计数插件 + 公开读接口，Giscus 是传统 `<script>` + iframe + `postMessage` 换肤，Artalk 是 ES 模块 + 实例方法换肤 + 全局 `MutationObserver`。
 
 几个实现上的坑，加新系统时会撞到：
 

@@ -8,6 +8,8 @@ tags:
   - TypeScript
 categories:
   - 指南
+series: 从零建站
+seriesOrder: 3
 cover: ../../assets/covers/cover-2.webp
 ---
 
@@ -22,6 +24,18 @@ cover: ../../assets/covers/cover-2.webp
 | `types.ts` | 字段类型与详细说明 | 查字段含义 |
 | `merge.ts` | 深合并规则，三十行 | 想知道合并细节时看 |
 | `index.ts` | 合并 + 体检 + 导出 `SITE` | 不用动 |
+
+`user/` 下面也不是一个文件，是按「你什么时候会想打开它」分的：
+
+| 文件 | 管什么 | 什么时候打开 |
+| --- | --- | --- |
+| `site.ts` | 站名、描述、作者、语言、头像、分享封面、X 账号、导航菜单 | 建站第一步 |
+| `appearance.ts` | 首页 banner、文章页 banner、深色模式、配色 | 想换样子时 |
+| `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
+| `comment.ts` | 评论三选一、懒加载、浏览量、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
+| `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案 | 上线前后 |
+| `links.ts` | 友链数组 | 加友链时 |
+| `pages.ts` | 关于页 / 友链页的开关 | 不要这两个页面时 |
 
 这么分是为了**升级主题时不动你的配置**：`user/` 是独立目录，升级只替换其余几个文件，你的站名、导航、配色原样留着。
 
@@ -42,24 +56,34 @@ cover: ../../assets/covers/cover-2.webp
 // src/config/index.ts 合并出来的最终形状（每一段都标了它该写在哪）
 export const SITE = {
   // user/site.ts
-  title, subtitle, description, author, lang, avatar, ogImage, since, beian,
+  title, subtitle, description, author, lang, avatar, twitter, ogImage, since,
   nav: [...],
 
   // user/appearance.ts
   banner:     { enable, title, img, height, pageHeight, maskAlpha, slogan, typing, parallax, minRatio, scrollDown },
   postBanner: { img, height, maskAlpha },
   darkMode:   { enable, default },
-  color:      { navbar, bodyBg, board, accent, navbarScrim },
+  color:      { navbar, bodyBg, board, accent, navbarScrim, hue },
 
   // user/content.ts
   index:  { defaultImg, excerptLength, showDate, showCategory, showTags },
   post:   { meta: {...}, toc, copyright, prevNext, related, wpm },
   pageSize, archive: { pageSize }, search,
   rss:    { excerptLength },
+
+  // user/footer.ts
+  footer: {
+    runtime: { enable, since },
+    links: boolean,
+    beian:   { enable, text, link },
+  },
+
+  // user/comment.ts —— 单独一篇，见「评论系统」
+  comment: { enable, type, lazy, recent, waline?, giscus?, artalk? },
 };
 ```
 
-下面按段拆。
+下面按段拆。每节标题后面标了它写在哪。
 
 ## 站点信息
 
@@ -70,8 +94,9 @@ description: '丝滑的阅读体验：卡片式首页、全屏 banner、暗色�
 author: 'capzk',
 lang: 'zh-CN',
 avatar: '/img/avatar.svg',
+twitter: '',
+ogImage: '/img/og.png',
 since: 2026,
-beian: '',
 ```
 
 | 字段 | 落在哪 | 备注 |
@@ -79,11 +104,25 @@ beian: '',
 | `title` | `<title>`、顶栏、页脚 | 也是文章页标题的后缀：`文章名 - 站名` |
 | `subtitle` | 首页 `<title>` 的后半段 | 首页标题是 `站名 - 副标题` |
 | `description` | `<meta name="description">`、OG、RSS | 单篇有 `description` 时以单篇为准 |
-| `author` | 文章 banner 元信息、版权声明、关于页 | |
+| `author` | 文章 banner 元信息、版权声明、关于页 | 也是结构化数据里 `Person` 的名字 |
 | `lang` | `<html lang>`、RSS 的 `<language>` | BCP 47，如 `zh-CN` / `en` |
 | `avatar` | 关于页头像 | 放 `public/` 下用根路径，也可写完整 URL |
-| `since` | 页脚版权年份起点 | 不写则只显示当前年 |
-| `beian` | 页脚最下面一行 | 空字符串则不渲染，备案号放这里 |
+| `twitter` | `twitter:site` / `twitter:creator`、结构化数据的 `sameAs` | **不带 `@`**。留空则一行都不输出 |
+| `ogImage` | 分享卡片的兜底封面 | 见下 |
+| `since` | 页脚版权区间、站龄的兜底起点 | 不写则只显示当前年 |
+
+### 分享封面 `ogImage`
+
+文章被转到微信、Telegram、Slack 或者发到 Twitter 时，那张缩略图选的就是它 —— 但只在**文章自己没有位图封面**时才轮到它。
+
+两个要求，都是踩过坑才有的：
+
+- **必须是 PNG / JPG 这类位图，不能是 SVG。** 上面这些平台不渲染 SVG，给了就是一张空白卡片，而且不会报错。构建期会拦这一条。
+- **建议 1200×630。** 这是 Open Graph 的标准比例，比例差太多会被平台居中裁掉一条边。
+
+文章如果配了 `cover`（相对路径的 webp / png），构建时会被裁成 1200×630 的 JPEG 另出一张给社交平台 —— 因为 webp 至今仍有平台抓不动。配的是 `indexImg` 这类字符串路径就没法转换，原样用；如果是 SVG，自动回落到 `ogImage`。
+
+`og:image:width/height` 主题**故意不写**：封面尺寸随文章而变，标错比不标更糟（平台会照着错的宽高排版）。`og:image:type` 则从扩展名推，永远推得对。
 
 ## 导航菜单
 
@@ -209,6 +248,8 @@ index: {
 
 <div class="note note-warning">摘要长度只影响列表，不影响 SEO —— <code>&lt;meta name="description"&gt;</code> 始终用完整的 <code>description</code>。</div>
 
+<div class="note note-info">封面与 banner 下面都垫着一层「主色调渐变」：图还没下载完时，那个位置显示的是它大致什么颜色，而不是一块白。数据是构建期生成好的（<code>src/data/lqips.json</code>，一张图 18 个字符），<strong>换了图要跑一次 <code>npm run lqips</code></strong> —— 不跑不会报错，只是新图没有那层底色。</div>
+
 ## 文章页组件
 
 ```ts
@@ -268,6 +309,27 @@ color: {
 
 <div class="note note-warning">前四项<strong>只作用于亮色模式</strong>。暗色那套变量写在 <code>main.css</code> 的 <code>[data-user-color-scheme="dark"]</code> 里，如果这里无条件覆盖会连暗色一起盖掉。想连暗色一起定制，直接改 CSS 变量，见《换成你自己的样子》。<code>navbarScrim</code> 是例外 —— 它压的是照片，不分亮暗。</div>
 
+### 换一整套色相
+
+上面那四项是「一个个调」。还有个更省事的开关：只给一个色相，顶栏和强调色由 oklch 现算。
+
+```ts
+color: {
+  hue: 165,   // 0~360。不写 = 用上面那四个字面颜色
+},
+```
+
+| | 亮色 | 暗色 |
+| --- | --- | --- |
+| 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)` |
+| 顶栏色 | `oklch(0.35 0.04 H)` | `oklch(0.29 0.035 H)` |
+
+明度和彩度是定值，变的只有色相 —— 所以换到哪个色相，深浅关系都一样，不会出现「某个色相下白字糊在背景里」。这也正是它比 HSL 靠谱的地方：HSL 的「亮」和眼睛感受到的亮不是一回事，同样 L 值下黄的荧光、蓝的发黑。
+
+常用值：**250** 蓝（约等于默认）、**165** 青绿、**35** 橙、**350** 玫红、**285** 紫。
+
+色相在**构建期**就写进 `<html>` 的 `data-hue` 与 `--hue`，页面里没有切换配色的按钮，也没有额外脚本 —— 改一次色相就重新构建一次。这符合主题「零运行时依赖」的前提：配色是站主的决定，不该在读者浏览器里算。
+
 ### 顶栏压在图上时怎么保证看得清
 
 首页刚打开、还没滚动时，顶栏是透明的，导航文字直接躺在 banner 图上。**这件事不能指望「白色字恰好压得住」**，因为图可以换成任何一张：浅色天空上白字发虚，深色夜景里深色图又吃掉一半对比度。
@@ -288,32 +350,201 @@ color: {
 
 它只影响**顶栏那一条**的顶部，和 banner 自己的 `maskAlpha` 是两回事 —— 后者压的是整张图。
 
-## 分页与搜索
+## 分页、搜索与 RSS
 
 ```ts
-pageSize: 6,                  // 首页 / 分类 / 标签，每页文章数
-archive: { pageSize: 10 },    // 归档页每页条数（时间线一行一篇，比卡片密，所以单独取值）
-search: true,                 // 关掉则不渲染搜索弹窗，也不生成 /searchindex.json
+pageSize: 6,                     // 首页 / 分类 / 标签，每页文章数
+archive: { pageSize: 10 },       // 归档页每页条数（时间线一行一篇，比卡片密，所以单独取值）
+search: true,                    // 关掉则不渲染搜索弹窗，也不生成 /searchindex.json
+rss: { excerptLength: 300 },     // RSS / Atom 摘要截断字数
 ```
 
 分页的 URL 形态统一：第 1 页是列表首页，第 N 页是 `<base>/page/N/`。所以归档是 `/archives/` → `/archives/page/2/`，分类是 `/categories/指南/` → `/categories/指南/page/2/`。`archive.pageSize` 写 0 或负数表示归档不分页。
 
 `search: false` 之后，按 `/` 和 `Ctrl/⌘ + K` 不会有任何反应 —— 快捷键监听在搜索脚本里，整段都不会被打包。
 
-## 一个完整的改法示例
+`rss.excerptLength` 只管订阅源里的摘要长度，**和首页卡片的 `index.excerptLength` 无关**，两者各调各的。RSS 只输出纯文本摘要、没有全文：全文要渲染 Markdown，得用 Astro 的实验性 Container API，主题不想为这个把实验接口写进依赖面。
 
-把站点改成自己的，通常是这样一套改动：
+## 评论
 
 ```ts
-export const SITE: SiteConfig = {
+comment: {
+  enable: false,
+  type: 'waline',   // 'waline' | 'giscus' | 'artalk'
+  lazy: 600,
+},
+```
+
+配置在 `user/comment.ts`。字段看着多，真正必填的只有两样：`type` 选哪一套，以及那一套的服务端地址（Giscus 是仓库 id）。三套各自怎么搭起来、浏览量怎么单独开、配完怎么验证，单独写在[评论系统：三选一](/posts/comments/)里。
+
+这里只提最容易踩的一条：`enable: true` 但服务端地址空着，文章页里连评论区的骨架都不出现 —— 看着像「还没人评论」，其实是没配好。
+
+## 友链
+
+`user/links.ts` 就是个数组，不是配置文件：
+
+```ts
+export const LINKS: LinkItem[] = [
+  {
+    name: 'Astro',
+    url: 'https://astro.build/',
+    desc: '内容优先的静态站点框架',
+    avatar: '/img/links/astro.svg',
+  },
+];
+```
+
+| 字段 | 说明 |
+| --- | --- |
+| `name` | 必填，显示的名字 |
+| `url` | 必填，带协议头（`https://`），别只写域名 |
+| `desc` | 一句话介绍，可以不写 |
+| `avatar` | 头像地址。**留空也行** —— 会用名字首字母生成一个圆形色块 |
+
+写几项就显示几项，删空就是空页面。这个文件导出了 `LinkItem` 类型，字段名写错 `npm run check` 会报 —— 它不走 `defineConfig`（`astro.config.mjs` 要直接读它来过滤 sitemap），代价是没有字段名提示，但类型还在。
+
+不想要友链这个页面，把 `pages.links` 设成 `false`，见下一节。
+
+## 页面开关
+
+关于页和友链页不是每个站都要的。与其删文件（升级主题时又会被加回来），不如关开关 ——
+开关写在 `src/config/user/pages.ts`：
+
+```ts
+const PAGES = {
+  about: true,
+  links: false,   // 关掉友链
+};
+```
+
+关掉之后三处一起变，不用手工同步：
+
+| 位置 | 变化 |
+| --- | --- |
+| 顶栏 / 移动端菜单 | 那一项消失（按 href 匹配，不用动 `nav`） |
+| `sitemap` | 不再列出 |
+| 页面本身 | 返回 301 跳首页，带 `noindex`，不让读者撞上空白页 |
+
+静态站没有「拒绝访问」这个动作：文件要么生成、要么不生成，而文件路由总是会生成。
+所以这里用「跳首页 + noindex」表达「这个页面下线了」，而不是假装 404 —— 一个 200 状态的
+404 页面，在搜索引擎眼里是软 404，比明确的跳转更糟。
+
+归档、分类、标签没有开关，它们是博客的骨架。
+
+<div class="note note-info">这个文件是<strong>唯一不用 <code>defineConfig</code> 的配置</strong>。<code>astro.config.mjs</code> 要直接读它来过滤 sitemap，而配置文件由 esbuild 单独打包、不认识 <code>.webp</code> 这类资源导入 —— 它必须保持零依赖（连 <code>import</code> 都只能写 <code>import type</code>），否则构建会在「加载配置」那一步就失败。代价是这里没有字段名检查，但类型仍是显式的，写错类型 <code>npm run check</code> 照样报。</div>
+
+## 页脚
+
+```ts
+footer: {
+  runtime: {
+    enable: true,
+    since: '2024-03-15',
+  },
+  links: true,
+  beian: {
+    enable: false,
+    text: '',
+    link: 'https://beian.miit.gov.cn/',
+  },
+},
+```
+
+页脚从上到下四行：版权 + 站龄、订阅入口、主题信息、备案。上面那条线是 CSS 画的（两端渐隐，不是 `border-top`），宽度跟着版心走，没有可配的东西。
+
+### 站龄
+
+`since` 是建站日期，写 `'2024-03-15'`。
+
+**不写就退到 `site.since` 那一年的 1 月 1 日。** 大多数人记不清具体哪一天开始写，只记得哪一年 —— 那就别逼着填一个精确日期。
+
+天数在浏览器里算，不是构建期定死的：静态站可能几个月不重新构建，定死的话页脚会一直挂着构建那天的数字。一个写着「已运行 3 天」却天天在更新的博客，比不显示更糟。构建期还是会算一份写进 HTML，那是给禁用 JS 的读者的兜底。
+
+粒度到天，没有秒级跳动。秒级更新会让页脚文字宽度一直变、读起来在抖，而「运行了多少天」本来也没有秒级的信息量。
+
+`enable: false` 整块不出现。日期写坏了（比如写成 `'2024年3月'`）就是这一项不显示，同时构建期会点名。
+
+### 订阅入口
+
+RSS / Atom / Sitemap 三个链接，默认开。它们是对外接口，藏着没好处；想做成极简页脚就设 `links: false`。
+
+### 备案
+
+**默认关。** 境内托管才需要，海外托管和写给自己看的站都没有 —— 默认摆一行空的「京ICP备」是脏数据。
+
+要开就三件事一起做：
+
+```ts
+beian: {
+  enable: true,
+  text: '京ICP备12345678号-1',   // 带 -1 的要把后缀写全
+  link: 'https://beian.miit.gov.cn/',
+},
+```
+
+网页上的备案号必须**可点击跳到工信部**，纯文本挂着不算。所以这一项从结构上就是个链接，`link` 一般不用改。`enable` 开了却忘了填 `text`，页脚不会出现那一行 —— 构建期会提醒。
+
+## 界面文案
+
+界面上那些看得见的字（「回到顶部」「本文最后更新于」「第 2 / 5 篇」）全在 `src/i18n.ts` 的一个对象里。改文案不用翻组件，也不用碰配置。
+
+```ts
+export const T = {
+  home: '首页',
+  backTop: '回到顶部',
+  updatedPrefix: '本文最后更新于',
+  seriesPart: (i: number, n: number) => `第 ${i} / ${n} 篇`,
+};
+```
+
+三条约定：
+
+- 导航项用的是 `labelKey`，值就是这里的键名。想给某一项单独起名，在**那个 nav 项**上写 `label` 覆盖，别去改字典 —— 一改，全站那个词都跟着变了。
+- 带参数的词（上面的 `seriesPart`）是函数，直接改里面的模板字符串。
+- 这里的字不进 `<head>`。`<title>`、description、OG 走的是配置里的 `title` / `description` / `subtitle`。
+
+想加一整种语言（英文站、多语言切换）不是改这个文件能解决的，见[改造与扩展](/posts/extend/)里那节。
+
+## 改完怎么检查
+
+三步，顺序别换：
+
+```bash
+npm run check     # 类型：字段名拼错、类型不对
+npm run build     # 真构建：内容、路由、图片
+npm run preview   # 本地起 dist，比 dev 更接近线上
+```
+
+`npm run check` 是**必须跑的一步**，因为 `astro build` 不检查配置类型 —— 顶层写成 `titl:` 会静默用默认值，构建照样成功，站点看着也正常，只是站名不是你写的那一个。这类错只有类型检查能拦。
+
+构建完还会打印一段体检结果，专挑「能跑，但有东西静默失效」的情况：
+
+```
+[Flux] 配置检查发现 2 处需要注意的地方：
+  1. banner.img 写的是 "/img/banner-9.webp"，但 public/ 下找不到这个文件 —— 那一块会是空白或纯色。
+  2. site 还是示例地址（https://astro-theme-flux.pages.dev）—— RSS、canonical、og:url 里的绝对链接都会指向它。
+  改完重新构建即可，这些提示不影响当前构建。
+```
+
+它们不拦构建是有意的：文件名大小写错、域名还是示例值，都不影响页面生成。但也正因为不拦，不跑一次就永远不会发现。**把这段警告清零再部署。**
+
+## 一个完整的改法示例
+
+把示例站改成自己的，实际动的是四个文件。下面是「改完之后」的样子：
+
+```ts
+// src/config/user/site.ts
+import { defineConfig } from '../merge';
+
+export default defineConfig({
   title: '半山吧',
   subtitle: '写代码，也写别的',
   description: '一个关于工程、阅读和长期主义的地方。',
   author: 'capzk',
   lang: 'zh-CN',
   avatar: '/img/me.jpg',
+  twitter: 'capzk',
   since: 2024,
-  beian: '京ICP备00000000号',
 
   nav: [
     { label: '首页', href: '/', icon: 'home' },
@@ -322,19 +553,55 @@ export const SITE: SiteConfig = {
     { label: '标签', href: '/tags/', icon: 'tag' },
     { label: '关于', href: '/about/', icon: 'user' },
   ],
-
-  banner: { enable: true, title: '半山腰上', img: '/img/banner.jpg', height: '80vh', pageHeight: '40vh', maskAlpha: 0.4, slogan: '写点别的', scrollDown: true },
-  postBanner: { img: '/img/banner.jpg', height: '50vh', maskAlpha: 0.45 },
-
-  index: { defaultImg: '/img/cover-default.svg', excerptLength: 160, showDate: true, showCategory: true, showTags: false },
-  post: { meta: { author: false, date: true, wordcount: true, min2read: true }, toc: true, copyright: false, prevNext: true, wpm: 300 },
-
-  darkMode: { enable: true, default: 'auto' },
-  color: { navbar: '#2f4154', bodyBg: '#f2f2f2', board: '#ffffff', accent: '#c0392b', navbarScrim: 0.35 },
-
-  pageSize: 8,
-  search: true,
-};
+});
 ```
 
-改完 `npm run dev` 会自动重载。上线前记得另外把 `astro.config.mjs` 里的 `site` 换成真实域名。
+```ts
+// src/config/user/appearance.ts
+import { defineConfig } from '../merge';
+
+export default defineConfig({
+  banner: {
+    title: '半山腰上',
+    img: '/img/banner.jpg',
+    height: '80vh',
+    pageHeight: '40vh',
+    maskAlpha: 0.4,
+    slogan: '写点别的',
+  },
+  postBanner: { img: '/img/banner.jpg', height: '50vh', maskAlpha: 0.45 },
+  color: { accent: '#c0392b', hue: 350 },
+});
+```
+
+```ts
+// src/config/user/content.ts
+import { defineConfig } from '../merge';
+
+export default defineConfig({
+  index: { excerptLength: 160, showTags: false },
+  post: { copyright: false },
+  pageSize: 8,
+});
+```
+
+```ts
+// src/config/user/footer.ts
+import { defineConfig } from '../merge';
+
+export default defineConfig({
+  footer: {
+    runtime: { since: '2024-03-15' },
+    beian: { enable: true, text: '京ICP备12345678号-1' },
+  },
+});
+```
+
+注意这四份都只写了**要改的那几项**：`banner` 里没写的 `typing`、`color` 里没写的 `navbar`、`footer` 里没写的 `links`，都还是默认值。这就是「对象逐层合并」的实际用法 —— 同一块配置可以分在两个地方写，不写的自动继承。反过来说，**想恢复某一项就把那行删掉**，不是改成默认值再写一遍。
+
+最后还有两件不在这四个文件里的事：
+
+1. 把 `astro.config.mjs` 的 `site` 换成你的域名 —— RSS、sitemap、canonical、`og:url` 全靠它拼。
+2. `npm run check && npm run build`，把体检警告清零。
+
+改 `user/` 下的文件时 `npm run dev` 会自动重载，不用重启。

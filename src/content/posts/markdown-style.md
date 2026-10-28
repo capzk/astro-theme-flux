@@ -64,6 +64,39 @@ npm run build
 # 34 pages built in 4.29s
 ```
 
+围栏后面还能跟一串 **meta**，管两件事：
+
+````markdown
+```js {2,4-5}
+const a = 1;
+const b = 2;      ← 高亮
+const c = 3;
+const d = 4;      ← 高亮
+const e = 5;      ← 高亮
+```
+````
+
+效果是这样：
+
+```js {2,4-5}
+const a = 1;
+const b = 2;
+const c = 3;
+const d = 4;
+const e = 5;
+```
+
+行号默认就有。有些块加上行号纯属碍眼 —— 终端输出、目录树、配置片段 —— 写 `nolinenos` 关掉：
+
+```text nolinenos
+src/
+├── config/          # 配置
+├── components/      # 组件
+└── styles/main.css  # 全部样式
+```
+
+两个可以一起写：<code>```js {1} nolinenos</code>。
+
 ## 提示块
 
 正文里可以插语义化的提示块，写 `<div class="note note-xxx">` 即可，颜色和左边框都由 CSS 给出：

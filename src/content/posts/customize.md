@@ -8,6 +8,8 @@ tags:
   - 定制
 categories:
   - 指南
+series: 从零建站
+seriesOrder: 5
 cover: ../../assets/covers/cover-4.webp
 ---
 
