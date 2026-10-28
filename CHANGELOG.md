@@ -7,6 +7,279 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-28
+
+这一版没有改版式，全部是「补齐底层」：构建期少算几次、图片没到时不白一块、
+配色从「四个字面颜色」变成「一个色相派生整套」、文章能凑成系列、评论系统可插拔，
+以及一轮 SEO 与索引层的补齐（结构化数据串成实体、robots 与 AI 爬虫策略、订阅源细节）。
+
+### Added
+
+- **图片占位色（LQIP）**。卡片封面与 banner 现在垫了一层「这张图的主色调」渐变：
+  图片没下载完时，那个位置显示的是它大致什么颜色，而不是一块白。
+
+  做法和常见方案不同 —— 不生成模糊小图（那要多一次请求、多一次解码，还常常和真图
+  对不上色），而是构建期把图缩到 **2×2**，取「左上 / 右上 / 右下」三个角拼成
+  **18 个字符**的 hex（`6e3b38ae7472af7574`），运行时解成一条 135° 斜向渐变。
+  一张图 18 字节，全站 8 张图合计 412 字节。
+
+  生成器是 `scripts/generate-lqips.mjs`，**手动跑**（`npm run lqips`），产物
+  `src/data/lqips.json` 入库：
+
+  - 不挂进 `npm run build`，是因为它要拿 sharp 遍历所有图片 —— 占位色缺席只是
+    「少一点精致」，而 CF Pages 的构建机上 sharp 偶发拉不到二进制就是「整站构建失败」。
+  - 查不到就完全不输出 `style`，不猜；外链图不参与（不在扫描目录里）。
+
+- **配色：一个色相派生整套**（`color.hue`）。
+
+  以前换配色只能逐个调 `navbar` / `accent` 两个 hex，而且亮暗两套还得各调一遍。
+  现在写一个 0~360 的色相，顶栏与强调色由 oklch 现算，亮暗各一套明度：
+
+  | | 亮色 | 暗色 |
+  | --- | --- | --- |
+  | 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)` |
+  | 顶栏色 | `oklch(0.35 0.04 H)` | `oklch(0.29 0.035 H)` |
+
+  明度与彩度定死、只换色相，所以不会出现「某个色相下白字糊在背景里」。
+  **不写 `hue` 就完全走原来的字面颜色**，默认观感逐像素不变。
+
+  色相在构建期就写进 `<html data-hue --hue>`，没有运行时切换脚本。
+  派生规则整体包在 `@supports (color: oklch(0 0 0))` 里 —— 不包的话，不支持 oklch
+  的浏览器会在「用到变量」那一刻才判非法，拿到继承色，可能白底白字。
+
+- **页面开关**（`src/config/user/pages.ts`）。`about` / `links` 设成 `false` 后三处联动：
+  导航里那一项消失、sitemap 剔除、页面返回 **301** 跳首页。
+
+  `pages.ts` 是唯一一个不用 `defineConfig` 的配置文件：`astro.config.mjs` 要直接 import 它
+  过滤 sitemap，而配置文件由 esbuild 单独打包、不认识 `.webp` 这类资源导入 —— 只要它保持
+  零依赖（连 `import` 都只有 `import type`），配置文件才敢碰它。
+
+- **`/atom.xml`**。RSS 2.0 只有 `pubDate`，没有「更新」；Atom 每篇必须有 `<updated>`，
+  聚合器才能分辨「真更新」和「重新发了一遍」。`<id>` 用文章地址而不是时间戳，
+  改标题也不会让阅读器重推。head 里补了对应的 `alternate` 链接。
+
+- **`/llms.txt`**（[llmstxt.org](https://llmstxt.org)）。给 AI 爬虫的一份带摘要的站点索引：
+  说是哪个站、最近 50 篇讲了什么、还有哪些页面。sitemap 里一篇好文章和
+  `/tags/前端/page/3/` 是同一种东西，这里不是。关掉的页面不会出现在里面。
+
+- **两个 Markdown 插件**（`src/plugins/markdown.js`）：
+
+  - **邮箱不可抓取**：`[写信](mailto:me@example.com)` 在构建期降级成
+    `<span class="email-link" data-mail="…">me [at] example.com</span>` —— 抓邮箱的正则
+    盯的是 `@` 和 `mailto:`，两样都没了。脚本加载后再还原成真正的 `mailto` 链接，
+    所以不开 JS 时读者看到的仍是一段能读懂的文字，而不是空白。
+  - **防盗链图床**：正文里指向知乎 / 微博 / B 站 / 豆瓣等图床的图片自动补
+    `referrerpolicy="no-referrer"`。这类站看到 `Referer` 是别人的域名就返回 403，
+    于是图在别人博客上永远是裂的。域名表写在插件里而不是做成配置项 —— 这是「对方的规定」，
+    不是「站主的偏好」，漏配一次的后果是图片静默裂掉。
+
+- **文章系列**（front matter 的 `series` + `seriesOrder`）。同一个系列的文章会在
+  正文之前列成一份清单（标出「第 3 / 5 篇」，当前这篇不可点），底部的上下篇也换成
+  系列内的前后 —— 读教程读到一半，读者关心的是这个系列的下一步，不是时间上更晚的
+  那篇随笔。同名文章只有一篇时两处都不出现。
+
+  示例站的「指南」五篇已经串成一个「从零建站」系列，可以直接看效果。
+
+- **代码块：行高亮与行号开关**。围栏 meta 支持 Shiki 生态的写法：
+
+  ````md
+  ```js {1,3-5}      → 这几行加底色 + 左侧竖线
+  ```text nolinenos  → 这一段不显示行号
+  ````
+
+  行号本来就有（CSS 计数器画的，`::before` 不进 `innerText`，复制代码带不上）；
+  新增的是「终端输出、目录树这类块可以关掉」。
+
+  实现上有个坑值得记：**Sätteri 把 `pre` 交给 hastPlugins 时 meta 已经丢了**
+  （只剩 `data-language`），所以这件事只能在 Shiki 阶段做，走
+  `shikiConfig.transformers`。转换器写在 `src/plugins/shiki.js`，四十行。
+
+  另一个坑：`.line` 是行内元素，换行靠行与行之间那个 `\n` 文本节点撑着 ——
+  改成 block / inline-block 会让每行多出一个空行。代价是行高亮的底色只覆盖
+  文字宽度、不是整行通栏，配一条左侧内阴影读起来仍然是一整行的标记。
+
+- **`/llms-full.txt`**。`llms.txt` 的官方扩展：目录 + 摘要那份适合「挑着看」，
+  这份是全部文章正文（Markdown 原文，不是 HTML）。想一次喂给模型的客户端只抓
+  一个文件就够。示例站 14 篇约 100 KB。
+
+- **最新评论挂件**（`comment.recent`）。文章页底部一行「本站最新评论」，拉全站最近
+  几条，让读者看到别处在聊什么 —— 一个只有零星评论的站，读者滚到底看到的往往是
+  「还没有评论」，那这里到底是活的还是死的说不清。默认关。
+
+  只用 `textContent` 渲染：评论正文是访客写的 HTML，这块预览不需要富文本，
+  省掉的正是最容易出事的那部分。滚到附近才发请求，失败或零条就整块消失。
+
+  依赖评论系统提供公开的「按时间倒序取评论」接口 —— 目前只有 Waline 有
+  （`GET /comment?type=recent`）。换到别家挂件自动不出现，不留转圈的空壳。
+
+- **第三个评论系统：Artalk**。和 Waline 一样自建服务端，但后端是单个 Go 二进制，
+  没有 Node 运行时，小机器跑得动。改 `type: 'artalk'` 一行即可切换。
+
+  两处结构差异正好说明「provider 只负责翻译配置」这个分工是够用的：Artalk 的
+  `el` 是元素、`pageTitle` 取 `document.title`、`darkMode` 要看 `<html>` 上的
+  属性 —— 这三件都只有浏览器知道，所以在挂载器里补；而它没有浏览量插件、也不回填
+  评论数，于是 provider 里不实现 `pageview`、不设 `countClass`，主题自然不渲染
+  那两处，一处 if 都不用写。
+
+  客户端地址默认取 jsDelivr 上 `artalk@2` 的 **`.mjs`**：`Artalk.js` 是 UMD，
+  动态 `import()` 拿到的是空命名空间（它只往 `window` 上挂全局）。深色跟随用
+  `MutationObserver` 盯 `data-user-color-scheme` —— 主题的切换按钮只改这个属性，
+  不发事件，为一个外部依赖去改全局切换逻辑不划算。
+
+- **示例文档补了一篇《评论系统》，并把《站点配置详解》补全**。原来讲配置的那篇，
+  只讲到 `user/` 里前三个文件就收了：`ogImage` 没进表、友链整块没提、
+  界面上那些字的来源没交代、`rss.excerptLength` 只出现在全景图里没有正文。
+  现在补了这几节，外加一节「改完怎么检查」——`astro build` 不检查配置类型这件事
+  写在别处太容易被略过。
+
+  评论是按「配错了也能跑」的重灾区单独成篇的：三套怎么选、Waline / Artalk 的服务端
+  要自己搭到哪一步、Giscus 那三个 id 从哪抄、Turnstile 的三处配对、浏览量为什么能
+  脱离评论区单独开，以及六种「看着配好了但发不出去」的实际形态。
+  系列顺序随之调整为：快速开始 → 写文章 → 站点配置 → 评论 → 改样式 → 部署。
+
+  顺带给 `deploy.md` 修了个错：它教人「给 `public/robots.txt` 加一行 Sitemap」，
+  但那个文件不存在（由 `src/pages/robots.txt.ts` 现算）。
+
+- **页脚重做**（`src/components/Footer.astro` + `src/config/user/footer.ts`）。
+  原来四行里第一行是「N 篇文章 · N 个标签」—— 读者不关心，站主也不需要靠页脚
+  判断站点规模（归档页就是干这个的），而且每加一篇那个数字就要变一次。删掉之后
+  腾出的位置给了三样真正有用的东西：
+
+  - **站龄**「已运行 300 天」。天数在浏览器里算：静态站可能几个月不重新构建，
+    构建期定死的话会一直挂着旧数字。构建期仍然算一份写进 HTML，那是无脚本时的兜底。
+    粒度到天，不做秒级跳动 —— 它会让页脚文字宽度一直变、读起来在抖，
+    而「运行了多少天」没有秒级的信息量。
+  - **RSS / Atom / Sitemap 三个入口**。它们是对外接口，原来只在 `<head>` 的
+    `alternate` 里，人眼看不到。
+  - **ICP 备案**从 `site.beian`（一个字符串）搬到 `footer.beian`，变成
+    `{ enable, text, link }`。**默认关**：境内托管才需要它，默认摆一行空的
+    「京ICP备」是脏数据。开了之后整行是个指向工信部的链接 —— 备案号纯文本挂着
+    不算合规，所以这不是「顺手加个链接」。
+
+- **页脚与上方内容之间加了一条分割线**。用两端渐隐的 `1px` 渐变而不是 `border-top`：
+  上面那张卡片本身有圆角和投影，正下方再来一条通栏硬边会被读成「卡片的底边框」，
+  像多画了一笔；渐隐之后它只在中间一段成立，才像一条独立的分隔线。
+  宽度跟着版心走，响应式不用单独处理。
+
+- **结构化数据改成「实体图 + 面包屑」**。以前首页一个 `WebSite`、文章页一个 `BlogPosting`，
+  两块互不相识，作者名各写一遍 —— 对 Google 来说那是「每页各有一个叫 capzk 的人」。
+  现在首页一个 `@graph` 声明 `WebSite` / `Organization` / `Person` 三个节点并给稳定 `@id`
+  （`https://站点/#website` 这类），文章页用 `@id` 指回来、`isPartOf` 指向 `WebSite`，
+  作者还带上 `url`（关于页）与 `sameAs`。另附一条 `BreadcrumbList`（首页 › 分类 › 标题），
+  搜索结果里那行绿字会从一整条 URL 变成层级。
+
+  这一层不是「多加几个字段」，而是让同一个实体在各页说法一致 —— E-E-A-T 判的是这个。
+  节点自带 `name`，所以就算 Google 还没抓到首页，文章页也是自洽的。
+
+  `SITE.twitter` 是新字段：填了才输出 `twitter:site` / `twitter:creator`，同时进
+  `Person.sameAs`；格式不对（或没填）就一行都不输出。头像只有本身是位图时才当
+  `Organization.logo` 用 —— Google 不收 SVG logo，给了在 Rich Results Test 里是明确的无效项。
+
+### Changed
+
+- **页脚去掉了「N 篇文章 · N 个标签」那一行**，`beian` 也从 `site` 搬到 `footer.beian`
+  并带上了 `enable` 开关。两项的理由都写在上面「页脚重做」里，这里只做索引 ——
+  前者是删除，后者是**字段搬家，老配置要手工迁一次**。
+
+- **每页都输出 `robots` meta 了**。列表页仍是 `noindex, follow`；其余页面补上
+  `max-image-preview:large` —— 不写这一项，搜索结果里的缩略图只有默认的「标准」尺寸。
+  它只是**摘要**指令，不带 index/noindex，不改变索引状态。404 页也显式加了 `noindex`：
+  正常返回 404 码本来就进不去，防的是被反向代理或重写规则改成 200 之后变成软 404。
+
+  刻意不写 `nosnippet` / `max-snippet:0`：这两项会让页面失去被 AI 摘要引用的资格，
+  而 AI Overviews 只引用「能出摘要」的页面。
+
+- **`og:image:type`**（png / jpeg / webp …）从扩展名推。`og:image:width/height` 仍然不写：
+  封面尺寸随文章而变，标错比不标更糟 —— 平台会照着错的宽高去排版。
+
+- **`robots.txt` 加 `Content-Signal`**（[contentsignals.org](https://contentsignals.org)）：
+  `search=yes, ai-input=yes, ai-train=no` —— 允许搜索收录与 AI 引用，不允许拿去训练。
+  `ai-input` 是 AI 搜索结果能引用到你的前提，关掉等于自己选择隐身。
+  另附一段**注释掉的**分机器人模板（GPTBot / ClaudeBot / CCBot / Bytespider /
+  meta-externalagent / PerplexityBot / Google-Extended），想单独拒绝某一家就取消注释。
+
+  没做成默认生效的分组，是因为 robots.txt 里「给某个 UA 建分组」等于让它**不再读 `*` 组**，
+  抄漏一行 `Content-Signal` 反而会放宽限制 —— 放在注释里最不容易被误用。
+
+  ⚠️ 文件里还写了一条提醒：CF Pages 一旦开了 Managed robots.txt 就会接管这个文件，
+  并**默认挡掉上面那几家**。这个坑的症状（站点在 AI 搜索里彻底消失）从外面看不出来，
+  所以写进 robots.txt 本身，而不只是文档里。
+
+- **RSS 补 `atom:link rel="self"` 与 `lastBuildDate`**。后者取全站最新一次改动的时间，
+  **不是构建时刻** —— 用构建时刻的话每次部署 feed 都显示「刚更新」，内容没变却生成了
+  不同字节，CDN 的 ETag 次次失效。`rel=self` 则让聚合器认得出这份 XML 的真身，
+  而不是当成一份被转载的内容。
+
+- **`public/_headers` 补了几条缓存规则**：`/atom.xml`、`/llms*.txt` 各 1 小时，
+  `/sitemap*.xml` 半小时（`*` 一次匹配 index 和分片）。它们原来都走 `max-age=0`，
+  有 ETag 就是 304、不算浪费，但搜索引擎抓得勤时这点回源纯属多余。
+  sitemap 只给半小时是折中：新文章要尽快被发现，也不必每次抓取都回源问一遍。
+
+  另加了一段注释掉的 `/waline/*` 规则 —— 自托管 Waline 客户端时取消注释，
+  文件名带版本号，可以永久缓存。README 里一直这么讲，但 `_headers` 里其实没有这一条。
+
+- **摘要与阅读时长改为按文章 id 缓存**（`utils/posts.ts` 的 `plainTextOf` / `readingStats`）。
+  同一篇会被问很多次：首页卡片要摘要、归档要、分类页和标签页还要，最后搜索索引再来一次，
+  而每次都是一趟五条全局正则。现在一次构建里只算一次。纯文本缓存也让 RSS、搜索索引
+  和卡片三处取到的摘要口径统一（以前 RSS 是 `slice`、卡片是自己拼，长度语义不完全一样）。
+
+- `src/config/user/appearance.ts` 的 `color` 段补了 `hue` 的说明（不写就是原行为）。
+
+- 正文链接的下划线改用 `color-mix()` 跟随强调色。以前写死成 `rgba(48, 169, 222, 0.5)`，
+  一换配色就和链接颜色对不上 —— 这个常量在 1.x 就埋下了，换色相时才发现。
+
+- **索引卫生：列表页不再进 sitemap，并输出 `noindex, follow`。** 示例站 64 个页面里
+  44 个是「内容全为一篇文章清单」的页：34 个标签页、4 个分页，而真文章只有 14 篇。
+  全塞进 sitemap，搜索引擎看到的是一个内容单薄的站和四十多个互相重复的清单。
+
+  改后 sitemap 从 64 条降到 20 条：14 篇文章 + 首页 + 归档 + 分类总览 + 标签总览 +
+  关于 + 友链。列表页照样能访问、照样能被顺着链接抓到，只是自己不进索引。
+
+  判定规则抽在 `src/utils/list-pages.ts`，**零依赖**：`astro.config` 的 sitemap
+  过滤器与 `BaseLayout` 的 meta 输出读的是同一个函数，两边不可能对不上 ——
+  「不在 sitemap 却允许索引」是最容易被忽略的一类不一致。
+
+- **中文排版三个细节**（`main.css` 的 `.markdown-body`）：`text-spacing-trim: trim-start`
+  压掉行首标点的左半边，`text-autospace: normal` 在中西文之间自动留气口，
+  `orphans` / `widows` 防孤行。三条都是渐进增强 —— 不支持就完全退回原样，
+  所以没有包 `@supports`。这个主题的段落本来就不缩进（没有 `text-indent`），
+  才敢取 `trim-start`（每行行首都压）。
+
+- **构建期体检补了「还是示例值」这一项**。`site` 仍指向 `*.pages.dev` / `example.com`、
+  或者 `waline.serverURL` / `artalk.server` 里还带着 `example.com` 时，构建输出里会
+  直接点名。这类问题不改也能跑，症状要等别人把文章转到群里才看得出来 ——
+  fork 主题后最容易漏的一步。
+
+  `site` 不在 `SITE` 里（它是 `astro.config.mjs` 的顶层字段），所以这一条读的是
+  Vite 注入的 `import.meta.env.SITE`。
+
+### 升级注意
+
+- **唯一要手工迁的字段是备案号**：`site.beian: '京ICP备…'` 变成
+  `footer.beian: { enable: true, text: '京ICP备…', link: 'https://beian.miit.gov.cn/' }`
+  （在 `src/config/user/footer.ts` 里）。没配过备案号的站什么都不用动。
+- 其余字段都有默认值，`src/config/user/` 不必改：
+  `color.hue: null`（不派生颜色，走字面 hex）、`pages.about` / `pages.links` 为 `true`、
+  `comment.recent.enable: false`（不显示最新评论）、`comment.artalk` 空着（不用它就不生效）、
+  `twitter: ''`（不输出任何 twitter 相关 meta，等你填了才生效）、
+  `footer.runtime.enable: true` + `since: ''`（站龄默认开，起点退到 `since` 那一年）、
+  `footer.beian.enable: false`（备案默认关）。
+- front matter 的两个新字段（`series` / `seriesOrder`）都是可选的，老文章一个字都不用改 ——
+  不写就完全是原来的行为（全局上下篇、没有系列清单）。
+- 想要占位色，跑一次 `npm run lqips` 并提交 `src/data/lqips.json`。不跑也不会报错，
+  只是没有那层底色。
+- sitemap 会变短（示例站 64 → 20 条）。这是有意的：列表页改成 `noindex, follow`。
+  如果你依赖那些标签页进索引，给对应页面传 `noindex={false}`。
+- 索引策略变了：**每页都有 `robots` meta**（列表页 `noindex, follow`，其余 `max-image-preview:large`）。
+  以前只在列表页输出，现在「其余页面」也有了一行 —— 如果你在别处自己写过 `<meta name="robots">`，
+  检查一下有没有和它打对台（冲突时最严格的那条赢）。
+- `robots.txt` 会多出 `Content-Signal` 与一段注释。**如果你自己维护过 `public/robots.txt`，
+  记得删掉它** —— `src/pages/robots.txt.ts` 生成的那份会覆盖，两个文件留着以后必然对不上。
+  同理，CF Pages 的 Managed robots.txt 会接管这个文件，别在那儿开。
+- 页脚的 DOM 结构变了：`.footer-stats` 删掉，新增 `.footer-meta` / `.footer-runtime` /
+  `.footer-links` / `.footer-beian`。如果你在 `main.css` 里覆写过页脚那几条，跟着改一下类名。
+  版心宽度、字号、亮暗配色都没有动，所以不覆写的话观感只多了一条分割线。
+
 ## [2.0.2] - 2026-10-27
 
 ### Fixed

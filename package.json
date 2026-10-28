@@ -1,7 +1,7 @@
 {
   "name": "astro-theme-flux",
-  "version": "2.0.2",
-  "description": "A Material Design blog theme for Astro — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus), page views.",
+  "version": "2.1.0",
+  "description": "A Material Design blog theme for Astro — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk), page views.",
   "type": "module",
   "license": "GPL-3.0-only",
   "author": {
@@ -29,6 +29,7 @@
     "comments",
     "waline",
     "giscus",
+    "artalk",
     "pageview",
     "static-site"
   ],
@@ -38,6 +39,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "lqips": "node scripts/generate-lqips.mjs",
     "astro": "astro"
   },
   "dependencies": {
