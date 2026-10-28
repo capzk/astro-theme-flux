@@ -19,8 +19,25 @@
 /favicon.svg
   Cache-Control: public, max-age=2592000
 
+# 自托管 Waline 客户端时（public/waline/waline-3.16.1.js 这种带版本号的文件名）
+# 把下面两行取消注释 —— 文件名里有版本号，换版本就是换文件名，可以永久缓存
+# /waline/*
+#   Cache-Control: public, max-age=31536000, immutable
+
 # 索引类文件，让搜索引擎尽快看到新文章
 /rss.xml
+  Cache-Control: public, max-age=3600
+
+/atom.xml
+  Cache-Control: public, max-age=3600
+
+# sitemap 分两份（index + 分片），一次匹配掉。
+# 只给 30 分钟：新文章要尽快被发现，但也不必每次抓取都回源问一遍。
+/sitemap*.xml
+  Cache-Control: public, max-age=1800
+
+# llms.txt / llms-full.txt。后者是全站正文，体积大，缓存收益最明显
+/llms*.txt
   Cache-Control: public, max-age=3600
 
 /searchindex.json

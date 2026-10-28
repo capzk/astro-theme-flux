@@ -12,7 +12,7 @@
 import type { CommentConfig } from '../config';
 
 /** 站点支持的评论系统。加一个就在 src/config 的 `type` 里加一项 */
-export type CommentType = 'waline' | 'giscus';
+export type CommentType = 'waline' | 'giscus' | 'artalk';
 
 /** 构建期传给 provider 的上下文 */
 export interface CommentContext {
@@ -69,6 +69,23 @@ export interface CommentStat {
   options: Record<string, string | number | boolean>;
 }
 
+/**
+ * 「本站最新评论」挂件的取数说明。
+ *
+ * 各家的接口形状差得太远（Waline 是 `GET /comment?type=recent`，别家没有或者
+ * 要鉴权），所以这里**不定义统一的返回结构** —— provider 只负责给出「去哪取、
+ * 取几条」，把响应整理成 `<li>` 的活儿交给 `client/recent.js` 里那家自己的
+ * 归一化函数。多一层抽象的代价比多写十行适配还高。
+ */
+export interface RecentCommentsSpec {
+  /** 取数地址（完整 URL，含查询参数） */
+  endpoint: string;
+  /** 每条正文最多保留多少字，超了截断 */
+  length: number;
+  /** 评论系统标识 —— 客户端按它挑归一化函数 */
+  type: CommentType;
+}
+
 /** 一个评论系统的构建期实现 */
 export interface CommentProvider<TConfig> {
   readonly type: CommentType;
@@ -94,16 +111,30 @@ export interface CommentProvider<TConfig> {
    * 可选：文章页浏览量。不实现就是「这家没有这个功能」。
    *
    * 只有这一项可选能力 —— 接口里每留一个空位，就得有人实现、有人调用；
-   * 列表页的评论数、最近评论挂件这些目前都没接，等真要用了再加方法，
-   * 别先摆一个谁都不实现的位置。
+   * 列表页的评论数这类目前都没接，等真要用了再加方法，别先摆一个谁都不实现的位置。
    */
   pageview?(config: TConfig, ctx: CommentContext): CommentStat | null;
+  /**
+   * 可选：文章页底部的「本站最新评论」。不实现就是「这家取不到」，
+   * 挂件整块不渲染 —— 不会留一个永远转圈的加载态。
+   *
+   * `options` 来自 `comment.recent`（条数、每条截多少字）。放参数里而不是
+   * 塞进各家的私有配置，是因为它属于「挂件怎么显示」，不该在 waline /
+   * artalk 那几段里各写一遍。
+   */
+  recent?(
+    config: TConfig,
+    ctx: CommentContext,
+    options: { count: number; length: number },
+  ): RecentCommentsSpec | null;
 }
 
-/** 一次解析的完整结果：评论区和浏览量各管各的 */
+/** 一次解析的完整结果：评论区、浏览量、最新评论各管各的 */
 export interface ResolvedComments {
   /** 评论区；null = 这一页不渲染评论区 */
   section: CommentSection | null;
   /** 文章页浏览量；null = 不渲染 */
   pageview: CommentStat | null;
+  /** 最新评论挂件；null = 不渲染 */
+  recent: RecentCommentsSpec | null;
 }

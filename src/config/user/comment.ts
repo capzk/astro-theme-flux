@@ -1,15 +1,16 @@
 /**
  * 评论
  * ---------------------------------------------------------------------------
- * 两套都在这里，改 `type` 一行就切换 —— 用不到的那段留着不影响构建。
+ * 三套都在这里，改 `type` 一行就切换 —— 用不到的那段留着不影响构建。
  *
  *   'waline'  自建服务端，功能最全（评论 / 浏览量 / 反应 / 登录 / 表情包）
  *   'giscus'  存在 GitHub Discussions，零服务端，只有评论
+ *   'artalk'  自建服务端，Go 单二进制、比 Waline 轻，插件少一些
  *
- * 示例站默认关闭：Waline 得先有自己的服务端，Giscus 得先开 Discussions，
- * 示例站两样都没有。所以这里 `enable: false`，页面里连骨架都不渲染。
+ * 示例站默认关闭：Waline / Artalk 得先有自己的服务端，Giscus 得先开 Discussions，
+ * 示例站三样都没有。所以这里 `enable: false`，页面里连骨架都不渲染。
  *
- * 全量字段说明见 `src/config/types.ts` 的 WalineConfig / GiscusConfig ——
+ * 全量字段说明见 `src/config/types.ts` 的 WalineConfig / GiscusConfig / ArtalkConfig ——
  * 每一项都写了默认值，下面只列最常改的几个。
  */
 import { defineConfig } from '../merge';
@@ -20,6 +21,13 @@ export default defineConfig({
     type: 'waline',
     /* 滚到距评论区 600px 时才开始拉脚本；0 表示进页面就拉 */
     lazy: 600,
+
+    /**
+     * 文章页底部的「本站最新评论」。
+     * 目前只有 Waline 能提供（它的 `/comment?type=recent` 是公开读接口），
+     * 换到 giscus / artalk 时这一块自动不出现。
+     */
+    // recent: { enable: true, count: 5, length: 60 },
 
     waline: {
       /* 填你自己的服务端地址，例如 'https://comment.example.com' */
@@ -62,6 +70,16 @@ export default defineConfig({
       reactionsEnabled: true,
       inputPosition: 'bottom',
       theme: { light: 'light', dark: 'dark' },
+    },
+
+    artalk: {
+      /* 你自己的 Artalk 后端地址，例如 'https://comment.example.com' */
+      server: '',
+      /**
+       * 站点名。**要和 Artalk 后台建站时填的一致**，否则评论会落进
+       * 后端的「默认站点」，后台管理列表里看不见。
+       */
+      site: '',
     },
   },
 });

@@ -172,3 +172,101 @@ export function linkTargets() {
     },
   };
 }
+
+/* --------------------------------------------------------------------------
+ * 4. 邮箱地址不可抓取
+ * ------------------------------------------------------------------------ */
+
+/**
+ * `<a href="mailto:me@example.com">` 里的地址是明文，任何一个「收集邮箱」的爬虫
+ * 只要正则扫一遍 HTML 就能拿走。这里在构建期把它降级成一段普通文本：
+ *
+ *   显示   me [at] example.com     ← 人能读懂，正则抓不到完整地址
+ *   携带   data-mail="base64"      ← 浏览器端还原成真正的 mailto 链接
+ *
+ * 渐进增强：脚本没加载 / 被拦掉时，读者看到的仍是一段能读懂的文字，只是不能点。
+ * 反过来做（默认是可点的链接、靠 JS 去混淆）就本末倒置了 —— 爬虫根本不跑 JS，
+ * 但也不会因为没跑 JS 就漏掉链接。
+ *
+ * 注意 base64 只是「不要让人一眼看出这是邮箱」，不是加密：真要防有决心的抓取，
+ * 得配服务端或干脆不写邮箱。
+ */
+export function emailLinks() {
+  return {
+    name: 'flux:email-links',
+    element: {
+      filter: ['a'],
+      visit(node, ctx) {
+        const href = String(node.properties?.href ?? '');
+        if (!/^mailto:/i.test(href)) return;
+
+        /* mailto 允许带 ?subject=… 之类的参数，取地址部分就够 */
+        const address = href.replace(/^mailto:/i, '').split('?')[0].trim();
+        if (!address) return;
+
+        /* 显示形态：`me [at] example.com`。只换 @ 不换点 —— 换掉点之后
+           「example [dot] com」读起来太费劲，而抓邮箱的正则几乎都盯着 @。
+           也刻意不藏起来（比如只写「联系我」）：不开 JS 的读者得能看见地址。 */
+        const shown = address.replace(/@/g, ' [at] ');
+        const encoded = Buffer.from(address, 'utf8').toString('base64');
+
+        ctx.replaceNode(
+          node,
+          el('span', { className: ['email-link'], dataMail: encoded }, [text(shown)]),
+        );
+      },
+    },
+  };
+}
+
+/* --------------------------------------------------------------------------
+ * 5. 防盗链图床的 referrerpolicy
+ * ------------------------------------------------------------------------ */
+
+/**
+ * 有些图床（知乎、微博、B 站、豆瓣…）在 `Referer` 是别的网站时直接返回 403，
+ * 于是正文里的图在别人博客上永远是裂的。`referrerpolicy="no-referrer"`
+ * 让请求不带 Referer，正常返回。
+ *
+ * 为什么写死一份域名表而不是做成配置项：这是「对方的规定」，不是「站主的偏好」 ——
+ * 没人会想逐个开关，而漏配一次的后果是图片静默裂掉。要加站点改这份表即可。
+ *
+ * 只处理正文里的 Markdown 图片；主题自己的封面 / banner 不走这条链路。
+ */
+const NO_REFERRER_HOSTS = [
+  'zhimg.com', // 知乎
+  'sinaimg.cn', // 微博
+  'hdslb.com', // B 站
+  'doubanio.com', // 豆瓣
+  'byteimg.com', // 字节系
+  'qpic.cn', // 腾讯系
+  'qlogo.cn',
+];
+
+export function imageReferrer() {
+  return {
+    name: 'flux:image-referrer',
+    element: {
+      filter: ['img'],
+      visit(node, ctx) {
+        const src = String(node.properties?.src ?? '');
+        if (!/^https?:\/\//i.test(src)) return;
+
+        let host;
+        try {
+          host = new URL(src).hostname.toLowerCase();
+        } catch {
+          return; // src 不是合法 URL，交给浏览器自己去失败
+        }
+
+        /* 已经显式写了的尊重作者：他可能就是要带 Referer */
+        if (node.properties?.referrerpolicy) return;
+
+        const blocked = NO_REFERRER_HOSTS.some(
+          (domain) => host === domain || host.endsWith(`.${domain}`),
+        );
+        if (blocked) ctx.setProperty(node, 'referrerpolicy', 'no-referrer');
+      },
+    },
+  };
+}

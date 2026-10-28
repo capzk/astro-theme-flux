@@ -14,14 +14,19 @@ export default defineConfig({
   lang: 'zh-CN',
   avatar: '/img/avatar.svg',
   /**
+   * X（Twitter）账号，**不带 @**。填了才会输出 `twitter:site` / `twitter:creator`，
+   * 也会作为 `sameAs` 进结构化数据（Google 用它把「各处的你是同一个人」连起来）。
+   * 没有就留空，一行都不输出。
+   */
+  twitter: '',
+  /**
    * 社交分享封面，建议 1200×630 的 **PNG/JPG**。
    * 微博、微信、Twitter 这些平台不渲染 SVG —— 指向 `.svg` 会在构建期收到警告，
    * 分享出去就是一张空白卡片。
    */
   ogImage: '/img/og.png',
+  /* 建站年份：页脚版权写成 `© 2025–2026` 这样的区间（同年只写一个），也是「已运行 N 天」的兜底起点 */
   since: 2026,
-  /* 备案号，显示在页脚最后一行；留空就不显示 */
-  beian: '',
 
   /**
    * 导航菜单。`labelKey` 指向 `src/i18n.ts` 里的文案键（推荐，换语言时自动跟着走）；

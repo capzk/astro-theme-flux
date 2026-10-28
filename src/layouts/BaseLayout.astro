@@ -7,7 +7,8 @@
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
-import { absoluteUrl, ogLocale, shareImage } from '../utils/seo';
+import { absoluteUrl, imageMimeOf, ogLocale, shareImage, twitterHandle } from '../utils/seo';
+import { isListPage } from '../utils/list-pages';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
@@ -41,6 +42,12 @@ interface Props {
    * 站内地址不用传，浏览器本来就有连接。
    */
   preconnect?: string[];
+  /**
+   * 不索引这一页。默认由路径自动判定（见 utils/list-pages）——
+   * 分页、单个标签页、单个分类页的内容都是一份文章清单，进索引只是重复内容。
+   * 显式传 `false` 可以推翻自动判定。
+   */
+  noindex?: boolean;
 }
 
 const {
@@ -52,6 +59,7 @@ const {
   article,
   jsonLd,
   preconnect = [],
+  noindex,
 } = Astro.props;
 
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
@@ -59,9 +67,36 @@ const origin = Astro.site ?? new URL(Astro.url.origin);
 const canonical = new URL(Astro.url.pathname, origin).href;
 const path = Astro.url.pathname;
 
+/**
+ * 列表页不索引。判定只写在 utils/list-pages 一处，astro.config 的 sitemap 过滤
+ * 用的是同一个函数 —— 两边不可能对不上（「不在 sitemap」却「允许索引」是
+ * 最容易被忽略的一类不一致：搜索引擎照样会抓，只是发现得慢）。
+ *
+ * 用 `noindex, follow` 而不是 `noindex, nofollow`：这些页面对读者是有用的导航，
+ * 链接该跟还得跟，权重才能流向文章。
+ */
+const isNoindex = noindex ?? isListPage(path);
+
+/**
+ * 索引策略，两种取值互斥：
+ *
+ *   · 列表页   `noindex, follow` —— 不进索引，但链接照跟（理由见上）
+ *   · 其余页面 `max-image-preview:large` —— 不写这一项，搜索结果里的缩略图
+ *     只有默认的「标准」尺寸；写了才出大图。它只是**摘要**指令，不带 index/noindex，
+ *     所以不会改变索引状态，没有副作用。
+ *
+ * 刻意不写 `nosnippet` / `max-snippet:0`：这两项会让页面失去被 AI 摘要引用的资格
+ * （Google 的 AI Overviews 只引用「能出摘要」的页面），在有冲突指令时最严格的那条赢。
+ */
+const robotsContent = isNoindex ? 'noindex, follow' : 'max-image-preview:large';
+
 /* 分享封面必须是绝对地址，且不能是 SVG（平台会渲染成空白卡片） */
 const shareImg = absoluteUrl(shareImage([image]), origin);
 const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
+const shareMime = imageMimeOf(shareImg);
+
+/* 没配 X 账号就是 undefined，下面那两行 meta 整个不输出 */
+const twitter = twitterHandle();
 
 /* 同源的不必再握手（评论服务端和博客挂同一个域时会出现这种情况） */
 const preconnectList = preconnect.filter((item) => item !== origin.origin);
@@ -84,30 +119,50 @@ const DARK_CHROME = '#1f3144';
  * 这里若无条件写 :root 会把暗色一起盖掉。想连暗色改，去改 main.css 的变量。
  * 选择器用 html:root:not(...) 是为了稳定赢过 main.css 的 :root（特异性 0,2,1 > 0,1,0），
  * 免得和样式表的注入顺序赛跑。
+ *
+ * 第二条多了个 `:not([data-hue])`：只要 html 上有 data-hue（配置里写了 color.hue），
+ * 字面的顶栏色 / 强调色就让位给 main.css 里 `html[data-hue]` 那组 oklch 规则。
+ * 不这么写的话这条特异性更高（0,3,1），会把派生的颜色一直盖住。
  */
 const colorVars =
+  /* 页面底色与卡片色跟色相无关，任何情况下都用配置值 */
   `html:root:not([data-user-color-scheme='dark']){` +
-  `--navbar-bg-color:${SITE.color.navbar};` +
   `--body-bg-color:${SITE.color.bodyBg};` +
-  `--board-bg-color:${SITE.color.board};` +
+  `--board-bg-color:${SITE.color.board};}` +
+  `html:root:not([data-user-color-scheme='dark']):not([data-hue]){` +
+  `--navbar-bg-color:${SITE.color.navbar};` +
   `--link-hover-color:${SITE.color.accent};}` +
   /* 顶栏透明态那层渐变压暗不分亮暗 —— 它压的是照片，不是主题色，
      所以单独写在 :root 上，暗色下同样生效 */
   `html:root{--navbar-scrim:${SITE.color.navbarScrim};}`;
+
+/**
+ * 色相派生：配了 `color.hue` 就在 <html> 上落 `data-hue` 与 `--hue`，
+ * 具体颜色由 main.css 里 `html[data-hue]` 那组规则按亮暗各算一套。
+ * 没配就什么也不加 —— 默认观感与以前逐像素一致。
+ */
+const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
 ---
 
 <!doctype html>
-<html lang={SITE.lang}>
+<html
+  lang={SITE.lang}
+  data-hue={hue !== null ? '' : undefined}
+  style={hue !== null ? `--hue:${hue}` : undefined}
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="author" content={SITE.author} />
+    {/* 索引与摘要策略（列表页 noindex / 其余要大图预览），见 frontmatter 里 robotsContent 的说明 */}
+    <meta name="robots" content={robotsContent} />
     <link rel="canonical" href={canonical} />
     <meta name="generator" content={Astro.generator} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
+    <link rel="alternate" type="application/atom+xml" title={SITE.title} href="/atom.xml" />
     {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload 的说明 */}
     {
       bannerPreload && (
@@ -134,7 +189,10 @@ const colorVars =
     <!--
       Open Graph / Twitter。两家的字段大部分重叠，但都不接受相对路径：
       地址与封面在 frontmatter 里已经绝对化（见 utils/seo.ts）。
-      封面尺寸因文章而异，标错不如不标，所以不写 og:image:width/height。
+
+      og:image:type 从扩展名推，永远能推对；**故意不写 og:image:width/height** ——
+      封面尺寸随文章而变（有些站直接用原图），标错比不标更糟：平台会照着错的
+      宽高去排版，裁出来的卡片比让它自己探测还难看。
     -->
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={pageTitle} />
@@ -143,10 +201,13 @@ const colorVars =
     <meta property="og:site_name" content={SITE.title} />
     <meta property="og:locale" content={ogLocale()} />
     <meta property="og:image" content={shareImg} />
+    {shareMime && <meta property="og:image:type" content={shareMime} />}
     <meta property="og:image:alt" content={shareAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
+    {twitter && <meta name="twitter:site" content={`@${twitter}`} />}
+    {twitter && <meta name="twitter:creator" content={`@${twitter}`} />}
     <meta name="twitter:image" content={shareImg} />
     <meta name="twitter:image:alt" content={shareAlt} />
 

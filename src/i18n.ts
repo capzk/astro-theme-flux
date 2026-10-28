@@ -31,6 +31,11 @@ export const T = {
   updatedPrefix: '本文最后更新于',
   prevPost: '上一篇',
   nextPost: '下一篇',
+  /* 系列：顶部那块清单与系列内的上下篇 */
+  series: '系列',
+  seriesPart: (i: number, n: number) => `第 ${i} / ${n} 篇`,
+  seriesPrev: '系列上一篇',
+  seriesNext: '系列下一篇',
   copyrightAuthor: '本文作者',
   copyrightDate: '发布于',
   copyrightLicense: '版权协议',
@@ -45,6 +50,9 @@ export const T = {
   commentLoadFailed: '评论没能加载出来，可能是网络或服务端的问题。',
   commentRetry: '重试',
   commentNoScript: '评论需要 JavaScript，开启后刷新页面即可。',
+  /* 最新评论挂件。标题里不带站点名 —— 位置已经说明了它是全站的 */
+  recentComments: '本站最新评论',
+  recentCommentsNoScript: '最新评论需要 JavaScript。',
   /* 浏览量。同样是「文案 + 数字 + 单位」三段，数字由插件回填 */
   pageview: '阅读',
   pageviewUnit: '次',
@@ -57,4 +65,8 @@ export const T = {
   postsInCategory: (n: number) => `${n} 篇`,
   footerPowered: '由',
   footerTheme: '主题',
+  /* 页脚站龄。`{n}` 是占位符 —— 模板与脚本各替换一次，所以文案只写在这一处 */
+  runtimeDays: '已运行 {n} 天',
+  /* 页脚那三个入口的无障碍标签（视觉上看不到） */
+  footerLinks: '订阅与索引',
 } as const;

@@ -1,6 +1,10 @@
 ---
 /**
  * 404 —— 信号丢失
+ *
+ * 显式 noindex：部署平台正常时这页返回的就是 404 状态码，本来就进不了索引；
+ * 但只要有谁（反向代理、重写规则、把 404.html 当兜底页面的托管商）让它以 200
+ * 出现，内容一模一样的「信号丢失」就会被当成一个真页面收进去，变成软 404。
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Board from '../components/Board.astro';
@@ -8,7 +12,7 @@ import { T } from '../i18n';
 import { SITE } from '../config';
 ---
 
-<BaseLayout title="404">
+<BaseLayout title="404" noindex>
   <div style={`height:${SITE.postBanner.height};min-height:24rem`}></div>
 
   <Board>

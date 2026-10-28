@@ -78,6 +78,22 @@ const posts = defineCollection({
       banner: image().optional(),
       /** 单篇覆盖 banner 遮罩透明度 */
       bannerMaskAlpha: z.number().min(0).max(1).optional(),
+      /**
+       * 系列名。同一系列的文章在文章页顶部会列成一个清单，
+       * 「上一篇 / 下一篇」也改成在系列内前后走。
+       *
+       *     series: Astro 主题开发
+       *     seriesOrder: 3
+       *
+       * 只有一篇同名的不会当成系列显示（一篇文章谈不上「系列」）。
+       * 系列名直接给人看，不做 slug 化 —— 它不进 URL。
+       */
+      series: z.string().optional(),
+      /**
+       * 在系列里的次序，从 1 开始。不写就按发布时间排在写了序号的后面，
+       * 所以「只关心顺序、懒得编号」时全部留空也行。
+       */
+      seriesOrder: z.number().int().optional(),
     }),
 });
 

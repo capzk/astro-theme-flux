@@ -9,6 +9,12 @@ import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import { SITE } from '../config';
 import { LINKS } from '../config';
+import { isPageEnabled } from '../utils/pages';
+
+/* 同 about.astro：关掉就跳回首页，导航与 sitemap 会一起消失 */
+if (!isPageEnabled('links')) {
+  return Astro.redirect('/', 301);
+}
 
 const title = '友链';
 ---

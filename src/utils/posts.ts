@@ -190,17 +190,88 @@ export function plainText(body: string): string {
     .trim();
 }
 
+/* ---------------------------------------------------------------------------
+ * 系列
+ * ------------------------------------------------------------------------- */
+export interface SeriesInfo {
+  name: string;
+  /** 系列里的全部文章，按 seriesOrder 升序；没写序号的按发布时间排在后面 */
+  items: Post[];
+  /** 当前这篇在 items 里的下标（0 起） */
+  index: number;
+}
+
+/**
+ * 当前文章所属的系列。不属于任何系列、或者同名文章只有它自己，都返回 null ——
+ * 一篇文章谈不上「系列」，那种情况下显示一个只有一行的清单只是噪音。
+ *
+ * 排序规则：写了 `seriesOrder` 的按序号走，没写的按发布时间排在它们后面。
+ * 这样「只关心顺序、懒得编号」的写法也是可用的，而且不会因为一半有号一半没号
+ * 而乱掉 —— 没号的永远不会插到有号的中间。
+ */
+export function seriesOf(posts: Post[], current: Post): SeriesInfo | null {
+  const name = current.data.series?.trim();
+  if (!name) return null;
+
+  const items = posts
+    .filter((post) => post.data.series?.trim() === name)
+    .sort((a, b) => {
+      const ao = a.data.seriesOrder ?? Number.POSITIVE_INFINITY;
+      const bo = b.data.seriesOrder ?? Number.POSITIVE_INFINITY;
+      if (ao !== bo) return ao - bo;
+      return a.data.date.getTime() - b.data.date.getTime();
+    });
+
+  if (items.length < 2) return null;
+
+  const index = items.findIndex((post) => post.id === current.id);
+  return index === -1 ? null : { name, items, index };
+}
+
+/* ---------------------------------------------------------------------------
+ * 构建期缓存
+ * ---------------------------------------------------------------------------
+ * 同一篇文章会被问很多次「正文是什么」：首页卡片要摘要、归档要摘要、分类页和
+ * 标签页还要一遍，最后 searchindex.json 再来一次。而 plainText 是五条全局正则，
+ * 一篇两千字的文章就是五趟全量替换 —— 一百篇的站点，这一项能吃掉几百毫秒。
+ *
+ * 一次构建里文章内容不会变，所以按 id 缓存住：第一次算，之后直接取。
+ * 缓存只在构建进程内存里，不进产物，也不影响热更新（dev 下每次改文件会重新求值模块）。
+ * ------------------------------------------------------------------------- */
+const textCache = new Map<string, string>();
+
+/** `plainText` 的带缓存版本，参数是整篇文章 */
+export function plainTextOf(post: Post): string {
+  const cached = textCache.get(post.id);
+  if (cached !== undefined) return cached;
+
+  const text = plainText(post.body ?? '');
+  textCache.set(post.id, text);
+  return text;
+}
+
 /** 摘要：优先 description，否则取正文前 N 字 */
 export function excerptOf(post: Post, length: number): string {
-  const text = post.data.description?.trim() || plainText(post.body ?? '');
+  const text = post.data.description?.trim() || plainTextOf(post);
   return text.length > length ? `${text.slice(0, length).trim()}…` : text;
 }
 
+/* 阅读时长同样按「文章 + 速度」缓存：wpm 是可配置的，同一篇在不同 wpm 下结果不同，
+   缓存键里带上它，免得两处配置互相污染 */
+const statsCache = new Map<string, { words: number; minutes: number }>();
+
 /** 字数（中文按字算，英文按词算）与预计阅读时长 */
-export function readingStats(post: Post, wpm: number) {
-  const text = plainText(post.body ?? '');
+export function readingStats(post: Post, wpm: number): { words: number; minutes: number } {
+  const key = `${post.id}\u0000${wpm}`;
+  const cached = statsCache.get(key);
+  if (cached) return cached;
+
+  const text = plainTextOf(post);
   const cjk = (text.match(/[\u4e00-\u9fa5]/g) ?? []).length;
   const latin = (text.replace(/[\u4e00-\u9fa5]/g, ' ').match(/[A-Za-z0-9_'-]+/g) ?? []).length;
   const words = cjk + latin;
-  return { words, minutes: Math.max(1, Math.round(words / wpm)) };
+  const stats = { words, minutes: Math.max(1, Math.round(words / wpm)) };
+
+  statsCache.set(key, stats);
+  return stats;
 }

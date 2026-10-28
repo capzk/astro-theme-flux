@@ -65,6 +65,39 @@
   --board-shadow: 0 12px 15px 0 rgba(0, 0, 0, 0.45), 0 17px 50px 0 rgba(0, 0, 0, 0.4);
 }
 
+/* 色相派生
+   ---------------------------------------------------------------------------
+   html 上有 data-hue 时才生效 —— 只由配置驱动：`color.hue` 写了数字，
+   BaseLayout 就把 data-hue 与 --hue 一起写到 <html> 上（构建期定死，不分人）。
+
+   为什么用 oklch 而不是 hsl：oklch 的「明度」与人眼感知线性相关，固定 L 之后
+   换色相不会出现「黄色看着亮、蓝色看着暗」的问题；HSL 换色相则必须同时调明度，
+   否则某些色相下白字直接糊掉。这里的每个变量只换 H，L 与 C 都是定值。
+
+   亮暗两套明度：暗色下背景更深，强调色要提亮一点才看得清（0.68 → 0.76），
+   顶栏则要压暗（0.35 → 0.29）才不会在深色页面里浮起来。 */
+:root {
+  /* 兜底：万一 data-hue 在但 --hue 没写上，oklch() 也需要一个合法数字 */
+  --hue: 235;
+}
+
+/* 整组规则包在 @supports 里：oklch 出现在自定义属性的值里时，浏览器**解析时不会报错**，
+   要到「真正用到这个变量」的那一刻才判定非法 —— 那时整条 color 声明直接失效，
+   拿到的是继承来的颜色，可能白底白字，比没有这个功能糟得多。
+   不支持 oklch 的浏览器干脆别定义这几个变量，让它退回 main.css 的固定配色。 */
+@supports (color: oklch(0 0 0)) {
+  html[data-hue] {
+    --link-hover-color: oklch(0.68 0.14 var(--hue));
+  }
+  html[data-hue]:not([data-user-color-scheme='dark']) {
+    --navbar-bg-color: oklch(0.35 0.04 var(--hue));
+  }
+  html[data-hue][data-user-color-scheme='dark'] {
+    --link-hover-color: oklch(0.76 0.13 var(--hue));
+    --navbar-bg-color: oklch(0.29 0.035 var(--hue));
+  }
+}
+
 /* ---------- 2. 基础 ---------- */
 *,
 *::before,
@@ -800,6 +833,11 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 .index-img {
   flex: 0 0 240px;
   width: 240px;
+  /* 兜底底色。图片没到时这里显示的是它自己的主色调（LQIP，见 utils/lqip.ts），
+     所以渐变要铺满整块，不能 repeat */
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.25rem;
 }
 .index-img a {
   display: block;
@@ -924,6 +962,84 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 }
 
 /* ---------- 8. 文章页 ---------- */
+
+/* 系列清单。放在正文之前：读者第一眼要能判断「这是长文里的第几篇、还有几篇」，
+   读完再看这个清单就晚了 —— 他已经在正文里了。
+   视觉上是一张浅色卡片而不是警告框：它是导航，不是提示。 */
+.post-series {
+  margin: 0 0 24px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background-color: var(--button-bg-color);
+}
+.post-series-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--post-heading-color);
+}
+.post-series-head .icon {
+  font-size: 1em;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+/* 系列名可能很长，占掉剩余宽度，多出来的打点 */
+.post-series-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 「第 3 / 5 篇」紧贴右侧，不参与收缩 */
+.post-series-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--sec-text-color);
+  font-variant-numeric: tabular-nums;
+}
+.post-series-list {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  /* 计数器画序号：1. 2. 3. —— 有序清单的语义留在 <ol> 上，
+     但视觉上的序号要跟「第几篇」对得上，而不是 <li> 的默认圆点 */
+  counter-reset: post-series;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.post-series-item {
+  counter-increment: post-series;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.post-series-item::before {
+  content: counter(post-series);
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: right;
+  color: var(--sec-text-color);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+.post-series-item > a,
+.post-series-item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 当前这篇不可点，用颜色区分而不是加粗 ——
+   加粗会改变文字宽度，切换文章时整块清单看起来会「抖」一下 */
+.post-series-item.is-current > span {
+  color: var(--link-hover-color);
+}
+
 /* 卡片里的 h1 只服务 SEO 与打印（对应原版 #seo-header）。
    正常浏览时隐藏，标题只在 banner 上出现一次。 */
 #seo-header {
@@ -951,6 +1067,22 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   line-height: 1.6;
   overflow-wrap: break-word;
   margin-bottom: 2rem;
+
+  /* 中文排版的三个细节。都是「支持就生效、不支持就退回原样」的属性，
+     没有一条会影响老浏览器的版面，所以不必包 @supports。
+
+     1) text-spacing-trim —— 行首的全宽标点（「、（…）压掉左半边。
+        不压的话，段首一个「会占掉整整一个字宽，视觉上像多缩进了一次；
+        这个主题的段落本来就不缩进（没有 text-indent），所以取 trim-start，
+        每行行首（含第一行）都压。取值说明见 CSS Text 4。
+     2) text-autospace —— 中文与英文 / 数字之间自动让出约 1/8 个字的空隙。
+        以前靠作者手打空格，同一篇里「有空格」「没空格」混着很常见。
+     3) orphans / widows —— 段落在分页或跨栏断开时，不让最后一行、第一行
+        单独留在另一侧。屏幕上基本看不出效果，打印和阅读模式里很明显。 */
+  text-spacing-trim: trim-start;
+  text-autospace: normal;
+  orphans: 2;
+  widows: 2;
 }
 .markdown-body > *:first-child {
   margin-top: 0;
@@ -1007,11 +1139,17 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 }
 .markdown-body a {
   color: var(--post-text-color);
-  border-bottom: 1px solid rgba(48, 169, 222, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--link-hover-color) 50%, transparent);
 }
 .markdown-body a:hover {
   color: var(--link-hover-color);
   border-bottom-color: var(--link-hover-color);
+}
+/* 邮箱地址：构建期是 <span>（纯文本，抓邮箱的正则扫不到 @），脚本加载后换成 <a>。
+   虚线下划线把「脚本还原过的可点链接」和「没开 JS 的纯文本」区分开 */
+.markdown-body a.email-link {
+  border-bottom-style: dashed;
+  border-bottom-color: color-mix(in srgb, var(--link-hover-color) 65%, transparent);
 }
 .markdown-body strong {
   font-weight: 700;
@@ -1362,6 +1500,24 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   user-select: none;
 }
 
+/* 关掉行号（围栏 meta 写 nolinenos，见 plugins/shiki.js）。
+   终端输出、目录树这类块本来就没有「第几行」的概念，行号纯属碍眼。
+   用 content: none 而不是 display: none —— 后者会把那一列的宽度也带走，
+   同一篇文章里两种块并排时左边距就错开了。 */
+.highlight pre.no-linenos .line::before {
+  content: none;
+}
+
+/* 行高亮（围栏 meta 写 {1,3-5}）。
+   Shiki 的 .line 是行内元素 —— 换行靠行与行之间那个 "\n" 文本节点，
+   所以**不能**把它改成 block / inline-block，否则每行会多出一个空行。
+   代价是底色只覆盖文字宽度，不是整行通栏；配一条左侧内阴影，读起来
+   仍然是一整行的标记。 */
+.highlight .line.is-highlighted {
+  background-color: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+  box-shadow: inset 0.15rem 0 0 var(--link-hover-color);
+}
+
 /* 工具栏：横跨代码块顶部一条，语言名靠左、复制按钮靠右，互不侵占 */
 .code-toolbar {
   position: absolute;
@@ -1634,6 +1790,89 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 .related-item-meta .icon {
   width: 1em;
   height: 1em;
+}
+
+/* 本站最新评论。排在评论区之前，用的是和评论区同一套分隔规则：
+   一条细线 + 一段留白，读起来是「文章之后还挂着两块东西」，
+   而不是一个独立的卡片（它不是内容，是环境）。 */
+.recent-comments {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-color);
+}
+/* 加载中不显示，但**不能 display: none** —— 那样 IntersectionObserver 永远
+   不会触发（元素没有布局盒就不会进入视口）。opacity 保留盒子、也顺便把
+   出现时的位置先占住，列表填进来时不会把下面的评论区顶一下。 */
+.recent-comments[data-state='loading'] {
+  opacity: 0;
+}
+.recent-comments-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sec-text-color);
+  letter-spacing: 0.04em;
+}
+.recent-comments-title .icon {
+  width: 1em;
+  height: 1em;
+}
+.recent-comments-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* 单列时每条占一整行；宽屏两列，五条评论刚好排成一个 3+2 的小块，
+   比纵着列五行短一半，也不会把评论区推得太远 */
+@media (min-width: 768px) {
+  .recent-comments-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.25rem;
+  }
+}
+.recent-comments-item > a,
+.recent-comments-item > span {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+/* 昵称定宽 + 尾部省略：访客能填多长就多长，
+   不定宽的话一条长昵称会把下面的正文挤成两个字 */
+.recent-comments-nick {
+  flex-shrink: 0;
+  max-width: 8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text-color);
+  transition: color 0.2s ease;
+}
+.recent-comments-item a:hover .recent-comments-nick {
+  color: var(--link-hover-color);
+}
+/* 正文单行截断。这块是「瞥一眼」，不是阅读区 ——
+   想读全文点进去，那里有上下文 */
+.recent-comments-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sec-text-color);
+}
+.recent-comments-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--sec-text-color);
 }
 
 /* ---------- 11. 评论区（可插拔；Waline 是参考实现） ----------
@@ -2027,24 +2266,68 @@ footer {
 }
 
 .footer-inner {
-  padding: 3rem 0 1.5rem;
+  padding-bottom: 1.75rem;
   text-align: center;
   font-size: 0.85rem;
   color: var(--sec-text-color);
 }
-.footer-inner > div + div {
-  margin-top: 0.4rem;
+
+/* 与上方内容之间的分割线。
+   用「两端渐隐的 1px 渐变」而不是 border-top：上面那张卡片本身有圆角和投影，
+   正下方再来一条通栏硬边会被读成「卡片的底边框」，像多画了一笔。渐隐之后
+   它只在中间一段成立，才像一条独立的分隔线。
+   上下留白刻意不等（2.5 / 1.75）—— 线要更靠近页脚自己的内容，不能黏着卡片。 */
+.footer-inner::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin: 2.5rem 0 1.75rem;
+  background: linear-gradient(
+    to right,
+    transparent,
+    currentColor 18%,
+    currentColor 82%,
+    transparent
+  );
+  opacity: 0.18;
 }
+
+/* 四行文字之间统一的行距。用 `> * + *` 而不是逐个写：三块开关各关各的，
+   少一块时剩下的仍然挨得均匀 */
+.footer-inner > * + * {
+  margin-top: 0.55rem;
+}
+
+/* 版权与站龄同一行。数字用等宽数字，脚本重算天数时几位数之间不会左右跳 */
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+}
+.footer-runtime {
+  font-variant-numeric: tabular-nums;
+}
+/* 两个 span 之间那个「·」：写在伪元素里，模板里就不必多一个会被读屏念出来的字符 */
+.footer-meta > * + *::before {
+  content: '·';
+  margin: 0 0.55rem;
+  opacity: 0.55;
+}
+
+/* 订阅 / 索引入口 */
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem 1.15rem;
+}
+
 .footer-inner a {
   color: var(--sec-text-color);
 }
 .footer-inner a:hover {
   color: var(--link-hover-color);
-}
-.footer-stats {
-  display: flex;
-  justify-content: center;
-  gap: 1.5rem;
 }
 
 /* ---------- 17. 搜索弹层 ---------- */

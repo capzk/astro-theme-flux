@@ -15,6 +15,7 @@
 import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
 import { isAsset, type ImageSource } from '../utils/image';
+import { lqipGradientOf } from '../utils/lqip';
 import { SITE, type TypingConfig } from '../config';
 
 /** banner 上的一条元信息（图标 + 文字） */
@@ -108,6 +109,10 @@ const typingOptions = !typing
    后者不产生额外 DOM，也不会因为 <img> 的宽高比把 banner 撑变形。 */
 const bgImage = img && !isAsset(img) ? img : '';
 
+/* 主色调占位。字符串图并成 background-image 的第二层（第一层是真图，
+   盖在上面）；优化图垫在 .banner-bg 自己身上，等 <Image> 解码完就看不见了。 */
+const lqip = lqipGradientOf(img);
+
 const style = [
   `height:${height}`,
   /* 防移动端竖屏把图横向裁太狠：banner 高度不超过「宽度 ÷ minRatio」。
@@ -119,7 +124,7 @@ const style = [
 <header class="banner" style={style} data-parallax={parallax ? '' : undefined}>
   {
     isAsset(img) ? (
-      <div class="banner-bg">
+      <div class="banner-bg" style={lqip ? `background-image:${lqip}` : undefined}>
         <Image
           class="banner-img"
           src={img}
@@ -131,7 +136,14 @@ const style = [
         />
       </div>
     ) : bgImage ? (
-      <div class="banner-bg" style={`background-image:url('${bgImage}')`} />
+      <div
+        class="banner-bg"
+        style={
+          lqip
+            ? `background-image:url('${bgImage}'), ${lqip}`
+            : `background-image:url('${bgImage}')`
+        }
+      />
     ) : null
   }
   {/* maskAlpha 为 0 就不压暗，整层不渲染 —— 留一个 opacity:0 的全屏元素也是白算 */}

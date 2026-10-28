@@ -285,22 +285,76 @@ export interface GiscusConfig {
 }
 
 /**
+ * 评论 · Artalk
+ * ---------------------------------------------------------------------------
+ * 自建服务端的另一家，中文社区维护。和 Waline 的定位最接近（都要自己部署），
+ * 差别在取舍：
+ *
+ *   · 比 Waline 轻 —— 后端是单个 Go 二进制，没有 Node 运行时，小机器跑得动；
+ *   · 前端交互比 Waline 朴素，插件生态也小一些（没有 reCAPTCHA、没有独立的
+ *     浏览量小插件）；
+ *   · 多站点隔离是内建的（`site` 一项），一个后端挂几个博客不用分库。
+ *
+ * 没有在这里列出的选项就是没有做成配置项 —— 要么主题管不着（例如 `el`、
+ * `pageTitle`、`darkMode` 由组件与脚本自动填），要么得传函数（过不了 JSON）。
+ * 全量选项见 https://artalk.js.org/guide/frontend/config.html
+ */
+export interface ArtalkConfig {
+  /** 后端地址，例如 `https://comment.example.com`。必须前端可达 */
+  server: string;
+  /**
+   * 站点名。Artalk 用它在同一个后端里隔离多个站点，**要和后台建站时填的一致**，
+   * 否则评论会落到「默认站点」里，后台看不见。
+   */
+  site?: string;
+  /**
+   * 评论归属的路径（Artalk 叫 pageKey）。默认取当前页面路径；
+   * 填 `'href'` 用完整地址（换域名会丢评论，一般不要）。
+   */
+  path?: 'href' | string;
+  /** 界面语言（BCP 47，如 `'zh-CN'`）。留空跟随站点的 lang */
+  locale?: string;
+  /** 评论框占位文字 */
+  placeholder?: string;
+  /**
+   * 表情包。默认用 Artalk 官方那套（从 jsDelivr 拉一份 json），
+   * 也可以填自己的 OwO 格式地址，设 `false` 关掉。
+   */
+  emoticons?: string | boolean;
+  /** 每页几条。默认 20 */
+  pageSize?: number;
+  /**
+   * 客户端脚本与样式的完整地址。默认走 jsDelivr：
+   *   https://cdn.jsdelivr.net/npm/artalk@2/dist/Artalk.mjs
+   *   https://cdn.jsdelivr.net/npm/artalk@2/dist/Artalk.css
+   *
+   * 国内 jsDelivr 不稳时换成镜像或自托管（Artalk 的后端镜像本身就带前端资源，
+   * 指向自己的服务端域名是最省心的做法）：
+   *   js:  'https://registry.npmmirror.com/artalk/2.10.1/files/dist/Artalk.mjs'
+   *   css: 'https://registry.npmmirror.com/artalk/2.10.1/files/dist/Artalk.css'
+   */
+  js?: string;
+  css?: string;
+}
+
+/**
  * 评论系统
  * ---------------------------------------------------------------------------
  * 换评论系统只改 `type` 一行，再把对应那一段填好 —— 用不到的段留着不影响构建，
  * 所以「先填两套、随时切」是常态。
  *
- * 内置两个实现：
+ * 内置三个实现：
  *   'waline' —— 自建服务端，功能最全（评论 / 浏览量 / 反应 / 登录 / 表情包）
  *   'giscus' —— 寄生在 GitHub Discussions，零服务端，只有评论
+ *   'artalk' —— 自建服务端，单个二进制、比 Waline 轻，插件少一些
  *
- * 加第三个见 README「再加一个评论系统」：四步，其中三步是各写一个文件。
+ * 加第四个见 README「再加一个评论系统」：四步，其中三步是各写一个文件。
  */
 export interface CommentConfig {
   /** 总开关。关掉后文章页不渲染评论区，也不请求任何评论相关的资源 */
   enable: boolean;
   /** 用哪一套。改这里即可切换 */
-  type: 'waline' | 'giscus';
+  type: 'waline' | 'giscus' | 'artalk';
   /**
    * 懒加载：浏览器滚到「距评论区还有 N 像素」时才开始拉脚本。
    * `0` 表示不懒加载、进页面就拉。默认 600 —— 大约「再滚一屏就到了」。
@@ -309,10 +363,35 @@ export interface CommentConfig {
    * 代价是这一页一定会拉评论脚本，哪怕读者根本不看评论。
    */
   lazy: number;
+  /**
+   * 文章页底部的「本站最新评论」。只在支持它的评论系统上出现（目前是 Waline，
+   * 它有一个现成的公开读接口），其余情况整块不渲染。
+   */
+  recent?: RecentConfig;
   /** Waline 的私有配置（`type === 'waline'` 时生效） */
   waline?: WalineConfig;
   /** Giscus 的私有配置（`type === 'giscus'` 时生效） */
   giscus?: GiscusConfig;
+  /** Artalk 的私有配置（`type === 'artalk'` 时生效） */
+  artalk?: ArtalkConfig;
+}
+
+/**
+ * 最新评论挂件
+ * ---------------------------------------------------------------------------
+ * 拉「全站最近 N 条」显示在文章页底部，让读者看到「别的地方在聊什么」——
+ * 一个只有零星评论的站，评论区本身看起来是死的，这块能让它活一点。
+ *
+ * 需要评论系统提供公开的「按时间倒序取评论」接口。Waline 有
+ * （`/comment?type=recent`），Giscus 与 Artalk 没有，所以那一块在它们下面不出现。
+ */
+export interface RecentConfig {
+  /** 默认关。它要在读者滚到底时多发一个请求，值不值得由站主判断 */
+  enable: boolean;
+  /** 显示几条。默认 5 */
+  count?: number;
+  /** 每条正文最多显示多少字，超了截断加省略号。默认 60 */
+  length?: number;
 }
 
 /**
@@ -413,15 +492,26 @@ export interface SiteConfig {
   /** 头像（相对 public/ 或完整 URL），关于页与页脚用 */
   avatar: string;
   /**
+   * X（Twitter）账号，**不带 @**，如 `'capzk'`。整条主页地址也认（会归一化）。
+   *
+   * 填了才输出 `twitter:site` / `twitter:creator`，并作为 `sameAs` 写进
+   * 结构化数据的 Person 节点 —— 那是 Google 用来把「各处的 capzk 是同一个人」
+   * 连起来的字段。不填就一行都不输出（比留一个空 content 干净）。
+   *
+   * 只在分享卡片与结构化数据里用到，页面上不显示社交图标。
+   */
+  twitter?: string;
+  /**
    * 社交分享封面（微信 / Twitter / Slack 等抓取的缩略图）。
    * 必须是 PNG、JPG 这类位图，建议 1200×630：这些平台不渲染 SVG。
    * 文章自己配了位图封面时优先用文章的，否则回落到这张。
    */
   ogImage: string;
-  /** 页脚版权起始年份；不设则用当前年 */
+  /**
+   * 建站年份。两个用途：页脚版权写成 `© 2024–2026`，以及「已运行 N 天」的兜底起点
+   * （`footer.runtime.since` 没写时用这一年的 1 月 1 日）。不设则用当前年。
+   */
   since?: number;
-  /** 备案号之类，显示在页脚最下面一行；不设则不显示 */
-  beian?: string;
 
   /** 导航菜单 */
   nav: NavItem[];
@@ -510,10 +600,46 @@ export interface SiteConfig {
      * 只影响「顶栏那一条」的顶部，不影响 banner 本身的 `maskAlpha`。
      */
     navbarScrim: number;
+    /**
+     * 色相，0~360。**不写（null）＝ 用上面那四个字面颜色**，观感与以前完全一致。
+     *
+     * 写了之后，顶栏底色与强调色不再取 `navbar` / `accent`，而是由这个色相现算：
+     *
+     *   强调色  亮 oklch(0.68 0.14)  暗 oklch(0.76 0.13)
+     *   顶栏色  亮 oklch(0.35 0.04)  暗 oklch(0.29 0.035)
+     *
+     * 明度与彩度是固定的，变的是色相 —— 所以整套配色永远是同一种「深浅关系」，
+     * 不会出现某个色相下字糊在背景里。页面底色与卡片底色不动（它们本来就接近中性灰）。
+     *
+     * 参考值：250 蓝（接近默认）、165 青绿、35 橙、350 玫红、285 紫。
+     */
+    hue: number | null;
   };
 
   /** 每页文章数（首页 / 分类 / 标签的卡片流） */
   pageSize: number;
+
+  /**
+   * 页面开关
+   * ---------------------------------------------------------------------------
+   * 只对「可选页面」生效：关于页和友链页。归档 / 分类 / 标签是博客的骨架，没有开关。
+   *
+   * 关掉一个页面 = 三件事一起变，不用手工同步：
+   *   1. 顶栏和移动端菜单里那一条自动隐藏（按 href 匹配，不用改 nav）
+   *   2. sitemap 里不再出现
+   *   3. 页面本身不输出内容，改成跳回首页（静态站没有「返回 404」这个动作，
+   *      生成一个 301 会让部署平台与 sitemap 各说一套；跳首页是最省事且不会
+   *      让人撞上空白页的做法）
+   *
+   * 为什么不做成「删文件」：主题升级会把你删掉的文件加回来，开关写在配置里
+   * 才能活过升级。
+   */
+  pages: {
+    /** 关于页 `/about/` */
+    about: boolean;
+    /** 友链页 `/links/` */
+    links: boolean;
+  };
 
   /** 归档页 */
   archive: {
@@ -536,5 +662,50 @@ export interface SiteConfig {
      * 够读者判断值不值得点进来，又不至于让订阅器变成全文阅读器。
      */
     excerptLength: number;
+  };
+
+  /**
+   * 页脚
+   * ---------------------------------------------------------------------------
+   * 页脚是整个站点唯一「不需要滚动就能反复看到」的地方，所以这里的东西
+   * 只在真的想展示时才出现：站龄默认开、订阅入口默认开、备案默认关。
+   *
+   * 备案为什么默认关：ICP 备案是境内托管才需要的东西，海外托管、个人玩具站
+   * 都没有。默认摆一行空白的「京ICP备」是脏数据，不如让需要的人自己打开。
+   */
+  footer: {
+    /**
+     * 「已运行 N 天」。天数是客户端算的 —— 构建期算的那一份会在站点长期不重建时
+     * 停在旧数上（静态站一年不重新构建很常见），所以页面上先给出构建当天的结果
+     * （无脚本时的兜底），再由脚本校正到访问当天。
+     */
+    runtime: {
+      /** 默认开。设 false 就整块不出现 */
+      enable: boolean;
+      /**
+       * 建站日期，`'YYYY-MM-DD'`（也认 `'YYYY-MM-DD HH:mm:ss'`）。
+       * **不写就用 `since` 那一年的 1 月 1 日** —— 大多数人不记得精确到天，
+       * 只记得哪一年开始写，那就别逼着填。
+       */
+      since: string;
+    };
+    /**
+     * 订阅源与 sitemap 的入口（RSS / Atom / Sitemap 三个链接）。
+     * 默认开：它们是对外接口，藏着没好处；想做成极简页脚再关。
+     */
+    links: boolean;
+    /**
+     * ICP 备案信息。**默认关**。
+     *
+     * 打开后整行变成「备案号」指向 `link` —— 工信部要求备案号必须链接到
+     * beian.miit.gov.cn，纯文本挂着不算合规。
+     */
+    beian: {
+      enable: boolean;
+      /** 备案号原文，如 `'京ICP备12345678号-1'`。`enable` 为 true 时必填 */
+      text: string;
+      /** 备案号指向的地址。默认工信部备案查询页，一般不用改 */
+      link: string;
+    };
   };
 }

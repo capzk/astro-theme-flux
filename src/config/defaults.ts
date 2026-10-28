@@ -21,9 +21,10 @@ const DEFAULT_CONFIG: SiteConfig = {
   author: 'capzk',
   lang: 'zh-CN',
   avatar: '/img/avatar.svg',
+  /* X 账号，不带 @。留空则不输出 twitter:site / twitter:creator */
+  twitter: '',
   ogImage: '/img/og.png',
   since: 2026,
-  beian: '',
 
   nav: [
     { labelKey: 'home', href: '/', icon: 'home' },
@@ -101,6 +102,18 @@ const DEFAULT_CONFIG: SiteConfig = {
       inputPosition: 'bottom',
       theme: { light: 'light', dark: 'dark' },
     },
+    artalk: {
+      /* 后端地址，必须前端可达；site 要和 Artalk 后台建站时填的名字一致 */
+      server: '',
+      site: '',
+      pageSize: 20,
+    },
+    /* 文章页底部的「本站最新评论」。默认关：它要在滚到底时多发一个请求 */
+    recent: {
+      enable: false,
+      count: 5,
+      length: 60,
+    },
   },
 
   darkMode: {
@@ -114,6 +127,9 @@ const DEFAULT_CONFIG: SiteConfig = {
     board: '#ffffff',
     accent: '#30a9de',
     navbarScrim: 0.35,
+    /* 见 types.ts：null = 用上面这四个字面颜色（与原版 Fluid 一致）。
+       想整套换色相就写个数，例如 165（青绿）、35（橙）。 */
+    hue: null,
   },
 
   pageSize: 6,
@@ -122,8 +138,29 @@ const DEFAULT_CONFIG: SiteConfig = {
   },
   search: true,
 
+  pages: {
+    about: true,
+    links: true,
+  },
+
   rss: {
     excerptLength: 300,
+  },
+
+  footer: {
+    /* 站龄。`since` 留空就用 site.since 那一年的 1 月 1 日 */
+    runtime: {
+      enable: true,
+      since: '',
+    },
+    /* RSS / Atom / Sitemap 三个入口 */
+    links: true,
+    /* ICP 备案。境内托管才需要，默认关；打开后记得填 text */
+    beian: {
+      enable: false,
+      text: '',
+      link: 'https://beian.miit.gov.cn/',
+    },
   },
 };
 

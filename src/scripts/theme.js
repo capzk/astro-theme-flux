@@ -11,6 +11,7 @@
  *   5. 代码块复制
  *   6. 回到顶部
  *   7. 正文图片放大
+ *   8. 邮箱地址还原成可点的链接（构建期被降级成文本，见 plugins/markdown.js）
  *
  * 全部可选增强：脚本没加载时页面依然完整可读（导航是普通链接、正文是普通文本）。
  */
@@ -281,6 +282,52 @@ function initImageZoom() {
   });
 }
 
+/* ---------- 8. 邮箱地址还原 ---------- */
+function initEmailLinks() {
+  const nodes = document.querySelectorAll('span.email-link[data-mail]');
+  if (!nodes.length) return;
+
+  for (const node of nodes) {
+    let address;
+    try {
+      address = atob(node.dataset.mail);
+    } catch {
+      continue; /* base64 坏了就保持纯文本，总比显示一串乱码强 */
+    }
+    if (!address) continue;
+
+    const link = document.createElement('a');
+    link.className = node.className;
+    link.href = `mailto:${address}`;
+    link.textContent = address;
+    /* drop 掉 data-mail：还原之后它就是一条普通的 mailto 链接了 */
+    node.replaceWith(link);
+  }
+}
+
+/* ---------- 9. 页脚站龄 ---------- */
+/**
+ * 把「已运行 N 天」校正到访问当天。
+ *
+ * 为什么不在构建期算完就算数：静态站可能几个月甚至一年不重新构建，那样页脚上
+ * 会一直挂着构建那天的天数 —— 一个写着「已运行 3 天」却天天在更新的博客，
+ * 比不显示更糟。
+ *
+ * 也没做成每秒跳动的计时器：秒级更新会让页脚文字宽度一直变，读起来在抖，
+ * 而「运行了多少天」本来就没有秒级的信息量。
+ */
+function initRuntime() {
+  const node = document.querySelector('.footer-runtime');
+  if (!node) return;
+
+  const start = Date.parse(node.dataset.since || '');
+  if (Number.isNaN(start)) return; /* 日期写坏了就保留服务端渲染的那份 */
+
+  const days = Math.max(0, Math.floor((Date.now() - start) / 86_400_000));
+  const text = (node.dataset.text || '').replace('{n}', String(days));
+  if (text && node.textContent.trim() !== text) node.textContent = text;
+}
+
 initNavbar();
 initTheme();
 initMobileMenu();
@@ -288,3 +335,5 @@ initToc();
 initCodeCopy();
 initScrollTop();
 initImageZoom();
+initEmailLinks();
+initRuntime();

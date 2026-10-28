@@ -5,7 +5,7 @@
  *   t = 标题   u = 链接   d = 日期   c = 分类   g = 标签   x = 正文纯文本
  */
 import type { APIRoute } from 'astro';
-import { getPosts, plainText, postUrl } from '../utils/posts';
+import { getPosts, plainTextOf, postUrl } from '../utils/posts';
 
 export const GET: APIRoute = async () => {
   const posts = await getPosts();
@@ -16,7 +16,7 @@ export const GET: APIRoute = async () => {
     d: post.data.date.toISOString().slice(0, 10),
     c: post.data.categories.join(' '),
     g: post.data.tags.join(' '),
-    x: plainText(post.body ?? '').slice(0, 4000),
+    x: plainTextOf(post).slice(0, 4000),
   }));
 
   return new Response(JSON.stringify(index), {

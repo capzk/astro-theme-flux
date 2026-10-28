@@ -16,8 +16,10 @@ import type {
   CommentProvider,
   CommentStat,
   CommentType,
+  RecentCommentsSpec,
   ResolvedComments,
 } from './types';
+import { artalk } from './artalk';
 import { giscus } from './giscus';
 import { waline } from './waline';
 import { warnOnce } from './warn';
@@ -34,7 +36,7 @@ export const DARK_SELECTOR = 'html[data-user-color-scheme="dark"]';
  */
 type AnyProvider = CommentProvider<any>;
 
-const LIST: readonly AnyProvider[] = [waline, giscus];
+const LIST: readonly AnyProvider[] = [waline, giscus, artalk];
 
 const PROVIDERS = new Map<CommentType, AnyProvider>(
   LIST.map((provider) => [provider.type, provider]),
@@ -85,21 +87,36 @@ export function hasCommentForm(comment: CommentConfig, postComment?: boolean): b
   return configured(comment) !== null;
 }
 
-/** 解析出评论区与浏览量两块，各管各的 */
+/** 解析出评论区 / 浏览量 / 最新评论三块，各管各的 */
 export function resolveComments(comment: CommentConfig, ctx: CommentContext): ResolvedComments {
   const provider = configured(comment);
-  if (!provider) return { section: null, pageview: null };
+  if (!provider) return { section: null, pageview: null, recent: null };
 
   const config = provider.configOf(comment);
-  /* 总开关关掉时只放行浏览量 —— 「不想要评论、只想要阅读数」是常见诉求 */
+  /* 总开关关掉时只放行浏览量 —— 「不想要评论、只想要阅读数」是常见诉求。
+     最新评论同理：它是「评论区旁边的读」，评论区本身关着就没有必要挂它 */
   const section = comment.enable
     ? { ...provider.build(config, ctx), type: provider.type, lazy: comment.lazy }
     : null;
 
+  const recent =
+    comment.enable && comment.recent?.enable === true
+      ? (provider.recent?.(config, ctx, {
+          count: comment.recent.count ?? 5,
+          length: comment.recent.length ?? 60,
+        }) ?? null)
+      : null;
+
   return {
     section,
     pageview: provider.pageview?.(config, ctx) ?? null,
+    recent,
   };
+}
+
+/** 只要最新评论挂件。任何一家不支持就是 null，组件据此整块不渲染 */
+export function resolveRecent(comment: CommentConfig, ctx: CommentContext): RecentCommentsSpec | null {
+  return resolveComments(comment, ctx).recent;
 }
 
 /** 只要浏览量。列表页、文章页都能单独用，不牵扯评论区 */
@@ -134,4 +151,4 @@ export function commentContext(
   };
 }
 
-export type { CommentContext, CommentSection, CommentStat } from './types';
+export type { CommentContext, CommentSection, CommentStat, RecentCommentsSpec } from './types';

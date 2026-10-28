@@ -7,11 +7,13 @@
  *
  * 文件怎么分的：
  *
- *   site.ts        站名、描述、作者、头像、OG 图、导航菜单
+ *   site.ts        站名、描述、作者、头像、OG 图、X 账号、导航菜单
  *   appearance.ts  banner、文章 banner、配色、暗色模式
  *   content.ts     首页卡片、文章页开关、每页条数、搜索
- *   comment.ts     评论系统（Waline / Giscus）
+ *   comment.ts     评论系统（Waline / Giscus / Artalk）
+ *   footer.ts      页脚：站龄、订阅入口、ICP 备案
  *   links.ts       友链
+ *   pages.ts       页面开关（关于 / 友链），关掉后导航与 sitemap 一起变
  *
  * 字段的类型和说明在 `src/config/types.ts`，出厂值在 `src/config/defaults.ts`。
  * 想加一项：在这个目录里随便哪个文件写上去即可，类型检查会确认字段名对不对。
@@ -20,6 +22,8 @@ import site from './site';
 import appearance from './appearance';
 import content from './content';
 import comment from './comment';
+import footer from './footer';
+import pages from './pages';
 import { deepMerge, type UserConfig } from '../merge';
 
 /**
@@ -28,8 +32,12 @@ import { deepMerge, type UserConfig } from '../merge';
  * 用 `deepMerge` 而不是对象展开，是因为**同一棵配置子树可以分在两个文件里写**
  * （比如 banner 的图放 appearance、文案放 site）。对象展开只合并顶层，
  * 后写的会把先写的那一半整个顶掉。
+ *
+ * `pages.ts` 是个例外：它不是 `defineConfig({...})` 出来的，而是一个裸对象 ——
+ * 因为 `astro.config.mjs` 还要直接 import 它来过滤 sitemap，那边不能有资源导入。
+ * 包一层 `{ pages }` 之后，对合并逻辑来说它和别的部分没有区别。
  */
-const USER_CONFIG: UserConfig = [site, appearance, content, comment].reduce(
+const USER_CONFIG: UserConfig = [site, appearance, content, comment, footer, { pages }].reduce(
   (acc, part) => deepMerge(acc, part),
   {} as UserConfig,
 );

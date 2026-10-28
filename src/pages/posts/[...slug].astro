@@ -17,6 +17,7 @@ import Board from '../../components/Board.astro';
 import Icon from '../../components/Icon.astro';
 import Toc from '../../components/Toc.astro';
 import Comments from '../../components/Comments.astro';
+import RecentComments from '../../components/RecentComments.astro';
 import PageView from '../../components/PageView.astro';
 import { SITE } from '../../config';
 import { commentContext, commentOrigins, hasCommentForm, resolvePageview } from '../../comments';
@@ -28,9 +29,10 @@ import {
   postsBySlug,
   readingStats,
   relatedPosts,
+  seriesOf,
   termUrl,
 } from '../../utils/posts';
-import { absoluteUrl, articleJsonLd, shareImage } from '../../utils/seo';
+import { absoluteUrl, articleJsonLd, breadcrumbJsonLd, shareImage } from '../../utils/seo';
 import { isAsset, srcOf } from '../../utils/image';
 
 export async function getStaticPaths() {
@@ -48,7 +50,16 @@ const { Content, headings } = await render(post);
 const { title, date, updated, tags, categories } = post.data;
 const stats = readingStats(post, SITE.post.wpm);
 
-const { prev, next } = neighbours(posts, post);
+/* 上一篇 / 下一篇。属于某个系列时改成系列内的前后 ——
+   在系列里读到一半，读者想的是「这个系列下一步讲什么」，
+   而不是「时间上更晚的那篇随笔是哪篇」。不属于系列就还是全局相邻。 */
+const series = seriesOf(posts, post);
+const { prev, next } = series
+  ? {
+      prev: series.index > 0 ? series.items[series.index - 1] : undefined,
+      next: series.index < series.items.length - 1 ? series.items[series.index + 1] : undefined,
+    }
+  : neighbours(posts, post);
 
 /* 相关文章（标签权重高于分类，零分的不要）。关掉开关就整块不渲染 */
 const related = SITE.post.related ? relatedPosts(posts, post) : [];
@@ -102,7 +113,8 @@ if (SITE.post.meta.min2read) {
 }
 const metaRows = [metaTop, metaBottom];
 
-const permalink = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const origin = Astro.site ?? Astro.url.origin;
+const permalink = new URL(Astro.url.pathname, origin).href;
 
 /* 分享封面。两个要求社交平台很挑剔：
    1) 格式 —— webp/avif 至今仍有个别平台抓不动，所以位图封面统一再转一版 JPEG；
@@ -125,17 +137,33 @@ const ogImage = isAsset(bannerSource)
     )
   : absoluteUrl(shareImage([srcOf(bannerSource)]), permalink);
 
-const jsonLd = articleJsonLd({
-  title,
-  description: post.data.description ?? '',
-  url: permalink,
-  image: ogImage,
-  published: date,
-  modified: updated,
-  section: categories[0],
-  tags,
-  words: stats.words,
-});
+/* 结构化数据两块：这篇文章本身 + 它挂在站点的哪一层。
+   用顶层数组而不是 @graph —— Google 对两者一视同仁，而这两块由不同的函数产出，
+   拼数组不用去动各自的形状。origin 传进去是为了让 author / publisher 的 @id
+   与首页那份声明对得上，否则同一个作者会变成每页各有一个同名的人。 */
+const jsonLd = [
+  articleJsonLd({
+    title,
+    description: post.data.description ?? '',
+    url: permalink,
+    image: ogImage,
+    origin,
+    published: date,
+    modified: updated,
+    section: categories[0],
+    tags,
+    words: stats.words,
+  }),
+  /* 首页 › 分类 › 标题。分类页本身是 noindex 的，但面包屑要的是「层级」而不是
+     「这一页能不能被收录」，指过去依然成立；没有分类就跳过这一层 */
+  breadcrumbJsonLd([
+    { name: T.home, url: absoluteUrl('/', origin) },
+    ...(categories[0]
+      ? [{ name: categories[0], url: absoluteUrl(termUrl('categories', categories[0]), origin) }]
+      : []),
+    { name: title, url: permalink },
+  ]),
+];
 ---
 
 <BaseLayout
@@ -173,6 +201,35 @@ const jsonLd = articleJsonLd({
 
       {/* 阅读量紧挨着「最后更新于」：都是文章属性，放一起读起来是一组 */}
       {pageview && <PageView stat={pageview} />}
+
+      {
+        series && (
+          <nav class="post-series" aria-labelledby="post-series-title">
+            <div class="post-series-head">
+              <Icon name="list" />
+              <span class="post-series-name" id="post-series-title">
+                {T.series}：{series.name}
+              </span>
+              <span class="post-series-count">
+                {T.seriesPart(series.index + 1, series.items.length)}
+              </span>
+            </div>
+            {/* 整份清单都列出来，而不是「还有 N 篇」——
+                读者靠它判断这个系列值不值得跟完，只给一个数字判断不了 */}
+            <ol class="post-series-list">
+              {series.items.map((item, i) => (
+                <li class:list={['post-series-item', { 'is-current': i === series.index }]}>
+                  {i === series.index ? (
+                    <span aria-current="page">{item.data.title}</span>
+                  ) : (
+                    <a href={postUrl(item)}>{item.data.title}</a>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </nav>
+        )
+      }
 
       <div class="markdown-body">
         <Content />
@@ -247,7 +304,7 @@ const jsonLd = articleJsonLd({
                 <a href={postUrl(prev)}>
                   <Icon name="arrow-left" />
                   <span class="label">
-                    {T.prevPost}：{prev.data.title}
+                    {series ? T.seriesPrev : T.prevPost}：{prev.data.title}
                   </span>
                 </a>
               ) : (
@@ -256,7 +313,7 @@ const jsonLd = articleJsonLd({
               {next ? (
                 <a href={postUrl(next)} class="post-next">
                   <span class="label">
-                    {T.nextPost}：{next.data.title}
+                    {series ? T.seriesNext : T.nextPost}：{next.data.title}
                   </span>
                   <Icon name="arrow-right" />
                 </a>
@@ -298,6 +355,9 @@ const jsonLd = articleJsonLd({
     </article>
     {/* 评论放在 </article> 之外：它不是这篇稿子的一部分，是读者之间的对话。
         也正因为如此，它不能进 <article> 的语义里，屏幕阅读器才不会把它当正文念 */}
+    {/* 最新评论排在评论区之前：先让读者看到「这里有人在聊」，
+        再要求他自己成为第一个开口的人。只有 Waline 能提供，别家自动不渲染 */}
+    <RecentComments />
     {showComments && <Comments />}
     {showToc && <Toc slot="aside" items={tocItems} />}
   </Board>

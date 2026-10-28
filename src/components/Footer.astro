@@ -2,39 +2,76 @@
 /**
  * Footer —— 页脚
  *
- * 原版的页脚有统计行（文章数 / 运行天数）、备案号、主题信息。这里保留前三样，
- * 全部在构建期算好，零 JS。
+ * 四行，从上到下：版权 + 站龄 / 订阅入口 / 主题信息 / 备案（可选）。
+ * 前半部分是构建期算好的；只有站龄需要浏览器参与 —— 静态站可能一年不重新构建，
+ * 构建期定死的天数会停在构建那天。
+ *
+ * 原版那行「N 篇文章 · N 个标签」去掉了：读者不关心，站主也不需要靠页脚
+ * 判断站点规模 —— 归档页本来就是干这个的，而且那行数字每加一篇文章都会变。
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
-import { getPosts, tagCounts } from '../utils/posts';
 
-const posts = await getPosts();
-const tags = tagCounts(posts);
 const year = new Date().getFullYear();
 const since = SITE.since && SITE.since !== year ? `${SITE.since}–${year}` : String(year);
+
+/* 站龄起点：优先 footer.runtime.since，没写就退到 `since` 那一年的 1 月 1 日 */
+const runtimeSince = (SITE.footer.runtime.since || `${SITE.since ?? year}-01-01`).trim();
+
+/* 构建当天的天数 —— 无脚本时的兜底，脚本会按访问当天重算。日期写坏了就是 NaN */
+const runtimeDays = Math.floor(
+  (Date.now() - new Date(runtimeSince).getTime()) / 86_400_000,
+);
+const runtime = SITE.footer.runtime.enable && Number.isFinite(runtimeDays);
+
+/* 开着但没填备案号，等于摆一行空的链接 —— 当成没开 */
+const beian = SITE.footer.beian;
+const showBeian = beian.enable && beian.text.trim() !== '';
 ---
 
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <div class="footer-stats">
-        <span>{posts.length} 篇文章</span>
-        <span>{tags.length} 个标签</span>
+      <div class="footer-meta">
+        <span>© {since} <a href="/">{SITE.title}</a></span>
+        {
+          runtime && (
+            <span class="footer-runtime" data-since={runtimeSince} data-text={T.runtimeDays}>
+              {T.runtimeDays.replace('{n}', String(Math.max(0, runtimeDays)))}
+            </span>
+          )
+        }
       </div>
 
-      <div>
-        © {since} <a href="/">{SITE.title}</a>
-      </div>
+      {
+        SITE.footer.links && (
+          <nav class="footer-links" aria-label={T.footerLinks}>
+            <a href="/rss.xml">RSS</a>
+            <a href="/atom.xml">Atom</a>
+            <a href="/sitemap-index.xml">Sitemap</a>
+          </nav>
+        )
+      }
 
-      <div>
-        {T.footerPowered}
+      <div class="footer-powered">
+        {T.footerPowered}{' '}
         <a href="https://astro.build/" target="_blank" rel="noopener noreferrer">Astro</a>
-        · {T.footerTheme}
-        <a href="https://github.com/capzk/astro-theme-flux" target="_blank" rel="noopener noreferrer">Flux</a>
+        {' · '}
+        {T.footerTheme}{' '}
+        <a href="https://github.com/capzk/astro-theme-flux" target="_blank" rel="noopener noreferrer">
+          Flux
+        </a>
       </div>
 
-      {SITE.beian && <div>{SITE.beian}</div>}
+      {
+        showBeian && (
+          <div class="footer-beian">
+            <a href={beian.link} target="_blank" rel="noopener noreferrer">
+              {beian.text}
+            </a>
+          </div>
+        )
+      }
     </div>
   </div>
 </footer>

@@ -210,4 +210,27 @@ export const waline: CommentProvider<WalineConfig> = {
       options: { serverURL: config.serverURL, update: true },
     };
   },
+
+  /**
+   * 最新评论：Waline 有一个公开的读接口 `GET /comment?type=recent`，
+   * 不需要鉴权，返回按时间倒序的评论数组。别家（Giscus / Artalk）没有对等的
+   * 东西，所以只有这一家实现 —— 换到别家时挂件自动消失，不会留空壳。
+   *
+   * `pageSize` 与 `count` 都给：不同小版本的 Waline 认其中一个，多传一个不报错。
+   */
+  recent(config, _ctx, { count, length }) {
+    const server = config.serverURL.replace(/\/+$/, '');
+    /* 不加 status 过滤：Waline 默认只返回已审核的评论，
+       显式传反而是老版本不认的参数 */
+    const params = new URLSearchParams({
+      type: 'recent',
+      count: String(count),
+      pageSize: String(count),
+    });
+    return {
+      type: 'waline',
+      endpoint: `${server}/comment?${params.toString()}`,
+      length,
+    };
+  },
 };

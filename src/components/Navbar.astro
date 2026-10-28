@@ -7,6 +7,7 @@
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
+import { isNavHidden } from '../utils/pages';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -30,7 +31,11 @@ const textOf = (item: { label?: string; labelKey?: string }) => {
   return item.label ?? (key ? (dict[key] ?? key) : '');
 };
 
-const nav = SITE.nav;
+const nav = SITE.nav.filter((item) => !isNavHidden(item.href));
+if (nav.length === 0) {
+  /* 全被关掉时至少留一个首页，别让顶栏变成一条空白的横杠 */
+  nav.push({ labelKey: 'home', href: '/', icon: 'home' });
+}
 ---
 
 <header>

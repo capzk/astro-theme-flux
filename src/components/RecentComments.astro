@@ -1,0 +1,51 @@
+---
+/**
+ * RecentComments —— 本站最新评论
+ * ---------------------------------------------------------------------------
+ * 拉全站最近 N 条评论，排在评论区之前。用途很实际：一个只有零星评论的站，
+ * 读者滚到底看到的往往是「还没有评论」，那这里到底是活的还是死的说不清；
+ * 把别处在聊什么摆出来，读者才知道这里有人。
+ *
+ * 只有 Waline 能提供（它有公开的 `GET /comment?type=recent`）。
+ * 换到 giscus / artalk 时 `resolveRecent` 返回 null，整块不渲染 ——
+ * 不会留一个永远转圈的加载态。
+ *
+ * 渲染在浏览器里做，且**只用 textContent**：Waline 的 `comment` 字段是 HTML，
+ * 用 innerHTML 拼就是把访客写的内容当代码执行。这里是评论列表，不是评论区，
+ * 不需要表情、链接、代码块 —— 纯文本足够了。
+ */
+import { SITE } from '../config';
+import { commentContext, resolveRecent } from '../comments';
+import { T } from '../i18n';
+import Icon from './Icon.astro';
+
+const ctx = commentContext(Astro.url, { site: Astro.site, lang: SITE.lang });
+const recent = resolveRecent(SITE.comment, ctx);
+
+if (!recent) return;
+
+const payload = JSON.stringify(recent).replace(/</g, '\\u003c');
+---
+
+<section
+  class="recent-comments"
+  aria-labelledby="recent-comments-title"
+  data-state="loading"
+>
+  <h2 class="recent-comments-title" id="recent-comments-title">
+    <Icon name="comment" />
+    <span>{T.recentComments}</span>
+  </h2>
+
+  <ul class="recent-comments-list"></ul>
+
+  <noscript>
+    <p class="recent-comments-empty">{T.recentCommentsNoScript}</p>
+  </noscript>
+
+  <script type="application/json" class="recent-config" is:inline set:html={payload} />
+</section>
+
+<script>
+  import '../scripts/recent.js';
+</script>
