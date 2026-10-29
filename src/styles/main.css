@@ -2295,6 +2295,10 @@ footer {
 .footer-runtime {
   font-variant-numeric: tabular-nums;
 }
+/* 浏览量 / 访客数同理：等宽数字，重新构建后位数变了也不会把整行挤歪 */
+.footer-stats {
+  font-variant-numeric: tabular-nums;
+}
 /* 两个 span 之间那个「·」：写在伪元素里，模板里就不必多一个会被读屏念出来的字符 */
 .footer-meta > * + *::before {
   content: '·';

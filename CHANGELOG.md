@@ -7,6 +7,43 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-29
+
+把 1.x 删掉的文章浏览量加回来 —— 这次不是自己存一份计数，而是**用 Umami 的只读 API
+在构建期读**。前面的 `analytics` 是往外发（埋点脚本），这一段是往里取。
+
+### Added
+
+- **文章阅读量与全站访客数**（`analytics.umami.stats`）。构建时调一次
+  `GET /websites/{id}/stats` 与 `GET /websites/{id}/metrics/expanded?type=path`，
+  把结果写进 HTML：文章页 banner 多一条「阅读 1,234 次」，页脚多一段
+  「12,345 次浏览 · 6,789 位访客」。读者那边**零请求** —— 页面里就是静态数字。
+
+  为什么在构建期取：静态站没有后端，`UMAMI_API_KEY` 一旦下发到浏览器就等于公开；
+  每页两个跨域请求换来的只是个位数加逗号，还得等接口；构建期取一次是零运行时开销，
+  与「页面到手即完整」的取舍一致。代价是数字停在构建那一刻，要实时得自己加代理。
+
+- **凭证走环境变量**（`UMAMI_API_KEY` 优先，`UMAMI_SHARE_ID` 是退路，后者等于把整站
+  报表公开可读），配合新增的 `.env.example`。`.env.local` / `.env.*.local` 补进
+  `.gitignore` —— 之前只忽略了 `.env` 和 `.env.production`，密钥照着文档写进
+  `.env.local` 会被提交。
+
+- **两条路径都做了**：`metrics/expanded`（Umami 2.11+，带 pageviews 明细）失败时自动
+  退回老的 `metrics`（只有 `{x, y}`），自建的老实例也能用。
+
+### 说明
+
+- **默认全关，且不影响构建。** `stats.enable` 默认 `false`，此时一次请求都不发。
+  开着但没配密钥 / 接口超时 / 拒绝 / 404，都只是数字不出现 —— 构建照常成功，
+  输出里一行提示。这类数字不该有能力让整站发不出去。
+- 没有数据的文章**不显示**阅读量，而不是显示 0。路径按去查询串、去尾斜杠归一后再查
+  （`/posts/a/` 与 `/posts/a` 是同一个键），所以 `excludeSearch: false` 时被 `?from=rss`
+  拆开的访问量也能合并回去。
+- 构建期体检补三条：开了 `stats` 却没有凭证、`src` 是站内反代却推不出 API 地址
+  （要手写 `stats.apiUrl`）、`limit` 小于 1。
+- 缓存挂在 `globalThis` 上（用 `Symbol.for` 取键）：一次构建里这个模块可能被求值多次，
+  模块级变量会变成好几份、各请求一遍。
+
 ## [4.0.0] - 2026-10-29
 
 对照 [Firefly](https://github.com/CuteLeaf/Firefly)（同类 Astro 主题，4 家统计）与
@@ -981,7 +1018,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...HEAD
+[4.1.0]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/capzk/astro-theme-flux/compare/v2.2.1...v3.0.0

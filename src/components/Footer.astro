@@ -8,9 +8,13 @@
  *
  * 原版那行「N 篇文章 · N 个标签」去掉了：读者不关心，站主也不需要靠页脚
  * 判断站点规模 —— 归档页本来就是干这个的，而且那行数字每加一篇文章都会变。
+ *
+ * 现在这里的数字是**累计浏览量与访客数**（来自 Umami 回读，构建期取）。
+ * 和「N 篇文章」的区别在于它是向上长的、读者看得懂的量。取不到就整段不渲染。
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
+import { formatCount, getUmamiStats } from '../utils/umami';
 
 const year = new Date().getFullYear();
 const since = SITE.since && SITE.since !== year ? `${SITE.since}–${year}` : String(year);
@@ -27,6 +31,12 @@ const runtime = SITE.footer.runtime.enable && Number.isFinite(runtimeDays);
 /* 开着但没填备案号，等于摆一行空的链接 —— 当成没开 */
 const beian = SITE.footer.beian;
 const showBeian = beian.enable && beian.text.trim() !== '';
+
+/* 全站累计。构建期取，所以是构建那一刻的数字；取不到（没配密钥 / 接口挂了）
+   就是 null，整段不渲染 —— 页脚不该出现「0 次浏览」这种更难看的东西 */
+const siteTotal = SITE.analytics.umami.stats.siteTotal ? (await getUmamiStats()).site : null;
+const pageviewsText = siteTotal && siteTotal.pageviews > 0 ? T.sitePageviews(formatCount(siteTotal.pageviews)) : '';
+const visitorsText = siteTotal && siteTotal.visitors > 0 ? T.siteVisitors(formatCount(siteTotal.visitors)) : '';
 ---
 
 <footer>
@@ -41,6 +51,10 @@ const showBeian = beian.enable && beian.text.trim() !== '';
             </span>
           )
         }
+        {/* 两个 span 而不是一个：中间那个「·」由 .footer-meta > * + *::before 出，
+            读屏不会把它念出来 */}
+        {pageviewsText && <span class="footer-stats">{pageviewsText}</span>}
+        {visitorsText && <span class="footer-stats">{visitorsText}</span>}
       </div>
 
       {

@@ -149,6 +149,20 @@ function inspect(config: SiteConfig): string[] {
      所以在构建期把「格式明显对不上」的值挑出来。 */
   const { analytics, verification } = config;
 
+  /** 环境变量：平台注入的走 process.env，本地 .env.local 走 import.meta.env */
+  const envOf = (key: string): string =>
+    String((typeof process !== 'undefined' ? process.env?.[key] : '') ?? '').trim() ||
+    String((import.meta.env as unknown as Record<string, string | undefined>)[key] ?? '').trim();
+
+  /* 回读统计挂在 analytics 总开关之下（一键全关要真的全关），但单独说一句 ——
+     「我明明开了阅读量」和「开关在上一层」这两件事对不上时，找起来很费劲 */
+  if (analytics.umami.stats.enable && !analytics.enable) {
+    issues.push(
+      'analytics.umami.stats.enable 是 true，但 analytics.enable 是 false —— ' +
+        '总开关关着，阅读量和访客数都不会显示。把 analytics.enable 改成 true，或者先别开 stats。',
+    );
+  }
+
   if (analytics.enable) {
     const { google, umami, clarity } = analytics;
 
@@ -201,6 +215,45 @@ function inspect(config: SiteConfig): string[] {
         issues.push(
           `analytics.umami.hostUrl 是 "${umami.hostUrl}" —— 它是要发数据的地址，` +
             '必须写完整的 https://…（不带结尾斜杠）。只写域名不会报错，只是数据发不出去。',
+        );
+      }
+    }
+
+    /* ---- 从 Umami 回读统计 ---------------------------------------------------
+       开关开着却没有凭证 = 数字永远不出现，而且只在构建输出里留一行 warn，
+       很容易被几十行构建日志淹掉。这里提前说清楚该配哪个变量。 */
+    if (umami.stats.enable) {
+      const hasKey = Boolean(envOf('UMAMI_API_KEY'));
+      const hasShare = Boolean(envOf('UMAMI_SHARE_ID'));
+
+      if (!hasKey && !hasShare) {
+        issues.push(
+          'analytics.umami.stats.enable 是 true，但 UMAMI_API_KEY 和 UMAMI_SHARE_ID 都没有 —— ' +
+            '阅读量和访客数一个都不会出现（构建本身照常成功）。本地写进 .env.local，' +
+            '线上配在部署平台的环境变量里。',
+        );
+      }
+
+      /* 用 API key 时请求路径里必须带站点 id；分享模式下 id 由接口给，可以不填。
+         上面 umami.enable 那段已经查过一次，别重复说 */
+      if (!umami.enable && !umami.websiteId.trim() && !hasShare) {
+        issues.push(
+          'analytics.umami.stats.enable 是 true，但 analytics.umami.websiteId 是空的 —— ' +
+            '读不到任何数据。去 Umami 后台 → 网站 → 编辑里抄「网站 ID」。',
+        );
+      }
+
+      /* 站内反代（src: '/stats/script.js'）推不出绝对地址，而构建时没有 origin */
+      if (/^\//.test(umami.src.trim()) && !(umami.stats.apiUrl ?? '').trim()) {
+        issues.push(
+          'analytics.umami.src 是站内路径，推不出 API 的绝对地址 —— ' +
+            '请补上 analytics.umami.stats.apiUrl（如 https://analytics.你的域名/api）。',
+        );
+      }
+
+      if (!Number.isFinite(umami.stats.limit) || umami.stats.limit < 1) {
+        issues.push(
+          `analytics.umami.stats.limit 是 ${umami.stats.limit} —— 至少要 1，否则一条路径都取不到。`,
         );
       }
     }
@@ -314,6 +367,7 @@ export type {
   AnalyticsConfig,
   GoogleAnalyticsConfig,
   UmamiConfig,
+  UmamiStatsConfig,
   ClarityConfig,
   VerificationConfig,
 } from './types';

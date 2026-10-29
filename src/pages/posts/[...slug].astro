@@ -33,6 +33,7 @@ import {
 } from '../../utils/posts';
 import { absoluteUrl, articleJsonLd, breadcrumbJsonLd, shareImage } from '../../utils/seo';
 import { isAsset, srcOf } from '../../utils/image';
+import { formatCount, getUmamiStats, viewsOf } from '../../utils/umami';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
@@ -103,6 +104,19 @@ if (SITE.post.meta.wordcount) {
 }
 if (SITE.post.meta.min2read) {
   metaBottom.push({ icon: 'clock', text: `${stats.minutes} ${T.minRead}` });
+}
+
+/* 阅读量。来自构建期回读的 Umami 数据（见 utils/umami.ts），所以这是一个静态数字，
+   读者浏览器不会为此发任何请求。三个细节：
+   · 只有 Umami 真的给了这条路径的数字才显示 —— 「阅读 0 次」比不显示更劝退；
+   · 路径按 `astro build` 产物算（带尾斜杠），Umami 那边记的也是同一个；
+   · 数字变化的时机是「下次构建」，不是「下次访问」。 */
+let views = 0;
+if (SITE.analytics.umami.stats.postViews) {
+  views = viewsOf(await getUmamiStats(), Astro.url.pathname);
+}
+if (views > 0) {
+  metaBottom.push({ icon: 'eye', text: T.postViews(formatCount(views)) });
 }
 const metaRows = [metaTop, metaBottom];
 
