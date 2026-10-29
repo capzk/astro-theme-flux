@@ -7,6 +7,13 @@
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-10-29
+
+收尾检查时发现的一处口径不一致：构建期体检用 `envOf` 双读 `process.env` 和
+`import.meta.env`，而真正取数的 `utils/umami.ts` 只读 `process.env`。
+两边看到的环境变量可能不同 —— 体检说「有 key」而运行时读不到，是最难查的那种。
+现在统一只读 `process.env`（Astro 起构建时会把 `.env.local` 和平台注入的都放进去）。
+
 ## [4.2.0] - 2026-10-29
 
 凭证从「只能走环境变量」改成「直接写配置里」。原来的设计默认了站点仓库是公开的，
@@ -1063,7 +1070,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.2.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...HEAD
+[4.2.1]: https://github.com/capzk/astro-theme-flux/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...v4.1.0

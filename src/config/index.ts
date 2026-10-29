@@ -149,10 +149,9 @@ function inspect(config: SiteConfig): string[] {
      所以在构建期把「格式明显对不上」的值挑出来。 */
   const { analytics, verification } = config;
 
-  /** 环境变量：平台注入的走 process.env，本地 .env.local 走 import.meta.env */
-  const envOf = (key: string): string =>
-    String((typeof process !== 'undefined' ? process.env?.[key] : '') ?? '').trim() ||
-    String((import.meta.env as unknown as Record<string, string | undefined>)[key] ?? '').trim();
+  /* 只看 `process.env`：Astro 起构建时会把 `.env.local` 和平台注入的变量都放进去。
+     和 utils/umami.ts 里的读法保持一致 —— 体检说「有 key」而运行时读不到，是最难查的那种。 */
+  const envOf = (key: string): string => String(process.env[key] ?? '').trim();
 
   /* 回读统计挂在 analytics 总开关之下（一键全关要真的全关），但单独说一句 ——
      「我明明开了阅读量」和「开关在上一层」这两件事对不上时，找起来很费劲 */
