@@ -82,6 +82,12 @@ const {
 
 const Heading = headingTag;
 
+/* 元信息行：空行直接丢掉。`meta-extra` 插槽挂在最后一行末尾 ——
+   浏览量这类「数字要等接口回来才有」的项填不进 metas 的静态字符串，
+   但它和字数、阅读时长属于同一类信息，就该在同一行。 */
+const metaRows = metas.filter((row) => row.length > 0);
+const hasMetaExtra = Astro.slots.has('meta-extra');
+
 /* 文案归一化成数组：单句也当只有一句的列表处理，后面逻辑只有一条路径 */
 const lines = (Array.isArray(subtitle) ? subtitle : subtitle ? [subtitle] : [])
   .map((line) => line.trim())
@@ -162,7 +168,7 @@ const style = [
       )
     }
     {
-      metas.filter((row) => row.length > 0).map((row) => (
+      metaRows.map((row, index) => (
         <div class="banner-metas">
           {row.map((m) => (
             <span class="banner-meta">
@@ -170,9 +176,16 @@ const style = [
               {m.text}
             </span>
           ))}
+          {/* 只在最后一行末尾挂插槽；拿不到数字时那边会自己摘掉，不留残句 */}
+          {index === metaRows.length - 1 && hasMetaExtra && <slot name="meta-extra" />}
         </div>
       ))
     }
+    {hasMetaExtra && metaRows.length === 0 && (
+      <div class="banner-metas">
+        <slot name="meta-extra" />
+      </div>
+    )}
   </div>
   {
     scrollDown && (

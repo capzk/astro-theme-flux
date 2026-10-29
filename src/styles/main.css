@@ -947,18 +947,23 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 .post-meta-updated {
   margin: 0 0 16px;
 }
-/* 「阅读 N 次」—— 紧跟在更新日期下面，所以上边距小、下边距回到正文间距 */
-.post-meta-pageview {
-  margin: -10px 0 16px;
-}
+/* 「阅读 N 次」—— 挂在 banner 的元信息行末尾（字数 / 阅读时长之后），
+   所以这里只管数字本身，间距交给 .banner-metas */
 /* 数字由评论系统的插件异步回填，回填前是个空 span。
-   空的时候给个占位符，免得先显示「阅读 次」再补上数字 */
+   空的时候给个占位符，免得先显示「阅读 次」再补上数字；
+   实在拿不到就整块摘掉（见 scripts/pageview.js） */
 .post-pageview-value > span:empty::before {
   content: '—';
 }
 .post-pageview-value {
+  /* 先占住两位数的宽度：数字回填时不会把这一行（居中排列）挤得抖一下。
+     等宽数字 + min-width 一起用，1 位数和 2 位数占的格子一样宽 */
+  display: inline-block;
+  min-width: 2ch;
+  text-align: center;
   font-variant-numeric: tabular-nums;
-  color: var(--text-color);
+  /* 继承 banner 上的字色，别用正文色 —— 白字背景上会看不见 */
+  color: inherit;
 }
 
 /* ---------- 8. 文章页 ---------- */

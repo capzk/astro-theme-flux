@@ -182,7 +182,10 @@ const jsonLd = [
     height={SITE.postBanner.height}
     maskAlpha={post.data.bannerMaskAlpha ?? SITE.postBanner.maskAlpha}
     metas={metaRows}
-  />
+  >
+    {/* 浏览量接在 banner 元信息的最后一行末尾，紧跟字数和阅读时长 */}
+    {pageview && <PageView slot="meta-extra" stat={pageview} />}
+  </Banner>
 
   <Board rails={showToc}>
     <article class="post-content">
@@ -198,9 +201,6 @@ const jsonLd = [
           </p>
         )
       }
-
-      {/* 阅读量紧挨着「最后更新于」：都是文章属性，放一起读起来是一组 */}
-      {pageview && <PageView stat={pageview} />}
 
       {
         series && (
