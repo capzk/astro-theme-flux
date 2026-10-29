@@ -168,15 +168,14 @@ banner: {
 卡片封面与 banner 都垫了一层「这张图的主色调」渐变：图片还没下载完时，那个位置显示的是
 它大致什么颜色，而不是一块白。
 
-生成一次即可，产物（`src/data/lqips.json`，一张图 18 个字符）会提交进仓库：
+**不需要任何命令。** `src/integrations/lqip.mjs` 在 `astro:config:setup` 里把每张图的颜色算好，
+挂成虚拟模块 `virtual:flux-lqip`，构建和开发时自动生效 —— 换完图直接构建即可。
 
-```bash
-npm run lqips
-```
+因为是集成而不是脚本，它跟命令行入口无关：`npm run build`、`astro build`、
+CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比如 sharp 的原生二进制拉不到）
+只打一行警告，页面照旧，只是没有那层底色，不会让构建失败。
 
-**换图之后要重跑一次**，否则新图没有占位色（不会报错，只是那一条退回没有底色）。
-它不在构建流程里 —— 因为占位色缺席的代价是「少一点精致」，而让 CF Pages 的构建机
-去跑 sharp 遍历所有图片，代价是「整站可能构建失败」，不划算。
+也没有中间文件要提交 —— 颜色直接内联进构建结果，不存在「忘了重新生成」这种状态。
 
 查不到占位色就直接不输出 `style`，不猜、不留半成品；外链图不参与（它不在扫描目录里）。
 
@@ -613,7 +612,7 @@ src/
 ├── content.config.ts    # 集合与 front matter 校验
 ├── content/posts/       # 文章
 ├── assets/              # 参与优化的图片源文件（封面、banner）
-├── data/lqips.json      # 每张图的主色调（`npm run lqips` 生成，入库）
+├── integrations/lqip.mjs # 占位色集成：算每张图的主色调 → virtual:flux-lqip
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /
@@ -637,13 +636,11 @@ src/
 ├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计（含构建期缓存）
 ├── utils/slug.ts        # URL 规范化（含中文转拼音）
 ├── utils/image.ts       # 图片两种写法的统一处理
-├── utils/lqip.ts        # 图片 → 占位色渐变（读 data/lqips.json）
+├── utils/lqip.ts        # 图片 → 占位色渐变（读 virtual:flux-lqip）
 ├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
 ├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
 └── styles/main.css      # 全部样式（变量分亮暗两套）
-
-scripts/generate-lqips.mjs  # 手动跑的占位色生成器（不在构建流程里）
 
 ```
 

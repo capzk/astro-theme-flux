@@ -7,6 +7,44 @@
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-29
+
+### Added
+
+- **正文图片自动懒加载**。Markdown 写出来的 `<img>` 一直是个裸标签 —— 没有 `loading`、
+  没有 `decoding`，于是一篇 20 张图的文章一打开就并发去图床拉 20 张原图：读者要读的
+  是第二段，付出的是整篇的流量，首屏还会因为带宽被抢走而变慢。现在构建期统一补上
+  `loading="lazy"` 与 `decoding="async"`，滚到附近才请求、解码不占主线程。
+  作者显式写过的原值不动（比如某张图确实要在首屏，写了 `loading="eager"`）。
+  见 `src/plugins/markdown.js` 的 `imageLoading()`。
+
+### Removed
+
+- **示例站不再带一张真实照片**（`public/img/banner-1.webp`，185 KB）。演示配置拿它当首页
+  和文章页的 banner，等于替使用者挑了一张「别人的照片」—— 照片有版权归属，调性也未必是
+  别人想要的。现在 `user/appearance.ts` 回退到主题自带的 `/img/banner.svg`（纯色矢量图），
+  主题仓库里只保留这张默认图；想换图的用户把自己的图放进 `src/assets/` 再 import，
+  顺带就拿到了多档 webp。
+- 同一批移掉的还有 `src/assets/banner.webp`：它只出现在文档示例与注释里，从来没有被真正
+  import 过，留着只会让人误以为改动它有用。
+
+### Changed
+
+- **占位色改成 Astro 集成，不再有「记得跑一次」这回事**。以前换图后要人执行
+  `npm run lqips`；中途还试过给 `build` 挂 `prebuild` 钩子，但那等于把这件事强加在 npm
+  命令上 —— 换个入口（`astro build`、IDE 的构建按钮、CI 里写 `npx astro build`）就静默失效。
+
+  现在是 `src/integrations/lqip.mjs`：在 `astro:config:setup` 里把每张图的主色调算好，
+  挂成虚拟模块 `virtual:flux-lqip` 交给 `utils/lqip.ts`。构建与开发都会经过这个钩子，
+  与命令行入口无关，也不需要额外的 npm script。
+
+  两处副产品：`scripts/generate-lqips.mjs` 与 `src/data/lqips.json` 一并删掉 ——
+  没有中间文件，自然也没有「忘了重新生成」这种状态；`package.json` 里的 `lqips` /
+   `prebuild` / `predev` 全部移除。
+
+  算不出来时（比如 sharp 的原生二进制拉不到）只打一行警告，页面照旧、只是没有那层底色，
+  不会让构建失败。README 与《站点配置》里的说法已同步。
+
 ## [2.1.1] - 2026-10-28
 
 ### Fixed

@@ -248,7 +248,7 @@ index: {
 
 <div class="note note-warning">摘要长度只影响列表，不影响 SEO —— <code>&lt;meta name="description"&gt;</code> 始终用完整的 <code>description</code>。</div>
 
-<div class="note note-info">封面与 banner 下面都垫着一层「主色调渐变」：图还没下载完时，那个位置显示的是它大致什么颜色，而不是一块白。数据是构建期生成好的（<code>src/data/lqips.json</code>，一张图 18 个字符），<strong>换了图要跑一次 <code>npm run lqips</code></strong> —— 不跑不会报错，只是新图没有那层底色。</div>
+<div class="note note-info">封面与 banner 下面都垫着一层「主色调渐变」：图还没下载完时，那个位置显示的是它大致什么颜色，而不是一块白。颜色由 <code>src/integrations/lqip.mjs</code> 在构建时自动算好（虚拟模块 <code>virtual:flux-lqip</code>），换完图直接构建就行，没有任何需要记得跑的步骤。</div>
 
 ## 文章页组件
 

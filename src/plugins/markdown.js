@@ -270,3 +270,34 @@ export function imageReferrer() {
     },
   };
 }
+
+/* --------------------------------------------------------------------------
+ * 6. 正文图片懒加载
+ * ------------------------------------------------------------------------ */
+
+/**
+ * Markdown 写出来的 `<img>` 是个「裸」标签：没有 `loading`、没有 `decoding`。
+ * 于是一篇 20 张图的文章一打开，浏览器就并发去图床拉 20 张原图 —— 读者要读的
+ * 是第二段，付出的却是整篇的流量，首屏还会因为带宽被抢走而变慢。
+ *
+ * 补两个属性就够：
+ *   loading="lazy"     滚到附近才请求（Chrome 仍留 1250px 的预取余量，不会真等到眼前）
+ *   decoding="async"   解码挪出主线程，长文滚动时不掉帧
+ *
+ * 正文图之前先是 banner（60vh）和标题元信息，第一张图也必然在首屏之下 ——
+ * 所以统一给 lazy，不做「第一张 eager」的特例。
+ *
+ * 作者显式写了就尊重作者（比如某张图确实要在首屏、写了 loading="eager"）。
+ */
+export function imageLoading() {
+  return {
+    name: 'flux:image-loading',
+    element: {
+      filter: ['img'],
+      visit(node, ctx) {
+        if (!node.properties?.loading) ctx.setProperty(node, 'loading', 'lazy');
+        if (!node.properties?.decoding) ctx.setProperty(node, 'decoding', 'async');
+      },
+    },
+  };
+}

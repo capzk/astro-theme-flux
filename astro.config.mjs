@@ -8,10 +8,12 @@ import {
   codeToolbar,
   emailLinks,
   headingAnchors,
+  imageLoading,
   imageReferrer,
   linkTargets,
 } from './src/plugins/markdown.js';
 import { codeMeta } from './src/plugins/shiki.js';
+import lqip from './src/integrations/lqip.mjs';
 import { createLastmodResolver } from './scripts/sitemap-lastmod.mjs';
 import PAGES from './src/config/user/pages.ts';
 import { isListPage } from './src/utils/list-pages.ts';
@@ -87,6 +89,9 @@ export default defineConfig({
    *      所以「不在 sitemap」和「页面自己说不许索引」是同一件事，不会打架。
    */
   integrations: [
+    /* 占位色：在 astro:config:setup 里算好，挂成 virtual:flux-lqip。
+       跑在 Astro 自己的生命周期里 —— 直接 `astro build` 也生效，不依赖 npm scripts。 */
+    lqip(),
     sitemap({
       filter: (page) => {
         const path = new URL(page).pathname;
@@ -118,6 +123,7 @@ export default defineConfig({
         codeToolbar(),
         linkTargets(),
         emailLinks(),
+        imageLoading(),
         imageReferrer(),
       ],
     }),

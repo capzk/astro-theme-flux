@@ -3,16 +3,20 @@
  * ---------------------------------------------------------------------------
  * 背景图有三种写法，换图只改 `img` 这一行：
  *
- *   img: '/img/banner-1.webp'                 ← public/ 里的文件，原样输出
+ *   img: '/img/banner.svg'                    ← public/ 里的文件，原样输出
  *   img: bannerAsset                          ← import 的本地图，走优化（多档 webp）
  *   img: 'https://example.com/a.jpg'          ← 外链
  *   不写 img / 写 ''                          ← 不要图，纯色底（标题照常显示）
  *
  * `enable: false` 则是连 banner 整块都不要，页面从卡片流开始。
+ *
+ * 主题自带的 `/img/banner.svg` 是一张纯色矢量图，故意做得没有内容倾向 ——
+ * 示例站不该替使用者选一张「好看但别人的」照片。换图请把自己的图放进
+ * `src/assets/` 再 import（写法见下面被注释掉的那行），这样才会走图片优化。
  */
 import { defineConfig } from '../merge';
-/* 想给文章页换一张更轻的图，就 import 进来用（会被优化成多档 webp）：
-   import bannerAsset from '../../assets/banner.webp';  →  img: bannerAsset */
+/* 想用自己的图（会被优化成多档 webp），把图放进 src/assets/ 后：
+   import bannerAsset from '../../assets/你的图.webp';  →  img: bannerAsset */
 
 export default defineConfig({
   banner: {
@@ -21,7 +25,7 @@ export default defineConfig({
     /** 首页大标题。**不写就用站名**（site.ts 的 title）；设成 `''` 则整块不渲染 */
     // title: 'Hi，我是 capz',
     /** 背景图。换成你自己的图就是改这一行 */
-    img: '/img/banner-1.webp',
+    img: '/img/banner.svg',
     height: '100vh',
     /* 黑色蒙版透明度 0~1：越大字越清楚，越小图越透。
        0 = 完全不加蒙版，图片保持原始亮度（想压暗一点就 0.2~0.4） */
@@ -46,7 +50,7 @@ export default defineConfig({
 
   /* 文章页顶部的 banner（单篇可在 front matter 用 banner 覆盖） */
   postBanner: {
-    img: '/img/banner-1.webp',
+    img: '/img/banner.svg',
     height: '60vh',
     /* 同样不压暗。文章页比首页多两行小字（作者/日期、字数/时长），
        如果压在白字看不清，就单独把这里抬到 0.2 左右，首页不受影响 */

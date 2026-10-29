@@ -1,7 +1,9 @@
 /**
  * LQIP 占位色
  * ---------------------------------------------------------------------------
- * 数据来自 `src/data/lqips.json`（由 `npm run lqips` 生成并入库），
+ * 数据来自虚拟模块 `virtual:flux-lqip`：由 `src/integrations/lqip.mjs` 在
+ * `astro:config:setup` 里算好，构建与开发时自动生成 —— 没有中间文件要提交，
+ * 也不存在「换图后忘了重新生成」这种状态。
  * 一条记录是 18 个字符：顶左 6 位 + 顶右 6 位 + 底右 6 位，不带 `#`。
  *
  * 这里负责把「一张图」翻译成「一条 CSS 渐变」：
@@ -10,13 +12,13 @@
  *   banner     → 并进 background-image 的第二层，第一层是真图
  *
  * 两种图源都要认：
- *   - 字符串 `/img/banner-1.webp` → 直接查 `public/img/banner-1.webp`
+ *   - 字符串 `/img/cover-x.webp` → 直接查 `public/img/cover-x.webp`
  *   - `import` 进来的 ImageMetadata → 构建后的地址是 `/_astro/xxx.hash.webp`，
  *     已经看不出源文件在哪，所以用 import.meta.glob 反查一遍（见下方 pathBySrc）
  *
  * 查不到就返回 undefined，调用方不加任何 style —— 不猜、不留半成品。
  */
-import lqips from '../data/lqips.json';
+import lqips from 'virtual:flux-lqip';
 import { isAsset, type ImageSource } from './image';
 import type { ImageMetadata } from 'astro';
 

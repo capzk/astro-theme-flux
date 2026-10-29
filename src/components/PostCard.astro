@@ -43,7 +43,7 @@ const dateText = date.toLocaleDateString('zh-CN', {
   {
     coverSrc && (
       /* 底色是这张图的主色调（LQIP）：图还没到时先显示一块颜色，
-         而不是白方块。数据由 `npm run lqips` 生成，见 utils/lqip.ts */
+         而不是白方块。颜色由 integrations/lqip.mjs 构建期算好，见 utils/lqip.ts */
       <div class="index-img" style={lqipStyle(coverSrc)}>
         <a href={url} aria-hidden="true" tabindex="-1">
           {isAsset(coverSrc) ? (
