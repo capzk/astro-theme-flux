@@ -53,23 +53,6 @@ export interface CommentSection extends CommentPayload {
 }
 
 /**
- * 「数字占位」的描述 —— 浏览量、评论数这类由小插件回填的数字。
- * 插件自己会找 `className` 的元素、读它的 `data-path`、把结果写进 textContent。
- */
-export interface CommentStat {
-  /** 插件脚本地址（Waline 的 pageview.js / comment.js 都在 1KB 上下） */
-  js: string;
-  /** 插件里那个「去取数」的函数名，加载后调用一次 */
-  exportName: string;
-  /** 插件回填的 class 名，由 provider 提供 —— 组件不必知道是哪一家 */
-  className: string;
-  /** 查询用的路径 */
-  path: string;
-  /** 传给插件的固定参数，例如服务端地址 */
-  options: Record<string, string | number | boolean>;
-}
-
-/**
  * 「本站最新评论」挂件的取数说明。
  *
  * 各家的接口形状差得太远（Waline 是 `GET /comment?type=recent`，别家没有或者
@@ -108,13 +91,6 @@ export interface CommentProvider<TConfig> {
    */
   origins?(config: TConfig): string[];
   /**
-   * 可选：文章页浏览量。不实现就是「这家没有这个功能」。
-   *
-   * 只有这一项可选能力 —— 接口里每留一个空位，就得有人实现、有人调用；
-   * 列表页的评论数这类目前都没接，等真要用了再加方法，别先摆一个谁都不实现的位置。
-   */
-  pageview?(config: TConfig, ctx: CommentContext): CommentStat | null;
-  /**
    * 可选：文章页底部的「本站最新评论」。不实现就是「这家取不到」，
    * 挂件整块不渲染 —— 不会留一个永远转圈的加载态。
    *
@@ -129,12 +105,10 @@ export interface CommentProvider<TConfig> {
   ): RecentCommentsSpec | null;
 }
 
-/** 一次解析的完整结果：评论区、浏览量、最新评论各管各的 */
+/** 一次解析的完整结果：评论区、最新评论各管各的 */
 export interface ResolvedComments {
   /** 评论区；null = 这一页不渲染评论区 */
   section: CommentSection | null;
-  /** 文章页浏览量；null = 不渲染 */
-  pageview: CommentStat | null;
   /** 最新评论挂件；null = 不渲染 */
   recent: RecentCommentsSpec | null;
 }

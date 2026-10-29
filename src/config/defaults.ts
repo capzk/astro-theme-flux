@@ -91,8 +91,6 @@ const DEFAULT_CONFIG: SiteConfig = {
       /* 昵称必填、邮箱选填。想全匿名改成 []，想要邮箱也必填再加 'mail' */
       requiredMeta: ['nick'],
       pageSize: 10,
-      /* 文章页显示「阅读 N 次」。不需要就设 false —— 关掉后连那 1KB 插件都不发 */
-      pageview: true,
     },
     giscus: {
       repo: '',

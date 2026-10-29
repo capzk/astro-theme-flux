@@ -7,6 +7,57 @@
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-29
+
+### Removed
+
+- **浏览量（「阅读 N 次」）整块移除。** 这个功能从 1.5.0 起就依赖评论系统自带的计数插件，
+  而 Waline 那支插件写计数失败时走的是 `fetch().then(回填)`、**没有 catch** ——
+  服务端限制来源域、隐私插件、请求拦截器命中任一个，数字就永远回填不上，
+  页面上只剩一句「阅读 次」。2.2.1 试过「等结果 + 只读退路 + 摘掉整块」，
+  仍然救不回来：与其留一个「有时候有、有时候没有」的项，不如去掉。
+  1KB 的插件、一次额外请求与一份摆不平的失败态，换来的是一个读者未必需要的数字。
+
+  连带删除：`comment.waline.pageview` 配置项、`components/PageView.astro`、
+  `scripts/pageview.js`、评论层契约里的 `CommentStat` 与 `CommentProvider.pageview()`、
+  `resolvePageview()`、i18n 的 `pageview` / `pageviewUnit`、`Banner` 的 `meta-extra` 插槽，
+  以及 README 与示例文章里的相关段落。
+
+  **升级动作：删掉配置里那行 `pageview: true`。** 留着不会崩，但 `npm run check`
+  会报「对象字面量只能指定已知属性」—— 那是配置体检在起作用，不是故障。
+
+### Changed
+
+- **样式表内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，
+  外链意味着首屏永远要多一个完整往返；而文章页 HTML 本身才 12KB，
+  省下的从来不是带宽，是那一跳。现在 HTML 到手即可绘制。
+  代价是每页 HTML 多 8KB（gzip 后），但 HTML 设的是 `max-age=0, must-revalidate`，
+  回访时 304 不带正文，内联的 CSS 不会真的重传。
+  **样式表长到几十 KB 时应当改回 `'auto'`**，改做「关键 CSS 内联 + 其余异步」——
+  这套做法只适合现在这个体量，别照搬到别的项目。
+- **首屏大图的 preload 从「只在首页」扩展到所有页面**。banner 写成字符串路径时，
+  图是 CSS 背景加载的：浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍。
+  现在 `BaseLayout` 接受 `bannerImg`，页面不传就按「首页 `banner.img` / 其余 `postBanner.img`」
+  推断；文章页传自己那张 banner 图，避免 preload 一张这页根本不用的图、白占首屏带宽。
+  `import` 进来的图仍由 `<Image>` 输出 `<img fetchpriority="high">`，不走这条。
+  显式传 `null`（404 页）表示这一页没有 banner，不输出 preload。
+- **文章页底部的「下一篇」改用 `viewport` 预取**。手机上根本不会触发 hover，
+  而「读到底 → 点下一篇」是文章页最确定的下一步：滚到它就取回 HTML，点击即开。
+  其余链接仍然只在悬停时取，`viewport` 只标了这一个。
+
+### Fixed
+
+- **分享图（`og:image`）此前只看 `banner`，`cover` 完全没用上** —— README 一直写着
+  「配了封面裁成 1200×630 的 JPEG」，代码却取的是 `bannerSource`，于是**只有同时配了
+  `banner` 的文章才有专属分享图**，其余全部退回站点默认图（示例站 14 篇里 13 篇是
+  同一张 `og.png`）。现在顺序改为 `cover` → `banner` → `indexImg` → 站点图：
+  封面本来就是列表卡片上那张图，读者与爬虫都是先见到它。
+- **补上 `og:image:width/height`**，但只在「我们自己裁」的那条路上写（确定是 1200×630）——
+  Slack / LinkedIn / Discord 这类平台拿到宽高就不用再探测一次。
+  落到 `SITE.ogImage` 或直接引用原图的页面仍然不写：尺寸随图而变，标错比不标更糟。
+  原来 README 里「故意不写」的说法指的是「不知道尺寸就别写」，现在这条规则还在，只是不再一刀切。
+- `npm run check` 在文章页会提示 `commentContext` 未使用 —— 它此前只服务于浏览量。
+
 ## [2.2.1] - 2026-10-29
 
 ### Fixed
@@ -842,7 +893,21 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v1.1.3...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...HEAD
+[3.0.0]: https://github.com/capzk/astro-theme-flux/compare/v2.2.1...v3.0.0
+[2.2.1]: https://github.com/capzk/astro-theme-flux/compare/v2.2.0...v2.2.1
+[2.2.0]: https://github.com/capzk/astro-theme-flux/compare/v2.1.1...v2.2.0
+[2.1.1]: https://github.com/capzk/astro-theme-flux/compare/v2.1.0...v2.1.1
+[2.1.0]: https://github.com/capzk/astro-theme-flux/compare/v2.0.2...v2.1.0
+[2.0.2]: https://github.com/capzk/astro-theme-flux/compare/v2.0.1...v2.0.2
+[2.0.1]: https://github.com/capzk/astro-theme-flux/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/capzk/astro-theme-flux/compare/v1.5.0...v2.0.0
+[1.5.0]: https://github.com/capzk/astro-theme-flux/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/capzk/astro-theme-flux/compare/v1.3.2...v1.4.0
+[1.3.2]: https://github.com/capzk/astro-theme-flux/compare/v1.3.1...v1.3.2
+[1.3.1]: https://github.com/capzk/astro-theme-flux/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/capzk/astro-theme-flux/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/capzk/astro-theme-flux/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/capzk/astro-theme-flux/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/capzk/astro-theme-flux/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/capzk/astro-theme-flux/compare/v1.1.0...v1.1.1

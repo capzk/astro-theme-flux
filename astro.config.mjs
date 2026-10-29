@@ -56,7 +56,27 @@ export default defineConfig({
 
   /* 与 Hexo 版一致：/posts/hello/ 带尾斜杠、目录式输出，旧链接不会 404 */
   trailingSlash: 'always',
-  build: { format: 'directory' },
+  build: {
+    format: 'directory',
+    /**
+     * 样式表内联进 HTML，而不是留一个 `<link rel="stylesheet">`。
+     *
+     * 主题只有一份 `main.css`（gzip 后 8KB 上下），而它是**渲染阻塞**的：
+     * 浏览器拿到 HTML 后还要再要一次 CSS，解析完才画第一帧 —— 首屏因此多一个
+     * 完整往返。页面本身很小（文章页 gzip 十几 KB），瓶颈从来不是带宽，是那一跳。
+     *
+     * 内联后：HTML 到手即可绘制，首屏少一个往返；而 `<link>` 那个请求本来就
+     * 只省「第二次访问」，HTML 我们设的是 `max-age=0, must-revalidate`，
+     * 回访时 304 不带正文，内联的 CSS 也不会真的重传。
+     *
+     * 代价是每页 HTML 大 8KB 左右（gzip 后），预取时多传这点字节 ——
+     * 与「每个新页面都省一个 RTT」相比是划算的。样式表长到几十 KB 时应当改回
+     * `'auto'` 并改做「关键 CSS 内联 + 其余异步」，这套做法只适合现在这个体量。
+     *
+     * @see https://docs.astro.build/zh-cn/reference/configuration-reference/#buildinlinestylesheets
+     */
+    inlineStylesheets: 'always',
+  },
 
   /**
    * 预取：鼠标悬停在链接上时就把目标页面悄悄取回来。

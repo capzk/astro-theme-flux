@@ -38,8 +38,8 @@ export interface NavItem {
  * 模板里的占位符：
  *   `{name}`     npm 包名，固定是 `@waline/client`
  *   `{version}`  版本号，来自下面的 `version`
- *   `{file}`     包内相对路径，如 `dist/waline.js`、`dist/waline.css`、`dist/pageview.js`
- *   `{basename}` 文件名主干，如 `waline`、`pageview`
+ *   `{file}`     包内相对路径，如 `dist/waline.js`、`dist/waline.css`
+ *   `{basename}` 文件名主干，如 `waline`
  *   `{ext}`      扩展名，`js` 或 `css`
  *
  * 例子：
@@ -111,13 +111,13 @@ export interface WalineConfig {
    *
    *   自托管、文件平铺在 public/waline/、文件名带版本号
    *     cdn: '/waline/{basename}-{version}.{ext}', version: '3.16.1'
-   *     → /waline/waline-3.16.1.js、/waline/waline-3.16.1.css、/waline/pageview-3.16.1.js
+   *     → /waline/waline-3.16.1.js、/waline/waline-3.16.1.css
    *
    *   自托管、按 npm 的目录结构放（即 public/vendor/waline/dist/waline.js）
    *     cdn: '/vendor/waline/{file}'
    *
    * 国内访问 jsDelivr / unpkg 都不稳，换 `'npmmirror'` 或自己的对象存储最省事。
-   * 换 CDN 只改这一行，不用碰组件，也不用改 `pageview` 的地址。
+   * 换 CDN 只改这一行，不用碰组件。
    */
   cdn?: WalineCdn;
   /**
@@ -228,18 +228,6 @@ export interface WalineConfig {
    * Site Key 和 Secret 在 Cloudflare 面板 → Turnstile 里申请。
    */
   turnstileKey?: string;
-  /**
-   * 浏览量统计：在文章页显示「阅读 N 次」，每访问一次 +1。
-   *
-   * 用的是 Waline 的独立小插件（gzip < 1KB），**不依赖评论区是否加载** ——
-   * 评论关掉、甚至懒加载从没触发，数字照样统计。
-   *
-   * - `true`  用同一套 `cdn` 模板算（把 `{basename}` 换成 `pageview`）
-   * - 字符串  直接指定插件地址，例如自带 `?v=` 参数绕开 CDN 的旧缓存
-   *
-   * 自托管时记得把 `pageview.js` 也放进同一个目录，文件名与 `waline.js` 同一规律。
-   */
-  pageview?: boolean | string;
 }
 
 /**
@@ -291,8 +279,7 @@ export interface GiscusConfig {
  * 差别在取舍：
  *
  *   · 比 Waline 轻 —— 后端是单个 Go 二进制，没有 Node 运行时，小机器跑得动；
- *   · 前端交互比 Waline 朴素，插件生态也小一些（没有 reCAPTCHA、没有独立的
- *     浏览量小插件）；
+ *   · 前端交互比 Waline 朴素，插件生态也小一些（没有 reCAPTCHA）；
  *   · 多站点隔离是内建的（`site` 一项），一个后端挂几个博客不用分库。
  *
  * 没有在这里列出的选项就是没有做成配置项 —— 要么主题管不着（例如 `el`、
@@ -344,7 +331,7 @@ export interface ArtalkConfig {
  * 所以「先填两套、随时切」是常态。
  *
  * 内置三个实现：
- *   'waline' —— 自建服务端，功能最全（评论 / 浏览量 / 反应 / 登录 / 表情包）
+ *   'waline' —— 自建服务端，功能最全（评论 / 反应 / 登录 / 表情包）
  *   'giscus' —— 寄生在 GitHub Discussions，零服务端，只有评论
  *   'artalk' —— 自建服务端，单个二进制、比 Waline 轻，插件少一些
  *

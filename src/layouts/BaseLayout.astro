@@ -9,6 +9,7 @@ import { SITE } from '../config';
 import { T } from '../i18n';
 import { absoluteUrl, imageMimeOf, ogLocale, shareImage, twitterHandle } from '../utils/seo';
 import { isListPage } from '../utils/list-pages';
+import type { ImageSource } from '../utils/image';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
@@ -32,6 +33,15 @@ interface Props {
   isHome?: boolean;
   /** 分享封面（站内路径或绝对地址）；传 SVG 会自动回落到 SITE.ogImage */
   image?: string;
+  /**
+   * 分享封面的像素尺寸 —— **只在确实知道的时候传**。
+   *
+   * 文章页自己裁 1200×630 时会传，于是 `og:image:width/height` 能如实输出：
+   * 有些平台（Slack、LinkedIn、Discord）拿到宽高就直接排版，省掉一次探测请求。
+   * 落到 `SITE.ogImage` 或直接引用原图的页面不传 —— 尺寸随图而变，
+   * 标错比不标更糟：平台会照着错的宽高裁，出来的卡片比让它自己探测还难看。
+   */
+  imageSize?: { width: number; height: number };
   /** og:type=article 时用；不传就不输出 article:* 那几行 */
   article?: ArticleMeta;
   /** 结构化数据（JSON-LD 对象或其数组），由页面用 utils/seo 生成 */
@@ -42,6 +52,19 @@ interface Props {
    * 站内地址不用传，浏览器本来就有连接。
    */
   preconnect?: string[];
+  /**
+   * 这一页 banner 用的图（和传给 `<Banner img>` 的是同一个值）。
+   *
+   * 只在它是**字符串路径**时才用它补一条 `<link rel="preload" as="image">`：
+   * 字符串图走 CSS `background-image`，浏览器要等 CSSOM 建好才发现它，
+   * 比 `<img>` 晚一拍；`import` 进来的资源由 `<Image>` 渲染成 `<img>`，
+   * 自带 `fetchpriority="high"`，不需要 preload。
+   *
+   * 不传则按「首页 / 分页首页用 `banner.img`、其余页面用 `postBanner.img`」推断 ——
+   * 文章页会传自己的封面，否则会 preload 错一张图，白占首屏带宽。
+   * **显式传 `null` 表示「这一页没有 banner」**（404 就是这种），不输出 preload。
+   */
+  bannerImg?: ImageSource | null;
   /**
    * 不索引这一页。默认由路径自动判定（见 utils/list-pages）——
    * 分页、单个标签页、单个分类页的内容都是一份文章清单，进索引只是重复内容。
@@ -60,6 +83,8 @@ const {
   jsonLd,
   preconnect = [],
   noindex,
+  bannerImg,
+  imageSize,
 } = Astro.props;
 
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
@@ -102,12 +127,21 @@ const twitter = twitterHandle();
 const preconnectList = preconnect.filter((item) => item !== origin.origin);
 
 /**
- * 首页 banner 用字符串路径（`/img/x.webp`）时，图是 CSS background 加载的：
- * 浏览器要等 CSSOM 解析完才发现它，比 `<Image>` 生成的 `<img>` 晚一拍。
- * 补一条 preload 把 LCP 抢回来。import 的资源自带 fetchpriority，不用管。
+ * 首屏大图的 preload。
+ *
+ * 现状：banner 用字符串路径（`/img/x.webp`）时，图是 CSS 背景加载的 ——
+ * 浏览器要等 CSSOM 建完才发现它，比 `<img>` 晚一拍。补一条 preload 把 LCP 抢回来。
+ * `import` 进来的资源由 `<Image>` 输出 `<img fetchpriority="high">`，不用管。
+ *
+ * 页面不必各传一遍：默认按「首页 `banner.img`、其余 `postBanner.img`」推断，
+ * 文章页的封面各不相同，由它自己传 `bannerImg` 覆盖 —— 否则会 preload 一张
+ * 这一页根本不用的图，白占首屏带宽（preload 的优先级仅次于 CSS）。
  */
-const bannerImg = isHome && SITE.banner.enable ? SITE.banner.img : undefined;
-const bannerPreload = typeof bannerImg === 'string' ? bannerImg.trim() : '';
+const bannerSource =
+  bannerImg === null
+    ? undefined
+    : bannerImg ?? (isHome ? (SITE.banner.enable ? SITE.banner.img : undefined) : SITE.postBanner.img);
+const bannerPreload = typeof bannerSource === 'string' ? bannerSource.trim() : '';
 
 /* 浏览器地址栏配色。亮色跟随配置里的顶栏色，暗色取 main.css 里那套固定值 ——
    用户手动切换过主题时可能与实际不符，但地址栏只是装饰，不值得为此加脚本。 */
@@ -190,9 +224,9 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
       Open Graph / Twitter。两家的字段大部分重叠，但都不接受相对路径：
       地址与封面在 frontmatter 里已经绝对化（见 utils/seo.ts）。
 
-      og:image:type 从扩展名推，永远能推对；**故意不写 og:image:width/height** ——
-      封面尺寸随文章而变（有些站直接用原图），标错比不标更糟：平台会照着错的
-      宽高去排版，裁出来的卡片比让它自己探测还难看。
+      og:image:type 从扩展名推，永远能推对。og:image:width/height **只在页面明确
+      告诉我们尺寸时才写**（文章页自己裁的 1200×630）：尺寸不确定时标错比不标更糟，
+      平台会照着错的宽高去排版。
     -->
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={pageTitle} />
@@ -202,6 +236,14 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
     <meta property="og:locale" content={ogLocale()} />
     <meta property="og:image" content={shareImg} />
     {shareMime && <meta property="og:image:type" content={shareMime} />}
+    {
+      imageSize && (
+        <>
+          <meta property="og:image:width" content={String(imageSize.width)} />
+          <meta property="og:image:height" content={String(imageSize.height)} />
+        </>
+      )
+    }
     <meta property="og:image:alt" content={shareAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={pageTitle} />

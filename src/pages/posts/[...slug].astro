@@ -7,7 +7,7 @@
  *
  * 对应原版 post.ejs：banner + 白卡片（正文居中，右侧跟随滚动的目录）。
  * 保留阅读本身需要的部分：元信息、目录、标签、版权、上一篇/下一篇、相关文章，
- * 以及可选的评论与浏览量（评论系统可插拔，见 src/config 的 comment 段）。
+ * 以及可选的评论区（评论系统可插拔，见 src/config 的 comment 段）。
  */
 import { render } from 'astro:content';
 import { getImage } from 'astro:assets';
@@ -18,9 +18,8 @@ import Icon from '../../components/Icon.astro';
 import Toc from '../../components/Toc.astro';
 import Comments from '../../components/Comments.astro';
 import RecentComments from '../../components/RecentComments.astro';
-import PageView from '../../components/PageView.astro';
 import { SITE } from '../../config';
-import { commentContext, commentOrigins, hasCommentForm, resolvePageview } from '../../comments';
+import { commentOrigins, hasCommentForm } from '../../comments';
 import { T } from '../../i18n';
 import {
   getPosts,
@@ -76,12 +75,6 @@ const showToc = (post.data.toc ?? SITE.post.toc) && tocItems.length > 0;
    具体是哪一家由 config 的 comment.type 决定，这里不写死。 */
 const showComments = hasCommentForm(SITE.comment, post.data.comment);
 
-/* 浏览量：和评论区互不依赖，评论关掉也能单独统计。评论系统不支持就是 null */
-const pageview = resolvePageview(
-  SITE.comment,
-  commentContext(Astro.url, { site: Astro.site, lang: SITE.lang }),
-);
-
 /* banner：单篇封面优先（`banner` 可优化 > `bannerImg` 字符串），其次站点默认图 */
 const bannerSource = post.data.banner ?? post.data.bannerImg ?? SITE.postBanner.img;
 
@@ -117,17 +110,23 @@ const origin = Astro.site ?? Astro.url.origin;
 const permalink = new URL(Astro.url.pathname, origin).href;
 
 /* 分享封面。两个要求社交平台很挑剔：
-   1) 格式 —— webp/avif 至今仍有个别平台抓不动，所以位图封面统一再转一版 JPEG；
+   1) 格式 —— webp/avif 至今仍有个别平台抓不动，所以位图统一再转一版 JPEG；
    2) 比例 —— og:image 的标准是 1.91:1，用原图（3:2、16:9）会被平台居中裁掉一条，
       干脆按 1200×630 裁好再给出去。
-   字符串路径（外部图 / public 里的图）没法参与转换，仍走 shareImage 的回落逻辑。 */
-const ogImage = isAsset(bannerSource)
+
+   **先封面、后 banner**：封面是列表卡片上那张图，读者和爬虫都是先见到它；
+   只有封面不是可优化的位图（字符串路径 / 没配）时才退到 banner。
+   两者都不可优化时，交给 shareImage 决定「用字符串原图还是站点默认图」。 */
+const shareSource = [post.data.cover, bannerSource].find(isAsset);
+/** 自己裁的图尺寸是定的：1200×630（1.91:1，og:image 的标准比例） */
+const SHARE_SIZE = { width: 1200, height: 630 };
+const ogImage = shareSource
   ? absoluteUrl(
       (
         await getImage({
-          src: bannerSource,
-          width: 1200,
-          height: 630,
+          src: shareSource,
+          width: SHARE_SIZE.width,
+          height: SHARE_SIZE.height,
           fit: 'cover',
           format: 'jpeg',
           quality: 82,
@@ -135,7 +134,10 @@ const ogImage = isAsset(bannerSource)
       ).src,
       permalink,
     )
-  : absoluteUrl(shareImage([srcOf(bannerSource)]), permalink);
+  : absoluteUrl(
+      shareImage([srcOf(post.data.cover), srcOf(post.data.indexImg), srcOf(bannerSource)]),
+      permalink,
+    );
 
 /* 结构化数据两块：这篇文章本身 + 它挂在站点的哪一层。
    用顶层数组而不是 @graph —— Google 对两者一视同仁，而这两块由不同的函数产出，
@@ -173,7 +175,9 @@ const jsonLd = [
   article={{ published: date, modified: updated, section: categories[0], tags }}
   jsonLd={jsonLd}
   image={ogImage}
+  imageSize={shareSource ? SHARE_SIZE : undefined}
   preconnect={commentOrigins(SITE.comment)}
+  bannerImg={bannerSource}
 >
   <Banner
     title={title}
@@ -182,10 +186,7 @@ const jsonLd = [
     height={SITE.postBanner.height}
     maskAlpha={post.data.bannerMaskAlpha ?? SITE.postBanner.maskAlpha}
     metas={metaRows}
-  >
-    {/* 浏览量接在 banner 元信息的最后一行末尾，紧跟字数和阅读时长 */}
-    {pageview && <PageView slot="meta-extra" stat={pageview} />}
-  </Banner>
+  />
 
   <Board rails={showToc}>
     <article class="post-content">
@@ -311,7 +312,10 @@ const jsonLd = [
                 <span />
               )}
               {next ? (
-                <a href={postUrl(next)} class="post-next">
+                /* `viewport`：滚到它就取。手机上不会触发 hover，而「读到底 → 点下一篇」
+                   是文章页最确定的下一步 —— 让它变成唯一一条按位置预取的链接，
+                   既不误伤流量，又抹掉了点击后的那个往返。 */
+                <a href={postUrl(next)} class="post-next" data-astro-prefetch="viewport">
                   <span class="label">
                     {series ? T.seriesNext : T.nextPost}：{next.data.title}
                   </span>

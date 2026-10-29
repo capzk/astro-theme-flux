@@ -4,9 +4,7 @@
  * Giscus 不是 ES 模块，而是一个「带 data-* 属性、插进页面就自己干活」的传统脚本。
  * 所以它的 payload 里 `init` 全是 giscus 的 data 属性（驼峰的，挂载时转成 data-*）。
  *
- * 它没有浏览量统计 —— provider 里就不实现 `pageview`，主题自然不为它渲染
- * 「阅读 N 次」，也不需要写任何 if。
- * 评论数同理：不设 `countClass`，标题旁边那枚徽标就不出现。
+ * 它不提供评论数 —— 不设 `countClass`，标题旁边那枚徽标就不出现。
  *
  * @see https://giscus.app
  */

@@ -4,7 +4,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.23.4-339933.svg?logo=node.js&logoColor=white)](./package.json)
 
-> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk), page views.
+> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk).
 
 **在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
 
@@ -55,7 +55,6 @@
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
 | 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
 | 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
-| 浏览量 | 「阅读 N 次」，走评论系统的独立计数插件（Waline 的不到 1KB），评论关掉也能统计 |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
 | Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
 | AI 爬虫策略 | `robots.txt` 里一行 `Content-Signal`（允许引用、不允许训练）+ 一段注释掉的分机器人模板，想单独拒绝某一家就取消注释 |
@@ -212,9 +211,9 @@ CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比�
 
 **刻意不写 `nosnippet` / `max-snippet:0`**：这两项会让页面失去被 AI 摘要引用的资格，而 AI Overviews 只引用「能出摘要」的页面。
 
-分享缩略图取 `SITE.ogImage`（默认 `public/img/og.png`，1200×630）。**社交媒体不渲染 SVG**，所以文章若配了位图封面（`bannerImg` / `indexImg`）就用那一张，配的是 SVG 就自动回落到站点图 —— 不会把空白卡片发给别人。换成自己的图时也请用 PNG / JPG。
+分享缩略图的挑选顺序是 **`cover` → `banner` → `indexImg` → 站点图**（`SITE.ogImage`，默认 `public/img/og.png`，1200×630）。前两个如果是 `import` 进来的位图，构建期会按 1.91:1 裁成 1200×630 的 JPEG 再给出去 —— **社交媒体不渲染 SVG，webp/avif 也偶有平台抓不动**，转一版 JPEG 一并解决。字符串路径（`/img/x.jpg`、外链）没法参与裁剪：是位图就直接引用，是 SVG 就跳过。四步全落空才用站点图，不会把空白卡片发给别人。
 
-`og:image:width/height` **故意不写**：封面尺寸随文章而变，标错比不标更糟（平台会照着错的宽高裁）。`og:image:type` 从扩展名推，永远能推对。
+`og:image:width/height` 只在**我们自己裁**的那条路上写（尺寸确定是 1200×630），落到站点图或原图的页面不写：尺寸随图而变，标错比不标更糟（平台会照着错的宽高裁）。`og:image:type` 从扩展名推，永远能推对。
 
 #### robots.txt 与 AI 爬虫
 
@@ -267,11 +266,11 @@ Allow: /
 
 评论是**可插拔**的：主题内置三个实现，改 `type` 一行就换，页面模板、样式、加载逻辑都不用动。
 
-| `type` | 服务端 | 适合 | 评论数 | 浏览量 | 最新评论 |
-| --- | --- | --- | --- | --- | --- |
-| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ | ✓ | ✓ |
-| `'artalk'` | 要自己部署（Go 单二进制，Docker / 二进制 / 包管理器） | 机器小、想少一个 Node 运行时 | ✕ | ✕ | ✕ |
-| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ | ✕ | ✕ |
+| `type` | 服务端 | 适合 | 最新评论 |
+| --- | --- | --- | --- |
+| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ |
+| `'artalk'` | 要自己部署（Go 单二进制，Docker / 二进制 / 包管理器） | 机器小、想少一个 Node 运行时 | ✕ |
+| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ |
 
 三段配置都在 `src/config/user/comment.ts` 里，用不到的留着不影响构建 —— 所以「三套都填好、随时切」是常态，切的时候只改 `type`。
 
@@ -295,13 +294,12 @@ comment: {
     locale: { placeholder: '说点什么吧，支持 Markdown…' },
     requiredMeta: ['nick'],   // 昵称必填、邮箱选填；要邮箱也必填就加 'mail'
     pageSize: 10,
-    pageview: true,           // 文章页显示「阅读 N 次」
   },
   giscus: { /* … */ },
 },
 ```
 
-单篇想关掉评论区，在 front matter 里写 `comment: false`（浏览量照常统计，它俩互不依赖）。
+单篇想关掉评论区，在 front matter 里写 `comment: false`。
 
 评论是**按 URL 归属**的（Waline 的 `path` 就是文章地址）。所以改文章的 `slug` 或目录名之前先想一下 —— 地址变了，老评论不会跟过去。想让多站（比如旧域名与新域名）共用一份评论数据，就把 `waline.path` 写死成固定字符串。
 
@@ -374,14 +372,6 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 - **评论挂了不影响阅读**：脚本加载失败只显示一句话和「重试」，不白屏，也不把正文挤走。
 - **什么都不配就什么都不渲染**：`enable: false` 或 `serverURL` 为空时，页面里连骨架屏和配置 JSON 都不出现，构建产物里也找不到评论脚本。
 
-#### 浏览量
-
-`waline.pageview` 打开后，文章页「最后更新于」下面会多一行「阅读 N 次」。
-
-用的是 Waline 单独的 `pageview.js`（gzip 不到 1KB），**不依赖评论区**：评论关掉、懒加载从没触发、读者滚都不滚，数字照样统计。它在 `window.load` 之后才发请求，不跟正文抢带宽。
-
-自托管时把 `pageview.js` 一起放进同一个目录就行 —— 地址由同一个 `cdn` 模板算出来，不用单独指。文件名对不上（比如自己加了哈希）才写字符串指定。
-
 #### 客户端从哪加载
 
 `comment.waline.cdn` 一行决定脚本和样式从哪儿取，默认 `'jsdelivr'`：
@@ -398,11 +388,11 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 
 | 场景 | 配置 | 展开成 |
 | --- | --- | --- |
-| 自托管，文件平铺、名字带版本 | `cdn: '/waline/{basename}-{version}.{ext}'`<br>`version: '3.16.1'` | `/waline/waline-3.16.1.js`<br>`/waline/pageview-3.16.1.js` |
+| 自托管，文件平铺、名字带版本 | `cdn: '/waline/{basename}-{version}.{ext}'`<br>`version: '3.16.1'` | `/waline/waline-3.16.1.js`<br>`/waline/waline-3.16.1.css` |
 | 自托管，按 npm 的目录结构 | `cdn: '/vendor/waline/{file}'` | `/vendor/waline/dist/waline.js` |
 | 自己的对象存储 | `cdn: 'https://cdn.example.com/npm/{name}@{version}/{file}'` | `https://cdn.example.com/npm/@waline/client@3.16.1/dist/waline.js` |
 
-自托管就三步：`waline.js`、`waline.css`、`pageview.js` 丢进 `public/waline/`（文件名带版本号，`_headers` 里给这段路径 `immutable`），然后写 `cdn` + `version`。不用改组件，也不用单独指 `pageview` 的地址。换回公共 CDN 同样是改这一行。
+自托管就两步：`waline.js`、`waline.css` 丢进 `public/waline/`（文件名带版本号，`_headers` 里给这段路径 `immutable`），然后写 `cdn` + `version`。不用改组件。换回公共 CDN 同样是改这一行。
 
 `{version}` 也可以不出现在模板里（`/waline/{basename}.{ext}`），那就是「文件名不带版本」的放法。名字既不是预置值、又不含占位符时（比如手抖写成 `'jsdelivr-npm'`），构建期会警告并回落到默认 CDN —— 免得悄悄拼出一串 404。
 
@@ -429,7 +419,7 @@ comment: {
 
 #### Artalk
 
-和 Waline 一样要自己部署，但后端是**单个 Go 二进制**，没有 Node 运行时 —— 一台 1 核 512MB 的小机器就能跑。代价是插件生态小一些（没有人机验证、没有独立的浏览量小插件），所以主题这边也不为它渲染「阅读 N 次」。
+和 Waline 一样要自己部署，但后端是**单个 Go 二进制**，没有 Node 运行时 —— 一台 1 核 512MB 的小机器就能跑。代价是插件生态小一些（没有人机验证），所以主题这边也不为它渲染「本站最新评论」挂件。
 
 1. 按[官方文档](https://artalk.js.org/guide/deploy.html)部署后端，拿到地址；
 2. 在 Artalk 后台「站点」里建一个站点，记住填的名字；
@@ -480,14 +470,14 @@ comment: {
 },
 ```
 
-Giscus 没有浏览量和评论数接口，所以选它时那两处自动不渲染 —— 不需要额外开关。
+Giscus 没有公开的评论读接口，所以选它时最新评论挂件自动不渲染 —— 不需要额外开关。
 
 #### 再加一个评论系统
 
 主题把评论拆成「构建期算配置」和「运行期挂载」两层，中间只过一份 JSON。加一个系统要动四处，其中三处是各写一个文件：
 
 1. `src/config/types.ts` —— 加一段 `XxxConfig`，在 `CommentConfig` 里加 `xxx?: XxxConfig`，`type` 联合里加 `'xxx'`，再到 `user/comment.ts` 填值；
-2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有浏览量就顺手实现 `pageview`，有「按时间倒序取评论」的公开接口就实现 `recent`；
+2. `src/comments/xxx.ts` —— 实现 `CommentProvider`：`ready` 判断配好没有、`build` 把配置翻成下发 JSON，有「按时间倒序取评论」的公开接口就实现 `recent`；
 3. `src/comments/client/xxx.js` —— 导出 `mount({ el, section, attempt, loadModule })`，负责把脚本拉下来挂到 `el` 上；
 4. 两个注册表各加一行：`src/comments/index.ts` 的 `LIST`、`src/comments/client/index.js` 的 `MOUNTERS`。
 
@@ -587,7 +577,6 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 | 原版功能 | Flux | 原因 |
 | --- | --- | --- |
 | 评论（13 种第三方服务） | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄 |
-| 浏览量统计（Waline / 不蒜子） | Waline 的计数插件 | 只认评论系统自带的，不为它再引一个第三方脚本 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
 | 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
 | fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
@@ -616,7 +605,7 @@ src/
 ├── layouts/BaseLayout.astro
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /
-│                        # Comments / RecentComments / PageView / Icon / Footer
+│                        # Comments / RecentComments / Icon / Footer
 ├── pages/               # 文件即路由（外加 llms.txt / llms-full.txt / atom.xml /
 │                        # rss.xml / searchindex.json / robots.txt 六个端点）
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链
@@ -625,9 +614,8 @@ src/
 ├── scripts/search.js    # 站内搜索
 ├── scripts/comments.js  # 评论区加载器（懒加载 / 失败重试，不认具体哪一家）
 ├── scripts/recent.js    # 最新评论挂件（滚到附近才拉，只用 textContent）
-├── scripts/pageview.js  # 浏览量：调评论系统的计数插件
 ├── comments/            # 评论系统抽象层
-│   ├── types.ts         #   契约：CommentProvider / CommentPayload / CommentStat / RecentCommentsSpec
+│   ├── types.ts         #   契约：CommentProvider / CommentPayload / RecentCommentsSpec
 │   ├── index.ts         #   注册表 + resolveComments()
 │   ├── waline.ts        #   Waline 的构建期实现
 │   ├── giscus.ts        #   Giscus 的构建期实现
@@ -648,38 +636,44 @@ src/
 
 没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有分析脚本，也没有图标字体。首屏必须的请求只有 5 个：HTML、一份 CSS、banner 图、主题脚本、预取脚本；卡片封面是 `loading="lazy"`，滚到才取。
 
-| 资源 | 原始 | gzip |
-| --- | --- | --- |
-| 首页 HTML（含 6 张卡片） | 24 KB | 5.4 KB |
-| CSS（全站共用一份） | 34 KB | 7.3 KB |
-| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱 / 搜索） | 7 KB | 2.8 KB |
-| 预取脚本 | 2.5 KB | 1.1 KB |
-| 搜索索引（按需，不阻塞） | 48 KB | 22 KB |
-| banner webp（720w ~ 1600w） | 5.9 ~ 10.5 KB | — |
+| 资源 | 原始 | gzip | 请求数 |
+| --- | --- | --- | --- |
+| 首页 HTML（6 张卡片，含内联 CSS） | 63 KB | 14 KB | 1 |
+| 文章页 HTML（含内联 CSS） | 86 KB | 20.5 KB | 1 |
+| 样式表（内联进 HTML，不再单独请求） | 37 KB | 7.9 KB | 0 |
+| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱） | 8.7 KB | 3.4 KB | 1 |
+| 预取脚本 | 2.4 KB | 1.1 KB | 1 |
+| 评论脚本（懒加载，不参与首屏） | 4.4 KB | 2.0 KB | 0 |
+| 搜索索引（悬停才取，不参与首屏） | 61 KB | 28 KB | 0 |
+| banner 默认图（SVG） | 2.5 KB | 0.8 KB | 1 |
 
 几个刻意的取舍：
 
-- **导航用悬停预取**（`astro.config.mjs` 的 `prefetch`）。鼠标停在链接上就把目标页取回来，点击几乎是即时的。用 `hover` 不用 `viewport`：后者会在每个页面加载后把所有站内链接拉一遍，归档页就是一百多个请求。不想预取某条链接，在 `<a>` 上写 `data-astro-prefetch="false"`。
+- **导航用悬停预取**（`astro.config.mjs` 的 `prefetch`）。鼠标停在链接上就把目标页取回来，点击几乎是即时的。用 `hover` 不用 `viewport`：后者会在每个页面加载后把所有站内链接拉一遍，归档页就是一百多个请求。不想预取某条链接，在 `<a>` 上写 `data-astro-prefetch="false"`。**唯一的例外**是文章页底部的「下一篇」，它单独标了 `viewport` —— 理由见下面几条。
 - **文章页预连接评论服务端**，握手（跨境约 100~300ms）不算在「滚到评论区」那一刻里。
-- **评论与浏览量都是懒加载的**，且各自独立；评论从 CDN / 自托管取，`lazy` 控制提前多少像素开始。
+- **评论是懒加载的**：从 CDN / 自托管取，`lazy` 控制提前多少像素开始。
 - **搜索索引不参与首屏**：鼠标移到搜索按钮或弹层打开时才开始取，敲字时索引通常已经就位。
-- **CSS 保持外链不内联**。内联能省掉首屏的一个往返，但会让每一页的 HTML 都背上 34KB（gzip 后约 +6.5KB），而多页浏览时外链只需取一次、之后全命中缓存。想换成内联，把 `astro.config.mjs` 的 `build.inlineStylesheets` 改成 `'always'` 即可。
-- **没启用 experimental 的 `clientPrerender`**（用 Speculation Rules 把目标页在后台完整渲染）。它确实更快，但会执行目标页的脚本 —— 浏览量会被多记一次，评论区也可能提前发请求。预取 HTML 已经能消掉大部分等待，不值得为这点差距换来错误的计数。
+- **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML 才 12KB，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页 HTML 多 8KB（gzip 后）—— 但 HTML 设的是 `max-age=0, must-revalidate`，回访时 304 不带正文，内联的 CSS 也不会真的重传。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
+- **首屏大图的 preload 覆盖所有页面**，不只是首页。banner 写成字符串路径（`/img/x.webp`）时图是 CSS 背景加载的，浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍，所以 head 里补一条 `<link rel="preload" as="image">`；用 `import` 引入的图由 `<Image>` 输出 `<img fetchpriority="high">`，不走这条。文章页会把自己的封面传进来，否则会 preload 一张这页根本不用的图，白占首屏带宽。
+- **「下一篇」用 `viewport` 预取**（文章页底部那一条）。手机上不会触发 hover，而「读到底 → 点下一篇」是文章页最确定的下一步：滚到它就取，其余链接仍然只在悬停时取，不会误伤流量。
+- **没启用 experimental 的 `clientPrerender`**（用 Speculation Rules 把目标页在后台完整渲染）。它确实更快，但会执行目标页的脚本 —— 评论区可能提前发请求、统计也会被多记一次。预取 HTML 已经能消掉大部分等待，不值得为这点差距换来副作用。
 
 ## 已知限制
 
 - 封面与 banner 已走 `astro:assets`（见上方「配置」）。图片要放在 `src/assets/` 并用 `import` 或 `cover:` 引用才会被优化；`public/` 下的图永远原样输出 —— 这是 Astro 的规则，不是主题的限制。
 - 目录取 h2 / h3 / h4，h5 以下不收（缩到第五层已经读不清了）。单篇可用 `toc: false` 关掉。
 - 搜索是线性扫描 + 分档权重，没有分词。文章量上千后建议换 [Pagefind](https://pagefind.app/)。
-- 分享封面不会「生成」：配了位图封面的文章会把封面裁成 1200×630 的 JPEG 给出去（社交平台
-  只认 1.91:1，原图会被居中裁掉一条），没有封面的文章共用站点图。**没有做「标题卡片」** ——
+- 分享封面不会「生成」：挑一张现成的图裁成 1200×630 的 JPEG 给出去（社交平台只认 1.91:1，
+  原图会被居中裁掉一条）。挑的顺序是 **`cover` → `banner` → `indexImg` → 站点图**，
+  前两个要是 `import` 进来的位图才会参与裁剪，字符串路径（含 SVG）直接原样用或跳过。
+  **没有做「标题卡片」** ——
   在图上画标题需要一个能把中文字形转成路径的渲染器，外加一份 5~10MB 的中文字体：
   sharp 自己画 SVG 文本靠系统字体，在 CI 上会变成一排方框。这个功能值得做，但不该以
   「主题多背一份字体」为代价，等它做成可选（自己提供字体 + 开关）再说。
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
-- 评论的客户端默认从公共 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css`（开了浏览量再加 `pageview.js`）放进 `public/waline/`，然后 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'` —— 见上文「客户端从哪加载」。`_headers` 里给这段路径 `immutable` 缓存，升级只换文件、不失效缓存。
+- 评论的客户端默认从公共 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css` 放进 `public/waline/`，然后 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'` —— 见上文「客户端从哪加载」。`_headers` 里给这段路径 `immutable` 缓存，升级只换文件、不失效缓存。
 
 ## 更新日志
 

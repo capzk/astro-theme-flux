@@ -3,7 +3,7 @@
  * ---------------------------------------------------------------------------
  * 三套都在这里，改 `type` 一行就切换 —— 用不到的那段留着不影响构建。
  *
- *   'waline'  自建服务端，功能最全（评论 / 浏览量 / 反应 / 登录 / 表情包）
+ *   'waline'  自建服务端，功能最全（评论 / 反应 / 登录 / 表情包）
  *   'giscus'  存在 GitHub Discussions，零服务端，只有评论
  *   'artalk'  自建服务端，Go 单二进制、比 Waline 轻，插件少一些
  *
@@ -59,8 +59,6 @@ export default defineConfig({
          注意 requiredMeta 里的项必须在 meta 里显示，否则字段不出现却要求必填 */
       requiredMeta: ['nick'],
       pageSize: 10,
-      /* 文章页显示「阅读 N 次」。不需要就设 false，连那 1KB 插件都不发 */
-      pageview: true,
     },
 
     giscus: {

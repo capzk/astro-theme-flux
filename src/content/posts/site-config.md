@@ -32,7 +32,7 @@ cover: ../../assets/covers/cover-2.webp
 | `site.ts` | 站名、描述、作者、语言、头像、分享封面、X 账号、导航菜单 | 建站第一步 |
 | `appearance.ts` | 首页 banner、文章页 banner、深色模式、配色 | 想换样子时 |
 | `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
-| `comment.ts` | 评论三选一、懒加载、浏览量、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
+| `comment.ts` | 评论三选一、懒加载、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
 | `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案 | 上线前后 |
 | `links.ts` | 友链数组 | 加友链时 |
 | `pages.ts` | 关于页 / 友链页的开关 | 不要这两个页面时 |
@@ -375,7 +375,7 @@ comment: {
 },
 ```
 
-配置在 `user/comment.ts`。字段看着多，真正必填的只有两样：`type` 选哪一套，以及那一套的服务端地址（Giscus 是仓库 id）。三套各自怎么搭起来、浏览量怎么单独开、配完怎么验证，单独写在[评论系统：三选一](/posts/comments/)里。
+配置在 `user/comment.ts`。字段看着多，真正必填的只有两样：`type` 选哪一套，以及那一套的服务端地址（Giscus 是仓库 id）。三套各自怎么搭起来、配完怎么验证，单独写在[评论系统：三选一](/posts/comments/)里。
 
 这里只提最容易踩的一条：`enable: true` 但服务端地址空着，文章页里连评论区的骨架都不出现 —— 看着像「还没人评论」，其实是没配好。
 

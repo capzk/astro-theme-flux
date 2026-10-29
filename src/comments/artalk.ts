@@ -9,9 +9,8 @@
  *
  *   1. Artalk 的 `el` 是**元素**，`pageKey` / `pageTitle` / `darkMode` 要分别取；
  *      这些都不是配置能决定的，所以不在 build 里，而在 client/artalk.js 里补。
- *   2. 它没有独立的「浏览量小插件」，也不回填评论数 ——
- *      于是 provider 里干脆不实现 pageview，不设 countClass，
- *      主题自然不为它渲染「阅读 N 次」和「N 条」，一处 if 都不用写。
+ *   2. 它不回填评论数 —— 于是 provider 里不设 countClass，
+ *      主题自然不为它渲染「N 条」，一处 if 都不用写。
  *
  * @see https://artalk.js.org/guide/frontend/config.html
  */

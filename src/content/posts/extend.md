@@ -117,14 +117,14 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 
 主题内置三套：[Waline](https://waline.js.org/) 和 [Artalk](https://artalk.js.org/)（都要自建服务端，后者是 Go 单二进制）、[Giscus](https://giscus.app)（评论存 GitHub Discussions，不要服务端）。
 
-只想把现成的一套装起来（部署服务端、填地址、开浏览量、验证通没通），看[评论系统：三选一](/posts/comments/)。这一节讲的是另一件事：**怎么再加第四家**。开关全在 `src/config/user/comment.ts`：
+只想把现成的一套装起来（部署服务端、填地址、验证通没通），看[评论系统：三选一](/posts/comments/)。这一节讲的是另一件事：**怎么再加第四家**。开关全在 `src/config/user/comment.ts`：
 
 ```ts
 comment: {
   enable: true,
   type: 'waline',   // 改成 'giscus' 就是另一套，页面、样式、加载逻辑都不用动
   lazy: 600,        // 滚到距评论区 600px 时开始加载；0 = 进页面就加载
-  waline: { serverURL: 'https://comment.example.com', pageview: true },
+  waline: { serverURL: 'https://comment.example.com' },
   giscus: { repo: 'owner/repo', repoId: 'R_kgDO…' },
 },
 ```
@@ -145,14 +145,14 @@ comment: {
         src/comments/client/waline.js / giscus.js  →  真正把东西挂到 DOM 上
 ```
 
-所以加第四个（Twikoo、Valine……）是四步，其中三步是各写一个文件：`src/config/types.ts` 里加类型、`user/comment.ts` 里填值，`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，三个现成实现各代表一种形态：Waline 是 ES 模块 + 自定义 CSS + 独立计数插件 + 公开读接口，Giscus 是传统 `<script>` + iframe + `postMessage` 换肤，Artalk 是 ES 模块 + 实例方法换肤 + 全局 `MutationObserver`。
+所以加第四个（Twikoo、Valine……）是四步，其中三步是各写一个文件：`src/config/types.ts` 里加类型、`user/comment.ts` 里填值，`src/comments/xxx.ts` 实现构建期那半边、`src/comments/client/xxx.js` 实现挂载，然后两个注册表各加一行。契约在 `src/comments/types.ts`，三个现成实现各代表一种形态：Waline 是 ES 模块 + 自定义 CSS + 公开读接口，Giscus 是传统 `<script>` + iframe + `postMessage` 换肤，Artalk 是 ES 模块 + 实例方法换肤 + 全局 `MutationObserver`。
 
 几个实现上的坑，加新系统时会撞到：
 
 - **下发的配置必须是纯 JSON**。`imageUploader`、`texRenderer`、自定义 `search` 这些函数型选项传不过去，要用就在 mounter 里写。
 - **失败重试得换 URL key**。动态 `import()` 的失败结果会被浏览器按 URL 记住，重试时带 `?retry=N`，否则第二次拿到的还是同一个失败的 Promise。
 - **`dark` 这类选择器交给对方自己盯**。Waline 认 `html[data-user-color-scheme="dark"]`，Giscus 得自己 `postMessage` —— 后者在 mounter 里挂了 `MutationObserver`，主题这边不用改。
-- **地址别写死在代码里**。Waline 的脚本、样式、计数插件地址都由 `comment.waline.cdn` 的模板算出来（默认 jsDelivr，可换镜像或指向 `public/` 下的自托管目录），组件里不出现任何第三方 URL。加新系统时照这个来 —— 用户换 CDN 应该只改配置一行。
+- **地址别写死在代码里**。Waline 的脚本与样式地址都由 `comment.waline.cdn` 的模板算出来（默认 jsDelivr，可换镜像或指向 `public/` 下的自托管目录），组件里不出现任何第三方 URL。加新系统时照这个来 —— 用户换 CDN 应该只改配置一行。
 - **评论是一个第三方请求**，也是主题里唯一会让「纯静态」出现运行时网络依赖的东西。加之前想清楚值不值 —— 所以默认关，且什么都没配时连加载器都不进构建产物。
 
 ## 换掉搜索
@@ -169,7 +169,7 @@ comment: {
 
 ## 改 Markdown 的行为
 
-`src/plugins/markdown.js` 里有四个 hast 插件，在构建期改写 HTML 树：
+`src/plugins/markdown.js` 里有七个 hast 插件，在构建期改写 HTML 树：
 
 | 插件 | 做的事 |
 | --- | --- |
@@ -177,6 +177,9 @@ comment: {
 | `codeChrome` | 代码块包 `.highlight` 外壳，写上语言名 |
 | `codeToolbar` | 加复制按钮与语言标签 |
 | `linkTargets` | 外链加 `target="_blank"` 与 `rel="noopener"` |
+| `emailLinks` | 把邮箱地址拆成 `data-mail`，由脚本还原（防爬） |
+| `imageLoading` | 图片补 `loading="lazy"` 与 `decoding="async"` |
+| `imageReferrer` | 图片补 `referrerpolicy`，绕开图床的防盗链 |
 
 它们都在 `astro.config.mjs` 的 `processor.hastPlugins` 数组里注册。
 

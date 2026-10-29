@@ -10,7 +10,7 @@
  * @see https://waline.js.org/reference/client/props.html
  */
 import type { CommentConfig, WalineConfig } from '../config';
-import type { CommentContext, CommentPayload, CommentProvider, CommentStat } from './types';
+import type { CommentContext, CommentPayload, CommentProvider } from './types';
 import { originsOf } from './origin';
 import { warnOnce } from './warn';
 
@@ -190,25 +190,6 @@ export const waline: CommentProvider<WalineConfig> = {
       config.recaptchaV3Key ? 'https://www.google.com' : undefined,
       config.recaptchaV3Key ? 'https://www.gstatic.com' : undefined,
     );
-  },
-
-  /**
-   * 浏览量：Waline 单独的 `pageview.js`（gzip < 1KB），和评论区互不依赖。
-   * 所以「评论关掉、只统计阅读量」这种用法是成立的。
-   */
-  pageview(config, ctx): CommentStat | null {
-    if (!config.pageview) return null;
-    return {
-      js:
-        typeof config.pageview === 'string'
-          ? config.pageview
-          : asset(config, 'dist/pageview.js'),
-      exportName: 'pageviewCount',
-      className: 'waline-pageview-count',
-      path: pathOf(config, ctx),
-      /* update: true —— 取数的同时把这一页的浏览量 +1 */
-      options: { serverURL: config.serverURL, update: true },
-    };
   },
 
   /**

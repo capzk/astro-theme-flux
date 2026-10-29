@@ -53,9 +53,6 @@ export const T = {
   /* 最新评论挂件。标题里不带站点名 —— 位置已经说明了它是全站的 */
   recentComments: '本站最新评论',
   recentCommentsNoScript: '最新评论需要 JavaScript。',
-  /* 浏览量。同样是「文案 + 数字 + 单位」三段，数字由插件回填 */
-  pageview: '阅读',
-  pageviewUnit: '次',
   notFound: '404',
   notFoundDesc: '你要找的页面不存在，或者已经搬走了。',
   backHome: '返回首页',
