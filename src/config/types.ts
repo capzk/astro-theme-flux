@@ -511,7 +511,7 @@ export interface UmamiConfig {
  *
  * 为什么在构建期取，而不是让浏览器去请求：
  *
- *   · 静态站没有后端，UMAMI_API_KEY 一旦下发到浏览器就等于公开了；
+ *   · 静态站没有后端，API key 一旦下发到浏览器就等于公开了；
  *   · 每页多两个跨域请求，还都要等 API —— 数字小、延迟大，不值；
  *   · 构建期取一次是**零运行时开销**，与主题「页面到手即完整」的取舍一致。
  *
@@ -519,16 +519,14 @@ export interface UmamiConfig {
  * 重新构建（推一次代码、或手动触发部署）。对一个个人博客够用了 —— 如果哪天
  * 需要实时数字，正确做法是加一层自己的边缘函数代理，而不是把密钥塞进页面。
  *
- * ## 凭证从哪来（**不进配置文件**）
+ * ## 凭证
  *
- * 两个环境变量，任选其一：
+ * Umami 后台 → Settings → API keys 生成的 `umami_…`，填下面 `apiKey` 就行。
+ * 它只在**构建期的 Node 进程**里用，不会出现在产出的 HTML / JS 里 —— 页面上只有
+ * 取回来的数字，没有任何密钥。
  *
- *   UMAMI_API_KEY     推荐。Umami 后台 → Settings → API keys 生成的 `umami_…`
- *   UMAMI_SHARE_ID    退路。网站编辑页里「Share URL」那段的 id，无需密钥
- *
- * 前者能拿到全部数据；后者走公开分享，等于把整站报表公开可读 —— 自己权衡。
- * 本地构建可以写在 `.env.local`（已在 .gitignore 里），Cloudflare Pages 则配在
- * 项目的环境变量里。两个都没有时，这一段整块不生效，页面照常构建。
+ * 站点仓库是私有的就写在配置里（最省事）；仓库公开（比如这个主题自己的示例站）
+ * 才需要改用环境变量 `UMAMI_API_KEY`，避免把 key 提交上去。
  */
 export interface UmamiStatsConfig {
   /**
@@ -536,6 +534,13 @@ export interface UmamiStatsConfig {
    * 默认关：不想让构建因为第三方接口超时而变慢或失败。
    */
   enable: boolean;
+  /**
+   * Umami 的 API key（`umami_` 开头）。
+   *
+   * 留空则去读环境变量 `UMAMI_API_KEY` —— 公开仓库用这条，私有仓库直接写这里。
+   * 两个都没有时这一段整块不生效，页面照常构建。
+   */
+  apiKey?: string;
   /**
    * API 基址。不写则从 `src` 推：`https://analytics.example.com/script.js`
    * → `https://analytics.example.com/api`。

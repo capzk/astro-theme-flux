@@ -7,6 +7,30 @@
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-10-29
+
+凭证从「只能走环境变量」改成「直接写配置里」。原来的设计默认了站点仓库是公开的，
+可实际上大多数人的生产仓库是私有的 —— 为这件事多一步平台配置不值得。
+
+### Added
+
+- **`analytics.umami.stats.apiKey`**：直接填 Umami 后台生成的 `umami_…`。
+  它只在**构建期的 Node 进程**里用，产出的 HTML / JS 里只有取回来的数字、没有密钥，
+  所以私有仓库写进配置没有任何暴露面。
+- 环境变量 `UMAMI_API_KEY` 保留，定位收窄成「仓库公开时才用」—— 这个主题自己的
+  示例站就是公开的，那条路得留着。配置里的 `apiKey` 优先。
+
+### Removed
+
+- **`UMAMI_SHARE_ID`**（公开分享换 token 的那条鉴权路）。既然 key 能写配置，
+  它就是多余的第二条路径，还要先 `GET /share/{id}` 换一次 token。
+
+### Changed
+
+- **三个前置条件合并成一条报错路径**。API 地址、`websiteId`、key 原来分别用三种措辞
+  各自 warn，现在都进同一个 `try`：构建日志里就是一句「统计回读失败（没有 API key）」，
+  卡在哪一步一目了然。
+
 ## [4.1.1] - 2026-10-29
 
 4.1.0 里那条「`expanded` 失败就退回老 `metrics`」的分支删掉了 —— 不需要的兜底。
@@ -1039,7 +1063,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.2.0...HEAD
+[4.2.0]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...v4.0.0

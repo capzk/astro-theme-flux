@@ -223,20 +223,19 @@ function inspect(config: SiteConfig): string[] {
        开关开着却没有凭证 = 数字永远不出现，而且只在构建输出里留一行 warn，
        很容易被几十行构建日志淹掉。这里提前说清楚该配哪个变量。 */
     if (umami.stats.enable) {
-      const hasKey = Boolean(envOf('UMAMI_API_KEY'));
-      const hasShare = Boolean(envOf('UMAMI_SHARE_ID'));
+      const hasKey = Boolean((umami.stats.apiKey ?? '').trim() || envOf('UMAMI_API_KEY'));
 
-      if (!hasKey && !hasShare) {
+      if (!hasKey) {
         issues.push(
-          'analytics.umami.stats.enable 是 true，但 UMAMI_API_KEY 和 UMAMI_SHARE_ID 都没有 —— ' +
-            '阅读量和访客数一个都不会出现（构建本身照常成功）。本地写进 .env.local，' +
-            '线上配在部署平台的环境变量里。',
+          'analytics.umami.stats.enable 是 true，但没有 API key —— ' +
+            '阅读量和访客数一个都不会出现（构建本身照常成功）。' +
+            '在 user/analytics.ts 的 stats.apiKey 里填上 Umami 后台生成的 umami_ 开头的 key；' +
+            '仓库是公开的才改用环境变量 UMAMI_API_KEY。',
         );
       }
 
-      /* 用 API key 时请求路径里必须带站点 id；分享模式下 id 由接口给，可以不填。
-         上面 umami.enable 那段已经查过一次，别重复说 */
-      if (!umami.enable && !umami.websiteId.trim() && !hasShare) {
+      /* 请求路径里必须带站点 id。上面 umami.enable 那段已经查过一次，别重复说 */
+      if (!umami.enable && !umami.websiteId.trim()) {
         issues.push(
           'analytics.umami.stats.enable 是 true，但 analytics.umami.websiteId 是空的 —— ' +
             '读不到任何数据。去 Umami 后台 → 网站 → 编辑里抄「网站 ID」。',

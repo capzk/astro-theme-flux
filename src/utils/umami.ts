@@ -53,16 +53,6 @@ function normalize(pathname: string): string {
 }
 
 /**
- * 读环境变量。
- * 只看 `process.env`：Astro 起构建时会把 `.env.local` / 平台注入的变量都放进去，
- * 一条路径就够，不需要再去 `import.meta.env` 里找一遍。
- * 密钥**永远不写进配置文件**（那个文件是要提交的）。
- */
-function readEnv(key: string): string {
-  return String(process.env[key] ?? '').trim();
-}
-
-/**
  * API 基址。
  * 默认从脚本地址推 —— 脚本和接口本来就同源，让用户少填一项。
  *
@@ -90,37 +80,15 @@ async function fetchJson<T>(url: string, headers: Record<string, string>): Promi
 }
 
 /**
- * 凭证。两条路，API key 优先：
+ * API key。
+ * 优先用配置里的 `stats.apiKey`（私有仓库最省事），留空才看环境变量
+ * `UMAMI_API_KEY`（公开仓库用这条，别把 key 提交上去）。
  *
- *   UMAMI_API_KEY    后台 Settings → API keys 生成的 `umami_…`，能读全部数据
- *   UMAMI_SHARE_ID   「Share URL」里那串 id，无需密钥，但等于把整站报表公开可读
- *
- * 分享模式下还得先换一次 token（`GET /share/{id}` 返回 `{ websiteId, token }`），
- * 之后每个请求带 `x-umami-share-token`。
+ * 它只在**构建期的 Node 进程**里用，不会进产出的 HTML / JS —— 页面上只有取回来的
+ * 数字，没有任何密钥。
  */
-async function resolveCredential(
-  base: string,
-  websiteId: string,
-): Promise<{ headers: Record<string, string>; websiteId: string } | null> {
-  const apiKey = readEnv('UMAMI_API_KEY');
-  if (apiKey) {
-    /* 有的 API key 只认网站 id，路径里是空的话会打到 `/websites//stats` 上 —— 404 */
-    if (!websiteId) throw new Error('缺少 websiteId');
-    return { headers: { Authorization: `Bearer ${apiKey}` }, websiteId };
-  }
-
-  const shareId = readEnv('UMAMI_SHARE_ID');
-  if (!shareId) return null;
-
-  const share = await fetchJson<{ websiteId?: string; token?: string }>(
-    `${base}/share/${encodeURIComponent(shareId)}`,
-    {},
-  );
-  if (!share.token) throw new Error('share token 为空');
-  return {
-    headers: { 'x-umami-share-token': share.token },
-    websiteId: share.websiteId || websiteId,
-  };
+function resolveApiKey(cfg: SiteConfig['analytics']['umami']['stats']): string {
+  return (cfg.apiKey ?? '').trim() || String(process.env.UMAMI_API_KEY ?? '').trim();
 }
 
 type MetricsRow = {
@@ -171,26 +139,29 @@ async function load(): Promise<UmamiStats> {
      想看数字就 `npm run build`。 */
   if (!import.meta.env.PROD || !analytics.enable || !cfg.enable) return EMPTY;
 
-  const base = apiBase(umami);
-  const websiteId = (umami.websiteId ?? '').trim();
-  if (!base) {
-    console.warn('[Flux] 统计回读已开启，但推不出 Umami 的 API 地址 —— 请在 user/analytics.ts 里写 stats.apiUrl。');
-    return EMPTY;
-  }
-
   try {
-    const credential = await resolveCredential(base, websiteId);
-    if (!credential) return EMPTY;
+    /* 三个前置条件都在 try 里检查，走同一条报错路径 —— 构建输出里一眼能看出
+       是「地址推不出来」还是「id 空着」还是「key 不对」。 */
+    const base = apiBase(umami);
+    if (!base) throw new Error('推不出 API 地址（src 是站内路径？请填 stats.apiUrl）');
+
+    const websiteId = (umami.websiteId ?? '').trim();
+    if (!websiteId) throw new Error('analytics.umami.websiteId 是空的');
+
+    const apiKey = resolveApiKey(cfg);
+    if (!apiKey) throw new Error('没有 API key（stats.apiKey 或环境变量 UMAMI_API_KEY）');
+
+    const headers = { Authorization: `Bearer ${apiKey}` };
 
     const site = cfg.siteTotal
       ? await fetchJson<{ pageviews?: number; visitors?: number }>(
-          `${base}/websites/${credential.websiteId}/stats?startAt=${ALL_TIME_START}&endAt=${Date.now()}`,
-          credential.headers,
+          `${base}/websites/${websiteId}/stats?startAt=${ALL_TIME_START}&endAt=${Date.now()}`,
+          headers,
         )
       : null;
 
     const pages = cfg.postViews
-      ? await fetchPageViews(base, credential.websiteId, credential.headers, cfg.limit)
+      ? await fetchPageViews(base, websiteId, headers, cfg.limit)
       : new Map<string, number>();
 
     return {
@@ -204,8 +175,8 @@ async function load(): Promise<UmamiStats> {
     /* 一行，不打印堆栈：这是「可有可无的数字取不到」，不是构建错误。
        但要留一句，否则数字莫名消失时无从查起。 */
     console.warn(
-      `[Flux] 统计回读失败（${(error as Error)?.message ?? '未知错误'}）—— 页面照常构建，只是不显示阅读量。` +
-        ' 检查 UMAMI_API_KEY / UMAMI_SHARE_ID 是否有效、API 地址是否可达。',
+      `[Flux] 统计回读失败（${(error as Error)?.message ?? '未知错误'}）—— ` +
+        '页面照常构建，只是不显示阅读量。检查 user/analytics.ts 里的 stats 配置与 apiKey。',
     );
     return EMPTY;
   }
