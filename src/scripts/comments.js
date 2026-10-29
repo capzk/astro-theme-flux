@@ -84,13 +84,18 @@ function start(section) {
     status.hidden = true;
 
     try {
-      await loadStyles(data.css);
-      await mount({
-        el: mountEl,
-        section: data,
-        attempt,
-        loadModule: (src) => importModule(src, attempt),
-      });
+      /* CSS 与脚本相互独立，并行拉取，别让样式把脚本挡在后面。
+         脚本挂载里的重活（Vue 应用实例化）已由各家 mounter 用 whenIdle 推迟到
+         主线程空闲时执行 —— 读者正滚到评论区时不会因为同步挂载而掉帧。 */
+      await Promise.all([
+        loadStyles(data.css),
+        mount({
+          el: mountEl,
+          section: data,
+          attempt,
+          loadModule: (src) => importModule(src, attempt),
+        }),
+      ]);
 
       done = true;
       section.dataset.state = 'ready';

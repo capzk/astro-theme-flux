@@ -10,6 +10,7 @@
  * 配了 Turnstile 的话，先装一个补丁再 init：Waline 自己不回收验证码 widget，
  * 第二条评论会卡死，原因见 ./turnstile.js 开头。
  */
+import { whenIdle } from './idle.js';
 import { hookTurnstile } from './turnstile.js';
 
 /**
@@ -28,6 +29,8 @@ export default async function mountWaline({ el, section, loadModule }) {
     throw new Error('Waline 客户端没有导出 init()');
   }
 
-  const instance = client.init({ ...section.init, el });
+  /* 把整棵 Vue 应用的实例化推迟到主线程空闲时执行：这一步是「展开卡顿」的主因，
+     同步跑会把读者正在进行的滚动一起卡住。 */
+  const instance = await whenIdle(() => client.init({ ...section.init, el }));
   if (!instance) throw new Error('Waline 没有返回实例');
 }

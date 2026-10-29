@@ -15,6 +15,8 @@
  * 全局的切换逻辑不划算。
  */
 
+import { whenIdle } from './idle.js';
+
 /** 当前是不是暗色。和 main.css 里那套选择器读的是同一个属性 */
 const isDark = () => document.documentElement.dataset.userColorScheme === 'dark';
 
@@ -33,12 +35,15 @@ export default async function mountArtalk({ el, section, loadModule }) {
     throw new Error('Artalk 客户端没有导出 init()');
   }
 
-  const instance = Artalk.init({
-    ...section.init,
-    el,
-    pageTitle: document.title,
-    darkMode: isDark(),
-  });
+  /* 同 Waline：实例化是重活，推迟到主线程空闲，避免滚动时掉帧 */
+  const instance = await whenIdle(() =>
+    Artalk.init({
+      ...section.init,
+      el,
+      pageTitle: document.title,
+      darkMode: isDark(),
+    }),
+  );
 
   if (!instance) throw new Error('Artalk 没有返回实例');
 

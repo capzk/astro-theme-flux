@@ -8,6 +8,7 @@
 import { SITE } from '../config';
 import { T } from '../i18n';
 import { absoluteUrl, imageMimeOf, ogLocale, shareImage, twitterHandle } from '../utils/seo';
+import { safeJson } from '../utils/json';
 import { isListPage } from '../utils/list-pages';
 import type { ImageSource } from '../utils/image';
 import Navbar from '../components/Navbar.astro';
@@ -367,7 +368,7 @@ const verifyOther = SITE.verification.other.filter(
     }
 
     <!-- 结构化数据：由页面用 utils/seo 生成，这里只负责输出 -->
-    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {jsonLd && <script type="application/ld+json" set:html={safeJson(jsonLd)} />}
 
     <!--
       深色模式：首帧就把 data-user-color-scheme 写到 html 上，避免闪白。

@@ -16,6 +16,7 @@
  */
 import { SITE } from '../config';
 import { commentContext, resolveRecent } from '../comments';
+import { safeJson } from '../utils/json';
 import { T } from '../i18n';
 import Icon from './Icon.astro';
 
@@ -24,7 +25,7 @@ const recent = resolveRecent(SITE.comment, ctx);
 
 if (!recent) return;
 
-const payload = JSON.stringify(recent).replace(/</g, '\\u003c');
+const payload = safeJson(recent);
 ---
 
 <section

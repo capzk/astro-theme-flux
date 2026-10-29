@@ -1939,6 +1939,10 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 
 .comment-body {
   min-height: 4rem;
+  /* 预留一段高度并在离屏时不渲染这块子树：既减轻滚动时的布局 / 绘制开销，
+     也让 Waline 挂载瞬间不至于让下方内容明显下跳（CLS）。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
 }
 /* Waline 的面板自带 .5em 外边距，会把输入框往里缩一圈，跟标题对不齐 */
 .comment-body .wl-panel {

@@ -36,14 +36,17 @@ import { isAsset, srcOf } from '../../utils/image';
 
 export async function getStaticPaths() {
   const posts = await getPosts();
-  /* postsBySlug 会把 slug → 文章编好，并在两篇撞到同一个 URL 时直接构建失败 */
+  /* postsBySlug 会把 slug → 文章编好，并在两篇撞到同一个 URL 时直接构建失败。
+     只把当前这篇当 props 传下去：整份文章数组逐页序列化会随文章量推高构建开销，
+     页面自己在顶部 getPosts() 重算即可（content layer 有缓存）。 */
   return [...postsBySlug(posts)].map(([slug, post]) => ({
     params: { slug },
-    props: { post, posts },
+    props: { post },
   }));
 }
 
-const { post, posts } = Astro.props;
+const { post } = Astro.props;
+const posts = await getPosts();
 const { Content, headings } = await render(post);
 
 const { title, date, updated, tags, categories } = post.data;

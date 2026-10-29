@@ -26,6 +26,19 @@ function el(tag, cls, text) {
   return node;
 }
 
+/* 弹层打开时把页面其余部分设为 inert：屏幕阅读器与 Tab 都不会再落到底下的内容上。
+   弹层是 <body> 的直接子元素，不在 header/main/footer 里，不会被误伤。
+   浏览器不支持 inert 时 setAttribute 只是一个普通属性，没有副作用。 */
+const INERT_TARGETS = ['header', 'main', 'footer', '#scroll-top'];
+function setBackgroundInert(inert) {
+  for (const sel of INERT_TARGETS) {
+    const node = document.querySelector(sel);
+    if (!node) continue;
+    if (inert) node.setAttribute('inert', '');
+    else node.removeAttribute('inert');
+  }
+}
+
 /* 界面文案由 SearchModal 通过 data-* 传进来（见 src/i18n.ts），
    这里的默认值只是兜底 —— 正常渲染时用不到。 */
 const TEXT = {
@@ -75,6 +88,7 @@ function score(item, terms) {
 function openModal(modal, input) {
   modal.classList.add('is-open');
   document.body.classList.add('is-locked');
+  setBackgroundInert(true);
   input.value = '';
   renderEmpty('');
   /* 弹层一打开就开始取索引。读者从「打开」到「敲下第一个字」通常还有零点几秒，
@@ -88,6 +102,9 @@ function openModal(modal, input) {
 function closeModal(modal) {
   modal.classList.remove('is-open');
   document.body.classList.remove('is-locked');
+  setBackgroundInert(false);
+  /* 关闭后把焦点还给触发按钮，键盘用户不会「掉」在页面某处 */
+  document.querySelector('#search-toggle')?.focus();
 }
 
 function renderEmpty(message) {
@@ -168,6 +185,24 @@ export function initSearch() {
       e.preventDefault();
       const target = results[activeIndex];
       if (target) window.location.href = target.u;
+    }
+  });
+
+  /* 焦点环：背景已 inert，这里再保证 Tab 在弹层内循环，不跑到浏览器地址栏 */
+  modal.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const focusables = modal.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
     }
   });
 

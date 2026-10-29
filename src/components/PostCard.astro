@@ -51,7 +51,7 @@ const dateText = date.toLocaleDateString('zh-CN', {
                封面是装饰性的（标题就是旁边的链接），所以 alt 留空。 */
             <Image src={coverSrc} alt="" widths={[240, 400, 560]} sizes="(max-width: 767px) 100vw, 240px" loading="lazy" />
           ) : (
-            <img src={coverSrc} alt={title} loading="lazy" width="480" height="320" />
+            <img src={coverSrc} alt={title} loading="lazy" />
           )}
         </a>
       </div>

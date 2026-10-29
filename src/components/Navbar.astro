@@ -26,9 +26,13 @@ const isActive = (href: string) =>
  * NavItem 从很早就有 labelKey 字段，但一直没被读过 —— 等于一个假 API，这里补上。
  */
 const textOf = (item: { label?: string; labelKey?: string }) => {
-  const dict = T as unknown as Record<string, string>;
+  if (item.label) return item.label;
   const key = item.labelKey;
-  return item.label ?? (key ? (dict[key] ?? key) : '');
+  if (!key) return '';
+  /* T 里有函数成员（如 seriesPart），不能整体当成 Record<string,string>；
+     按单个键取值并校验类型，取到非字符串（没有这个文案键）时回退成键名。 */
+  const value = (T as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : key;
 };
 
 const nav = SITE.nav.filter((item) => !isNavHidden(item.href));

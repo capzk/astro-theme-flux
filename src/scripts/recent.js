@@ -111,7 +111,15 @@ function start(section) {
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const items = normalize(config.type, await response.json(), config.length || 60);
+      /* Waline 的读接口返回 `{ errno, errmsg, data: [...] }` 信封，真正的数组在
+         `data` 里；某些实现 / 代理也可能直接返数组，两种都兼容。此前把整个信封
+         当数组传进 normalize，Array.isArray 恒为 false，挂件因此永远是空的。 */
+      const payload = await response.json();
+      if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.errno) {
+        throw new Error(`Waline ${payload.errno}: ${payload.errmsg || ''}`);
+      }
+      const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
+      const items = normalize(config.type, list, config.length || 60);
       /* 一条都没有时整块不出现 —— 一个「暂无评论」的空卡片比没有更冷清 */
       if (items.length === 0) {
         section.remove();

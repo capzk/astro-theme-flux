@@ -45,11 +45,12 @@ export type UserConfig = { [K in keyof SiteConfig]?: DeepPartial<SiteConfig[K]> 
  */
 export const defineConfig = (config: UserConfig): UserConfig => config;
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' &&
-  value !== null &&
-  !Array.isArray(value) &&
-  Object.getPrototypeOf(value) === Object.prototype;
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  /* 普通对象字面量，或 Object.create(null) 出来的裸对象，都算「可合并的普通对象」 */
+  return proto === Object.prototype || proto === null;
+};
 
 /**
  * Astro 的 ImageMetadata：`{ src, width, height, format }`。

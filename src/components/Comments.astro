@@ -15,6 +15,7 @@
  */
 import { SITE } from '../config';
 import { commentContext, hasCommentForm, resolveComments } from '../comments';
+import { safeJson } from '../utils/json';
 import { T } from '../i18n';
 import Icon from './Icon.astro';
 
@@ -36,10 +37,9 @@ const ctx = commentContext(Astro.url, {
 const { section } = resolveComments(SITE.comment, ctx);
 if (!section) return;
 
-/* 只把有值的键发给浏览器：undefined 序列化不掉，脚本里还得再过滤一遍 */
-const payload = JSON.stringify(section)
-  /* JSON 里出现 `</script>` 会提前闭合标签，把 `<` 转义掉最省心 */
-  .replace(/</g, '\\u003c');
+/* 序列化成可安全注入的 JSON：转义 `<` `>` `&`，防止 `</script>` 提前闭合标签。
+   只把有值的键发给浏览器（undefined 序列化不掉），脚本里还会再过滤一遍。 */
+const payload = safeJson(section);
 ---
 
 <section
