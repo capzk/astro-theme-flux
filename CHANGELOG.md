@@ -7,6 +7,31 @@
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-10-29
+
+把 4.1.0 加的「用 Umami API 回读统计」整块移除了。**埋点脚本一行没动** ——
+GA4 / Umami / Clarity 照常输出，该看的报表照样在 Umami 后台看，只是页面上不再显示数字。
+
+### Removed
+
+- `analytics.umami.stats` 整个配置段（`enable` / `apiKey` / `apiUrl` / `postViews` /
+  `siteTotal` / `limit`）、`src/utils/umami.ts`、`.env.example`
+- 文章页 banner 的「阅读 N 次」、页脚的全站累计，以及配套的 `eye` 图标、
+  `footer-stats` 样式与三条 i18n 文案（`postViews` / `sitePageviews` / `siteVisitors`）
+- 构建期体检里与它相关的四条提示
+
+### 为什么
+
+Umami 的 API key 是**账号级、不过期、可读可写**的凭证（官方文档：「Any operation you can
+do through the application is available in the API」），所以它不能进浏览器 —— 数字只能
+构建期取，也就只能停在部署那一刻。要做到实时，得再加一层边缘函数代理 + 缓存。
+为页面上两个小数字维护「构建期依赖 + 一个代理」，收益不抵复杂度。
+
+### 升级
+
+在 4.1–4.2 期间配过 `analytics.umami.stats` 的，删掉那一段即可，其余不用动
+（这一段是 4.1.0 新增、几乎没人配，所以按 minor 发，没有跳 major）。
+
 ## [4.2.1] - 2026-10-29
 
 收尾检查时发现的一处口径不一致：构建期体检用 `envOf` 双读 `process.env` 和
@@ -1070,7 +1095,9 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.3.0...HEAD
+[4.3.0]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...v4.3.0
+[4.3.0]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/capzk/astro-theme-flux/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...v4.2.0
 [4.1.1]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...v4.1.1

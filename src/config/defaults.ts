@@ -137,14 +137,6 @@ const DEFAULT_CONFIG: SiteConfig = {
       performance: false,
       /* 访客侧 JS 异常上报（Umami 3.5+）。默认关 */
       errors: false,
-      /* 构建期回读统计数据（文章阅读量 / 全站访客）。默认关：
-         不想让构建因为第三方接口超时而变慢。要填 stats.apiKey 才会生效 */
-      stats: {
-        enable: false,
-        postViews: true,
-        siteTotal: true,
-        limit: 500,
-      },
     },
     clarity: {
       enable: false,

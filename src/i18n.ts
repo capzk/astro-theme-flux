@@ -28,11 +28,6 @@ export const T = {
   pin: '置顶',
   words: '字',
   minRead: '分钟阅读',
-  /* 阅读量 / 访客数：构建期从 Umami 回读，数字已带千分位，所以按字符串接。
-     取不到数据时整块不渲染 —— 不显示，而不是显示 0 */
-  postViews: (n: string) => `阅读 ${n} 次`,
-  sitePageviews: (n: string) => `${n} 次浏览`,
-  siteVisitors: (n: string) => `${n} 位访客`,
   updatedPrefix: '本文最后更新于',
   prevPost: '上一篇',
   nextPost: '下一篇',

@@ -55,7 +55,6 @@
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
 | 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
 | 访客统计 | 三家各自开关、可并存：GA4 / Umami（访问统计）、Clarity（热图与会话回放）；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
-| 阅读量与访客数 | 构建期用 Umami 只读 API 取回，写进静态 HTML：文章页 banner 显示「阅读 N 次」、页脚显示全站累计。零运行时请求、密钥只留在构建环境；没配就整块不生效 |
 | 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
 | Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
@@ -240,30 +239,6 @@ analytics: {
 | `excludeSearch` / `excludeHash` | 同名 | 查询参数 / hash 算不算进页面路径 |
 
 **Bing 没有访问统计脚本。** 它不像 GA 那样给你一段 `gtag.js` —— Bing 的访问数据并进了 Microsoft Clarity（要的就是上面 `clarity` 那一段，只是得去 Clarity 后台单独申请）。所以 `verification.bing` 那一项是站点认领，用来看搜索关键词与抓取情况，不是统计。
-
-#### 把统计读回来：阅读量与访客数
-
-上面那些都是**往外发**。Umami 还提供只读 API，于是可以反过来**往里取** —— 构建时读一次，把数字写进 HTML：
-
-```ts
-umami: {
-  enable: true,
-  src: 'https://analytics.example.com/script.js',
-  websiteId: '3f2a…',
-  stats: {
-    enable: true,               // 开这里才会联网取数，默认 false
-    apiKey: 'umami_xxxxxxxx',   // 后台 Settings → API keys
-    postViews: true,            // 文章页 banner：阅读 1,234 次
-    siteTotal: true,            // 页脚：12,345 次浏览 · 6,789 位访客
-  },
-},
-```
-
-**凭证就是一个 key。** Umami 后台 → Settings → API keys 生成 `umami_…`，填 `stats.apiKey` 即可。它只在**构建期的 Node 进程**里用，产出的 HTML / JS 里只有数字、没有任何密钥 —— 所以站点仓库是私有的就直接写在配置里，不用折腾环境变量。仓库公开（比如这个主题自己的示例站）才改用 `UMAMI_API_KEY` 环境变量，模板见 `.env.example`。
-
-**为什么在构建期取。** 静态站没有后端，key 一旦进浏览器就等于公开；每页两个跨域请求、还要等接口回数字，换来的只是个位数加逗号；构建期取一次是零运行时开销，与「页面到手即完整」的取舍一致。代价是数字停在构建那一刻 —— 想要实时数字，正确做法是加一层边缘函数代理，而不是把密钥塞进页面。
-
-**没配就完全关闭。** `stats.enable` 默认 `false`，此时一次网络请求都不发。开了却忘了填 key、或者接口超时 / 拒绝 / 404，也只是这些数字不出现，构建照常成功（输出里一行提示，不阻断）。没有数据的文章不显示阅读量而不是显示 0；历史数据从装上脚本那天开始，装之前的读不到。
 
 两个实现细节：脚本是 `async` 的，另外给它的域名各补一条 `dns-prefetch`（只查 DNS，不做完整握手 —— 统计不是首屏关键资源，不该跟 banner 图抢连接）。填错 id 不会报错、只会让报表永远空着，所以构建期会检查格式并点名：`UA-` 开头（2023 年已停服）、纯数字的数据流 ID、带连字符的 Clarity ID、整段 `<meta>` 粘进 content 字段，都会被指出来。
 
@@ -714,7 +689,6 @@ src/
 ├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
 ├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
-├── utils/umami.ts       # 构建期回读 Umami 统计（阅读量 / 访客数），失败即降级
 └── styles/main.css      # 全部样式（变量分亮暗两套）
 
 ```

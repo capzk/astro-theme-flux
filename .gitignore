@@ -12,8 +12,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # env
-# .env.local 放服务端密钥（如 UMAMI_API_KEY），只存在本机、绝不提交；
-# 想提交模板用 .env.example
+# .env.local 只存在本机、绝不提交（放本地密钥或覆盖项）
 .env
 .env.local
 .env.*.local
