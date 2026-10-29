@@ -3,22 +3,19 @@
  * ---------------------------------------------------------------------------
  * 这里其实是**两件不同的事**，只是常常一起配，所以放在一个文件里：
  *
- *   analytics      访客统计 —— 每页加载一份第三方脚本，数据在对方报表里看
+ *   analytics      访客统计 —— 每页加载第三方脚本，数据在对方报表里看
  *   verification   站长认领 —— 只在 head 里出一行 meta，不放脚本、不发请求
  *
- * 最大的一个坑是把它们当成同一件事：
+ * 统计有三家，**每家一个开关，可以同时开**：
  *
- *   | 你想要的 | 配哪 | 填什么 |
- *   | --- | --- | --- |
- *   | 多少人看了哪篇文章 | analytics | GA4 的 `G-XXXXXXXXXX` 或 Umami 的站点 ID |
- *   | 搜索里哪些词带来了流量 | verification.google | Search Console 的验证串 |
- *   | Bing 的收录与抓取情况 | verification.bing | `msvalidate.01` 的验证串 |
+ *   google    GA4 —— 生态最全，境内基本连不上
+ *   umami     自托管统计 —— 2KB、不用 Cookie、境内能跑
+ *   clarity   热图与会话回放 —— 和上面两个不是一类东西，所以能并存
  *
- * **Bing 没有客户端访问统计脚本** —— 它不像 GA 那样给你一段 gtag.js。Bing 的
- * 访问数据并进了 Microsoft Clarity（另一段脚本，在 Clarity 后台单独申请），
- * 所以这里只有 `bing` 这一行验证串，用来认领站点、看搜索与抓取的报表。
+ * 打开某一家要两步：本段总开关 `enable: true`，再把那一家的 `enable` 也改成 true
+ * 并填上 id。只改一家不改总开关，什么都不会输出 —— 这是最容易踩的一步。
  *
- * 两边都默认关闭：统计要在读者浏览器里跑第三方脚本，示例站不该替别人做这个决定。
+ * 示例站三家全关：统计要在读者浏览器里跑第三方脚本，示例站不该替别人做这个决定。
  */
 import { defineConfig } from '../merge';
 
@@ -26,15 +23,6 @@ export default defineConfig({
   analytics: {
     /** 总开关。false 时一行标签都不输出，也不会下载任何第三方脚本 */
     enable: false,
-
-    /**
-     * 用哪一家，`'google'` 或 `'umami'`。改这一行就切换，下面两段留着不影响构建。
-     *
-     * 只支持同时开一家：两套并行会让同一份流量被记两次，之后每次看报表都要先解释
-     * 「为什么两边差 8%」。真要迁移期对比几天，把另一家的脚本临时贴进
-     * `BaseLayout.astro` 里 head 的末尾，跑完删掉即可。
-     */
-    type: 'google',
 
     /**
      * Google Analytics 4。
@@ -47,6 +35,7 @@ export default defineConfig({
      * 但这一页白等一个连接）。读者主要在国内的话，用下面的 Umami 更实际。
      */
     google: {
+      enable: false,
       measurementId: '',
     },
 
@@ -63,10 +52,11 @@ export default defineConfig({
      * 也可以反代到主域下走同源（`src: '/stats/script.js'`），省掉一次跨域握手。
      */
     umami: {
+      enable: false,
       src: '',
       websiteId: '',
       /**
-       * 只在这些域名上统计，逗号分隔，如 `'capzk.com,www.capzk.com'`。
+       * 只在这些域名上统计，逗号分隔，如 `'example.com,www.example.com'`。
        * 不写 = 不限制。填了之后 localhost 和预览部署都不会污染数据。
        *
        * 主题本身已经在构建期做了「只在生产构建里输出」的判断，这一项是第二道闸：
@@ -80,6 +70,39 @@ export default defineConfig({
       excludeSearch: false,
       /** hash（`#某标题`）算不算进页面路径。默认算 */
       excludeHash: false,
+
+      /**
+       * 真实用户的 Core Web Vitals（LCP / CLS / INP / TTFB）。默认关。
+       *
+       * Lighthouse 跑在模拟环境里，这个是你读者的真实网络与设备 —— 想知道优化有没有
+       * 落到实处，打开它比看 Lighthouse 分数有用。需要 Umami 3.1+。
+       */
+      performance: false,
+      /**
+       * 访客侧 JS 异常上报。默认关。需要 Umami 3.5+。
+       * 博客页面脚本很少，一般不会报错；但这是唯一能看到「读者那边挂了」的途径。
+       * 打开后可以顺手填 `errorRelease`（如 `'web@1.0.0'`），出问题时能分清是哪个版本。
+       */
+      errors: false,
+      // errorRelease: 'web@1.0.0',
+    },
+
+    /**
+     * Microsoft Clarity —— 热图、点击分布、会话回放。
+     *
+     * 它不是「多少人看了哪篇文章」，而是「读者在页面上怎么点、滚到哪、卡在哪」，
+     * 所以可以和 Umami 一起开，两边看的是不同问题。免费、无流量上限。
+     *
+     * ⚠️ 它**用 Cookie**（`_clck` / `_clsk`），和 Umami 的无 Cookie 正好相反：
+     * 面向欧盟读者时按 GDPR 得先拿到同意，主题不会替你弹窗。会话回放还会录到
+     * 页面内容，敏感区域先在 Clarity 面板里配好遮罩再上线。
+     *
+     * projectId 在 Clarity 后台 → 设置 → 概览里，是 10 位左右的字母数字
+     * （形如 `abcdefghij`，没有连字符）—— 不是整段安装代码。
+     */
+    clarity: {
+      enable: false,
+      projectId: '',
     },
   },
 

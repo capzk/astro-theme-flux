@@ -114,14 +114,18 @@ const DEFAULT_CONFIG: SiteConfig = {
     },
   },
 
-  /* 访客统计。**默认关闭** —— 统计会在每页下载一份第三方脚本，而 fork 下来的第一件事
+  /* 访客统计。**默认全关** —— 统计会在每页下载第三方脚本，而 fork 下来的第一件事
      往往还不是配统计；默认开着只会往你自己的报表里灌一堆 localhost 与示例站的访问。
-     打开就三件事：enable 改 true、type 选一家、填上对应那段的 id。 */
+     打开就两件事：总开关 enable 改 true，再把对应那一家的 enable 也改 true 并填 id。
+     三家可以并存（Clarity 是热图/回放，和另外两个不是一类东西）。 */
   analytics: {
     enable: false,
-    type: 'google',
-    google: { measurementId: '' },
+    google: {
+      enable: false,
+      measurementId: '',
+    },
     umami: {
+      enable: false,
       src: '',
       websiteId: '',
       /* 自动记页面浏览；设 false 就得自己调 umami.track() */
@@ -129,6 +133,14 @@ const DEFAULT_CONFIG: SiteConfig = {
       /* 查询参数 / hash 算不算进页面路径。默认都算（与 Umami 自身默认一致） */
       excludeSearch: false,
       excludeHash: false,
+      /* 真实用户的 Core Web Vitals（Umami 3.1+）。默认关 */
+      performance: false,
+      /* 访客侧 JS 异常上报（Umami 3.5+）。默认关 */
+      errors: false,
+    },
+    clarity: {
+      enable: false,
+      projectId: '',
     },
   },
 

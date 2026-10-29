@@ -144,17 +144,28 @@ function inspect(config: SiteConfig): string[] {
   }
 
   /* ---- 访客统计 -----------------------------------------------------------
-     这两项填错的症状高度一致：页面照常生成，脚本也照常下载，只是报表里一条数据
+     这三项填错的症状高度一致：页面照常生成，脚本也照常下载，只是报表里一条数据
      都没有 —— 而报表恰恰是「没人天天盯着」的东西，可能一个月后才发现。
      所以在构建期把「格式明显对不上」的值挑出来。 */
   const { analytics, verification } = config;
 
   if (analytics.enable) {
-    if (analytics.type === 'google') {
-      const id = analytics.google.measurementId.trim();
+    const { google, umami, clarity } = analytics;
+
+    /* 同类工具开两个：多半是迁移期对比，也可能只是忘关了一个。
+       不拦，但说出来 —— 之后对不上数的时候会想起这句话。 */
+    if (google.enable && umami.enable) {
+      issues.push(
+        'analytics.google 和 analytics.umami 同时开着 —— 同一份流量会被记两次，两边报表永远对不上。' +
+          '对比几天之后记得关掉一个。',
+      );
+    }
+
+    if (google.enable) {
+      const id = google.measurementId.trim();
       if (!id) {
         issues.push(
-          'analytics.type 是 google 且 enable 为 true，但 analytics.google.measurementId 是空的 —— ' +
+          'analytics.google.enable 是 true，但 analytics.google.measurementId 是空的 —— ' +
             '不会输出统计脚本。去 GA 后台 → 管理 → 数据流里抄「衡量 ID」（G- 开头），或把 enable 改回 false。',
         );
       } else if (!/^G-[A-Z0-9]{4,}$/i.test(id)) {
@@ -165,23 +176,46 @@ function inspect(config: SiteConfig): string[] {
               : '注意别填成「数据流 ID」（纯数字）或 GT- 开头的容器 ID，那两个都不会报错，只是没有数据。'),
         );
       }
-    } else {
-      const { src, websiteId } = analytics.umami;
-      if (!src.trim()) {
+    }
+
+    if (umami.enable) {
+      const src = umami.src.trim();
+      if (!src) {
         issues.push(
-          'analytics.type 是 umami 且 enable 为 true，但 analytics.umami.src 是空的 —— 不会输出统计脚本。' +
+          'analytics.umami.enable 是 true，但 analytics.umami.src 是空的 —— 不会输出统计脚本。' +
             '填 https://umami.你的域名/script.js（或官方云 https://cloud.umami.is/script.js）。',
         );
-      } else if (!/^(https?:\/\/|\/)/.test(src.trim())) {
+      } else if (!/^(https?:\/\/|\/)/.test(src)) {
         issues.push(
-          `analytics.umami.src 是 "${src}"，看起来不像地址 —— 应该以 https:// 开头` +
+          `analytics.umami.src 是 "${umami.src}"，看起来不像地址 —— 应该以 https:// 开头` +
             '（或 / 开头，走站内反代）。',
         );
       }
-      if (!websiteId.trim()) {
+      if (!umami.websiteId.trim()) {
         issues.push(
-          'analytics.type 是 umami 且 enable 为 true，但 analytics.umami.websiteId 是空的 —— ' +
+          'analytics.umami.enable 是 true，但 analytics.umami.websiteId 是空的 —— ' +
             '脚本会加载但一条数据都不记。去 Umami 后台 → 网站 → 编辑里抄「网站 ID」（一串 UUID）。',
+        );
+      }
+      if (umami.hostUrl && !/^https?:\/\//.test(umami.hostUrl.trim())) {
+        issues.push(
+          `analytics.umami.hostUrl 是 "${umami.hostUrl}" —— 它是要发数据的地址，` +
+            '必须写完整的 https://…（不带结尾斜杠）。只写域名不会报错，只是数据发不出去。',
+        );
+      }
+    }
+
+    if (clarity.enable) {
+      const id = clarity.projectId.trim();
+      if (!id) {
+        issues.push(
+          'analytics.clarity.enable 是 true，但 analytics.clarity.projectId 是空的 —— 不会输出脚本。' +
+            '去 Clarity 后台 → 设置 → 概览里抄项目 ID，或把 enable 改回 false。',
+        );
+      } else if (!/^[a-z0-9]{6,20}$/i.test(id)) {
+        issues.push(
+          `analytics.clarity.projectId 是 "${id}"，不像 Clarity 的项目 ID（10 位左右的字母数字，` +
+            '没有连字符和斜杠）。注意别把整段安装代码粘进来。',
         );
       }
     }
@@ -280,6 +314,7 @@ export type {
   AnalyticsConfig,
   GoogleAnalyticsConfig,
   UmamiConfig,
+  ClarityConfig,
   VerificationConfig,
 } from './types';
 export type { DeepPartial, UserConfig } from './merge';

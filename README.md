@@ -54,7 +54,7 @@
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
 | 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
-| 访客统计 | 可插拔：Google Analytics 4 / Umami 改一行切换；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
+| 访客统计 | 三家各自开关、可并存：GA4 / Umami（访问统计）、Clarity（热图与会话回放）；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
 | 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
 | Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
@@ -202,27 +202,45 @@ CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比�
 | 你想要的 | 配哪 | 填什么 |
 | --- | --- | --- |
 | 多少人看了哪篇文章 | `analytics` | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
+| 读者怎么点、滚到哪、卡在哪 | `analytics.clarity` | Clarity 的项目 ID |
 | 搜索里哪些词带来流量 | `verification.google` | Search Console 的验证串 |
 | Bing 的收录与抓取情况 | `verification.bing` | `msvalidate.01` 的验证串 |
 
 `analytics` 是**脚本**（每页下载、会上报数据），`verification` 是**一行 meta**（认领所有权，不发任何请求）。
 
+统计有三家，**每家一个开关，可以同时开**：
+
 ```ts
 analytics: {
-  enable: true,
-  type: 'google',                               // 'google' | 'umami'，改这行就切换
-  google: { measurementId: 'G-XXXXXXXXXX' },    // GA4 的衡量 ID
-  umami:  { src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+  enable: true,                                  // 总开关，一家都没开时用来一键关
+  google:  { enable: true,  measurementId: 'G-XXXXXXXXXX' },
+  umami:   { enable: false, src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+  clarity: { enable: false, projectId: 'abcdefghij' },
 },
 ```
 
+| | 定位 | 脚本 | Cookie | 境内可达 |
+| --- | --- | --- | --- | --- |
+| Google Analytics 4 | 访问统计 | gtag.js 约 100KB | 有 | 基本不通 |
+| Umami | 访问统计 | 约 2KB | **无** | 自托管即可 |
+| Microsoft Clarity | 热图 / 会话回放 | 自注入约 30KB | 有（`_clck` / `_clsk`） | 一般可用 |
+
+**为什么是三个开关而不是一个「用哪家」的单选框。** GA 与 Umami 确实同类，同时开会把同一份流量记两次 —— 但 Clarity 不是同类东西，它录的是行为，不是访问量。「Umami 看流量 + Clarity 看热图」是正常组合，单选表达不了。所以结构上允许并存，而把「别重复统计」变成构建期的一句提醒：GA 和 Umami 同时开着时会告诉你「两边报表永远对不上，对比完记得关一个」。
+
 **只在生产构建里输出。** `astro dev` 打开页面时连脚本都不下载，不会往真实报表里灌 localhost 的访问 —— 比去后台配「排除 localhost」省事。Umami 还能再加一层 `domains: 'example.com,www.example.com'`，挡住「同一份产物部署到测试域名」的情况。
 
-**两家的取舍。** GA4 数据全、生态成熟，但 `googletagmanager.com` 境内基本不通，脚本会挂到超时（`async`，不挡渲染，但这一页白等一个连接）。Umami 脚本只有 2KB 左右、不用 Cookie（所以不需要同意弹窗）、可以自己部署，读者主要在国内时它更实际。只支持同时开一家：两套并行会把同一份流量记两次，之后每次看报表都要先解释「为什么两边差 8%」。
+**Umami 的几个附加项**（都不用，默认关）：
 
-**Bing 没有访问统计脚本。** 它不像 GA 那样给你一段 `gtag.js` —— Bing 的访问数据并进了 Microsoft Clarity（另一段脚本，在 Clarity 后台单独申请）。所以 `verification.bing` 那一项是站点认领，用来看搜索关键词与抓取情况，不是统计。
+| 字段 | 对应属性 | 作用 |
+| --- | --- | --- |
+| `performance: true` | `data-performance` | 收集真实用户的 Core Web Vitals（LCP / CLS / INP）。Lighthouse 跑在模拟环境，这个是读者真实的网络与设备 |
+| `errors: true` | `data-errors` + `data-release` | 上报访客浏览器的 JS 异常。博客脚本少，一般不会报错，但这是唯一能看到「读者那边挂了」的途径 |
+| `hostUrl` | `data-host-url` | 脚本走公共 CDN、数据要进自己实例时才填 |
+| `excludeSearch` / `excludeHash` | 同名 | 查询参数 / hash 算不算进页面路径 |
 
-两个细节：脚本是 `async` 的，另外给它的域名补了一条 `dns-prefetch`（只查 DNS，不做完整握手 —— 统计不是首屏关键资源，不该跟 banner 图抢连接）。填错 id 不会报错、只会让报表永远空着，所以构建期会检查格式并点名：`UA-` 开头（2023 年已停服）、纯数字的数据流 ID、整段 `<meta>` 粘进 content 字段，都会被指出来。
+**Bing 没有访问统计脚本。** 它不像 GA 那样给你一段 `gtag.js` —— Bing 的访问数据并进了 Microsoft Clarity（要的就是上面 `clarity` 那一段，只是得去 Clarity 后台单独申请）。所以 `verification.bing` 那一项是站点认领，用来看搜索关键词与抓取情况，不是统计。
+
+两个实现细节：脚本是 `async` 的，另外给它的域名各补一条 `dns-prefetch`（只查 DNS，不做完整握手 —— 统计不是首屏关键资源，不该跟 banner 图抢连接）。填错 id 不会报错、只会让报表永远空着，所以构建期会检查格式并点名：`UA-` 开头（2023 年已停服）、纯数字的数据流 ID、带连字符的 Clarity ID、整段 `<meta>` 粘进 content 字段，都会被指出来。
 
 `verification.other` 留给其他平台，有几条写几条：
 
@@ -717,7 +735,7 @@ src/
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
-- 访客统计只有两家（GA4 / Umami），且同时只跑一家。想加第三家（Plausible、Microsoft Clarity、百度统计）：`config/types.ts` 加个类型 + `user/analytics.ts` 填值 + `BaseLayout.astro` 里 head 末尾补一段标签，三处合计十几行。Bing 没有客户端统计脚本，它那一项是站点认领，不是统计。
+- 访客统计内建三家（GA4 / Umami / Clarity），够用但不打算做成「什么统计都支持」。想加第四家（Plausible、百度统计、51.LA、Fathom…）：`config/types.ts` 加个类型 + `config/defaults.ts` 和 `user/analytics.ts` 填值 + `BaseLayout.astro` 里补一段标签，三处合计十几行 —— 它们本质上就是一段 `<script>`，套一层注册表反而比直接写更绕。Bing 没有客户端统计脚本，它那一项是站点认领，不是统计。
 - 评论的客户端默认从公共 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css` 放进 `public/waline/`，然后 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'` —— 见上文「客户端从哪加载」。`_headers` 里给这段路径 `immutable` 缓存，升级只换文件、不失效缓存。
 
 ## 更新日志

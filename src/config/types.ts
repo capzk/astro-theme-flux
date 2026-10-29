@@ -395,6 +395,11 @@ export interface RecentConfig {
  */
 export interface GoogleAnalyticsConfig {
   /**
+   * 单独开关。**不靠「id 空不空」判断**：想临时停掉就改这个布尔值，
+   * id 留着不用再翻一遍后台。
+   */
+  enable: boolean;
+  /**
    * 衡量 ID，形如 `G-XXXXXXXXXX`。
    * 在 GA 后台 → 管理 → 数据流 → 点开你的网站，「衡量 ID」就是那一行。
    *
@@ -420,6 +425,8 @@ export interface GoogleAnalyticsConfig {
  * @see https://umami.is/docs/tracker-configuration
  */
 export interface UmamiConfig {
+  /** 单独开关（理由同 GoogleAnalyticsConfig.enable） */
+  enable: boolean;
   /**
    * 统计脚本的完整地址：
    *
@@ -459,30 +466,102 @@ export interface UmamiConfig {
   excludeSearch: boolean;
   /** 页面路径里不带 hash（`#标题`）。默认 false */
   excludeHash: boolean;
+  /**
+   * 数据发到哪个地址（`data-host-url`）。**不写就跟 `src` 同源**，绝大多数情况不用填。
+   *
+   * 只有一种场景需要：脚本从公共 CDN 拿，但数据要进自己的实例 ——
+   *
+   *   src:     'https://cdn.jsdelivr.net/npm/@umami/script/script.js'
+   *   hostUrl: 'https://analytics.你的域名'
+   *
+   * 反代到主域（`src: '/stats/script.js'`）时也不需要它，同源就是对的。
+   */
+  hostUrl?: string;
+  /**
+   * 收集真实用户的 Core Web Vitals（`data-performance`，Umami 3.1+）。默认 false。
+   *
+   * 打开后 Umami 会记下访客浏览器实测的 LCP / CLS / INP / TTFB —— 那是 Lighthouse
+   * 给不了的东西：Lighthouse 跑在模拟环境里，这个是你读者的真实网络与设备。
+   * 代价是每页多一次上报请求（复用同一个连接，可以忽略）。
+   */
+  performance: boolean;
+  /**
+   * 收集访客浏览器里的 JS 异常（`data-errors`，Umami 3.5+）。默认 false。
+   *
+   * 对博客来说通常用不上（页面上本来就没几个脚本），但它是**唯一能看到
+   * 「读者那边脚本挂了」的途径** —— 自己的浏览器永远是好的。
+   * 打开后可以在上报里带版本号，见 `errorRelease`。
+   */
+  errors: boolean;
+  /**
+   * 异常上报里附带的版本号（`data-release`，限 100 字符，`errors` 开启时才有意义）。
+   * 留空则上报里的 release 是空的，排查时看不出是哪个版本出的问题。
+   * 常见写法是跟着 package.json 的版本走，例如 `'web@4.0.0'`。
+   */
+  errorRelease?: string;
+}
+
+/**
+ * 访客统计 · Microsoft Clarity
+ * ---------------------------------------------------------------------------
+ * 和 GA / Umami **不是同一类东西**：它做的是热图、点击分布和会话回放（把访客
+ * 在你页面上的操作录成一段可回放的视频），不是「多少人看了哪篇文章」。
+ * 所以它可以和上面两家同时开着 —— 那些是访问统计，这个是行为分析。
+ *
+ * 免费、没有流量上限，微软的隐私政策下数据保留 13 个月。
+ *
+ * ⚠️ **它用 Cookie**（`_clck` / `_clsk`），和 Umami 的「无 Cookie」正好相反。
+ * 面向欧盟读者时，按 GDPR 这类数据得先拿到同意 —— 主题不会替你弹窗，
+ * 要么用 CSP/脚本层面做好同意门禁，要么干脆只在不需要同意的地区开。
+ *
+ * 隐私上还有一层：会话回放会录到页面内容。Clarity 默认对输入框做遮罩，
+ * 也可以在它的面板里设置「屏蔽某些元素」。真要放读者留言、邮箱之类的
+ * 敏感内容，先在那边把遮罩规则配好再上线。
+ *
+ * @see https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-detection-code
+ */
+export interface ClarityConfig {
+  /** 单独开关 */
+  enable: boolean;
+  /**
+   * 项目 ID。Clarity 后台 → 设置 → 概览里那串 10 位左右的字母数字
+   * （形如 `abcdefghij`，全是小写、没有连字符）。
+   *
+   * 填错的症状和 Umami 一样安静：脚本正常加载，只是数据进了一个不存在的项目。
+   * 注意别把「安装代码」整段粘进来。
+   */
+  projectId: string;
 }
 
 /**
  * 访客统计
  * ---------------------------------------------------------------------------
- * 两家，`type` 一行切换：`'google'`（GA4）/ `'umami'`。
+ * 三家，**每家一个开关**，互不干扰，可以同时开：
  *
- * **为什么只给一个 `type`，而不是两个独立开关**：同时挂两套会让同一份流量被记两次，
- * 之后每次对报表都要先解释「为什么两边差 8%」，那个时间远超省下的配置。
- * 迁移期确实想并行跑几天的话，把另一家的脚本临时贴进
- * `src/layouts/BaseLayout.astro` 的 `<head>` 末尾，跑完删掉 —— 比留一个长期存在的
- * 双开开关更干净。
+ *   `google`   GA4 —— 访问统计，生态最全，境内基本连不上
+ *   `umami`    Umami —— 访问统计，可自托管、不用 Cookie、2KB
+ *   `clarity`  Microsoft Clarity —— 热图 / 会话回放，和上面两个不是一类东西
  *
- * 用不到的那一段留着不影响构建，所以「两套都填好、随时切」是常态。
+ * **为什么不做一个 `type: 'google' | 'umami'` 的单选题**（3.x 是这样）：
+ * 那样默认了「这些厂商只能选一个」，可 Clarity 这类工具是**正交**的 ——
+ * 「用 Umami 看流量 + 用 Clarity 看热图」是完全正常的组合，单选题表达不了。
+ * 而且每加一家都要改一次联合类型，越加越僵。
+ *
+ * 那种设计想守住的东西还在，只是从「结构限制」换成了「构建期提醒」：
+ * GA 和 Umami 同时开着，说明同一份流量会被记两次 —— 那多半是迁移期对比，
+ * 也可能只是忘关了一个，所以照常输出、但构建时点一句。
+ *
+ * 总开关 `enable` 关掉后一行标签都不输出，也不下载任何第三方脚本。
  */
 export interface AnalyticsConfig {
-  /** 总开关。关掉后一行标签都不输出，也不会下载任何第三方脚本 */
+  /** 总开关。一键全关，不用逐家去改 */
   enable: boolean;
-  /** 用哪一家。改这里即可切换 */
-  type: 'google' | 'umami';
-  /** GA4 的私有配置（`type === 'google'` 时生效） */
+  /** GA4 */
   google: GoogleAnalyticsConfig;
-  /** Umami 的私有配置（`type === 'umami'` 时生效） */
+  /** Umami */
   umami: UmamiConfig;
+  /** Microsoft Clarity（热图 / 会话回放） */
+  clarity: ClarityConfig;
 }
 
 /**
@@ -702,7 +781,7 @@ export interface SiteConfig {
   /** 评论（Waline）。详见上方 WalineConfig 的字段说明 */
   comment: CommentConfig;
 
-  /** 访客统计：GA4 或 Umami，二选一。详见上方 AnalyticsConfig */
+  /** 访客统计：GA4 / Umami / Clarity，每家一个开关，可并存。详见上方 AnalyticsConfig */
   analytics: AnalyticsConfig;
 
   /** 站长验证：Search Console / Bing Webmaster 等。详见上方 VerificationConfig */

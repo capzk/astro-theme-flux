@@ -33,7 +33,7 @@ cover: ../../assets/covers/cover-2.webp
 | `appearance.ts` | 首页 banner、文章页 banner、深色模式、配色 | 想换样子时 |
 | `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
 | `comment.ts` | 评论三选一、懒加载、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
-| `analytics.ts` | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 百度…） | 想知道谁在看时 |
+| `analytics.ts` | 访客统计（GA4 / Umami / Clarity）与站长验证（Search Console / Bing / 百度…） | 想知道谁在看时 |
 | `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案 | 上线前后 |
 | `links.ts` | 友链数组 | 加友链时 |
 | `pages.ts` | 关于页 / 友链页的开关 | 不要这两个页面时 |
@@ -83,7 +83,7 @@ export const SITE = {
   comment: { enable, type, lazy, recent, waline?, giscus?, artalk? },
 
   // user/analytics.ts
-  analytics:    { enable, type, google: {...}, umami: {...} },
+  analytics:    { enable, google: {...}, umami: {...}, clarity: {...} },
   verification: { google, bing, other: [...] },
 };
 ```
@@ -496,6 +496,7 @@ beian: {
 | 你想要的 | 配哪 | 填什么 |
 | --- | --- | --- |
 | 多少人看了哪篇文章 | `analytics` | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
+| 读者怎么点、滚到哪、卡在哪 | `analytics.clarity` | Clarity 的项目 ID |
 | 搜索里哪些词带来流量 | `verification.google` | Search Console 的验证串 |
 | Bing 的收录与抓取情况 | `verification.bing` | `msvalidate.01` 的验证串 |
 
@@ -505,34 +506,40 @@ beian: {
 
 ```ts
 analytics: {
-  enable: true,
-  type: 'google',                               // 'google' | 'umami'，改这行就切换
-  google: { measurementId: 'G-XXXXXXXXXX' },
-  umami:  { src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+  enable: true,                                  // 总开关
+  google:  { enable: true,  measurementId: 'G-XXXXXXXXXX' },
+  umami:   { enable: false, src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+  clarity: { enable: false, projectId: 'abcdefghij' },
 },
 ```
+
+**三家各自一个开关，可以同时开。** 打开某一家要两步：总开关 `enable: true`，那一家的 `enable` 也改 true 并填上 id。只改一家不改总开关，什么都不会输出 —— 这是最容易踩的一步。
+
+| | 定位 | 脚本 | Cookie | 境内可达 |
+| --- | --- | --- | --- | --- |
+| Google Analytics 4 | 访问统计 | gtag.js 约 100KB | 有，欧盟需要同意弹窗 | `googletagmanager.com` 基本不通 |
+| Umami | 访问统计 | 约 2KB | **无**，不需要弹窗 | 自托管即可，随便哪台机器 |
+| Microsoft Clarity | 热图 / 会话回放 | 自注入约 30KB | 有（`_clck` / `_clsk`） | 一般可用 |
+
+读者主要在国内的话选 Umami。选 GA 也不是不行，但要知道那个脚本会挂到超时 —— 它是 `async`，不会挡住渲染，可这一页终究白等一个连接。
+
+**为什么不是「用哪家」的单选框。** GA 和 Umami 是同类，同时开会把同一份流量记两次，这点没错；但 Clarity 录的是行为不是访问量，「Umami 看流量 + Clarity 看热图」是正常组合。所以结构上允许并存，把「别重复统计」做成构建期的一句提醒：GA 和 Umami 同时开着时，构建会告诉你「两边报表永远对不上，对比完记得关一个」。
 
 **只在生产构建里输出。** `astro dev` 打开页面时连脚本都不下载，不会往真实报表里灌 `localhost` 的访问 —— 这比去报表后台配「排除 localhost」省事，也不会因为忘了配而把数据弄脏。
 
 Umami 还能再加一层 `domains: 'example.com,www.example.com'`，挡住「同一份产物部署到测试域名」的情况。构建期那道闸管的是 `dev`，这一道管的是同一个产物换了个域名跑。
 
-两家的取舍：
+Umami 还有几个附加项，都不用、默认关：
 
-| | Google Analytics 4 | Umami |
-| --- | --- | --- |
-| 数据 | 全（路径、来源、受众、实时） | 够用（路径、来源、设备、自定义事件） |
-| 脚本体积 | gtag.js 约 100KB | 约 2KB |
-| Cookie | 有，欧盟需要同意弹窗 | 没有，不需要弹窗 |
-| 境内可达 | `googletagmanager.com` 基本不通 | 自托管即可，随便哪台机器 |
-| 成本 | 免费 | 免费（自托管）或官方云 |
+| 字段 | 作用 |
+| --- | --- |
+| `performance: true` | 收集真实用户的 Core Web Vitals（LCP / CLS / INP）。Lighthouse 跑在模拟环境，这个是读者真实的网络与设备，想知道优化有没有落到实处比看分数有用 |
+| `errors: true` | 上报访客浏览器的 JS 异常（Umami 3.5+）。博客脚本少、一般不会报错，但这是唯一能看到「读者那边挂了」的途径；配合 `errorRelease: 'web@1.0.0'` 能分清是哪个版本 |
+| `hostUrl` | 脚本走公共 CDN、数据要进自己实例时才填（`data-host-url`） |
 
-读者主要在国内的话选 Umami。选 GA 也不是不行，但要知道那个脚本会挂到超时 —— 它是 `async`，不会挡住渲染，可这一页终究白等一个连接。
+两个实现细节：脚本带 `async`，另外给每家的域名各补了一条 `dns-prefetch`。只预解析不做 `preconnect` —— 后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计不是首屏关键资源，那几毫秒更该留给 banner 图。
 
-**同时只跑一家。** 两套并行会把同一份流量记两次，之后每次看报表都得先解释「为什么两边差 8%」，那个时间远超省下的配置。真要迁移期对比几天，把另一家的脚本临时贴进 `BaseLayout.astro` 里 head 的末尾，跑完删掉。
-
-两个实现细节：脚本带 `async`，另外给它的域名补了一条 `dns-prefetch`。只预解析不做 `preconnect` —— 后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计不是首屏关键资源，那几毫秒更该留给 banner 图。
-
-<div class="note note-warning">填错 id 不会报错，脚本照常下载，只是报表里一条数据都没有 —— 而报表是「没人天天盯着」的东西，可能一个月后才发现。所以构建期会检查格式：<code>UA-</code> 开头（2023 年已停服的 Universal Analytics）、纯数字的数据流 ID、<code>GT-</code> 容器 ID，都会被点名。</div>
+<div class="note note-warning">填错 id 不会报错，脚本照常下载，只是报表里一条数据都没有 —— 而报表是「没人天天盯着」的东西，可能一个月后才发现。所以构建期会检查格式：<code>UA-</code> 开头（2023 年已停服的 Universal Analytics）、纯数字的数据流 ID、<code>GT-</code> 容器 ID、带连字符的 Clarity ID，都会被点名。</div>
 
 ### 站长验证
 

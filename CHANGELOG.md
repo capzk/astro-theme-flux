@@ -7,6 +7,55 @@
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-10-29
+
+对照 [Firefly](https://github.com/CuteLeaf/Firefly)（同类 Astro 主题，4 家统计）与
+[Fuwari](https://github.com/saicaca/fuwari)（**没有内建统计**，只留 `<slot name="head">`
+让用户自己插）重新看了一遍 3.1.0 的设计，改了三处、补了两处。
+
+### Changed
+
+- **`analytics.type` 删除，改成每家一个 `enable`。** 3.1.0 把统计做成了
+  `type: 'google' | 'umami'` 的单选题，理由是「同时挂两套会把流量记两次」。
+  那个理由对 GA/Umami 成立，但它默认了**所有统计厂商都是同一类东西** ——
+  而 Clarity 这类工具录的是行为（热图、滚动深度、会话回放），
+  「Umami 看流量 + Clarity 看热图」是完全正常的组合，单选题表达不了；
+  每加一家还要改一次联合类型，越加越僵。
+  现在每家自带 `enable`，想守住的东西改成**构建期提醒**：GA 和 Umami 同时开着时
+  输出一句「同一份流量会被记两次，两边报表永远对不上」。
+
+  **升级动作**：`type: 'umami'` → 删掉 `type`，在 `umami` 段里加 `enable: true`
+  （`google` 段同理）。总开关 `enable` 不变。
+
+- **Umami 的 `data-performance` 补上**（`performance`，Umami 3.1+）。收集真实用户的
+  Core Web Vitals —— Lighthouse 跑在模拟环境里，这个是读者真实的网络与设备，
+  想知道「优化有没有落到实处」比看分数有用。
+- **Umami 的 `data-errors` / `data-release` 补上**（`errors` / `errorRelease`，Umami 3.5+）。
+  上报访客浏览器的 JS 异常。博客脚本少、一般不会报错，但这是唯一能看到
+  「读者那边挂了」的途径 —— 自己的浏览器永远是好的。
+- **Umami 的 `data-host-url` 补上**（`hostUrl`）。脚本走公共 CDN、数据要进自己实例时才需要。
+  另外把 `autoTrack` / `excludeSearch` / `excludeHash` 的说明从「默认值」补成「对应哪个属性」，
+  之前得去翻 Umami 文档才知道。
+
+### Added
+
+- **Microsoft Clarity**（`analytics.clarity`）。热图、点击分布、会话回放 —— 和访问统计
+  不是一类东西，所以它能和 Umami/GA 并存。免费、无流量上限。注释里写了两件容易忽略的事：
+  它**用 Cookie**（`_clck` / `_clsk`，和 Umami 的无 Cookie 正好相反，欧盟读者按 GDPR
+  要先拿同意），以及会话回放会录到页面内容（敏感区域先在 Clarity 面板配遮罩）。
+- 构建期体检新增两项：Clarity 的 `projectId` 格式（那串 10 位左右的字母数字，
+  带连字符多半是把整段安装代码粘进来了）、Umami 的 `hostUrl` 必须以 `http(s)://` 开头
+  （只写域名不会报错，只是数据发不出去）。
+
+### 没跟的两件事
+
+- **出站链接事件追踪**（Firefly 在 `DOMContentLoaded` 时 `querySelectorAll('a')`
+  扫一遍、给外链打 `data-umami-event`）。它确实好用，但主题的卖点之一是零运行时开销：
+  为「记录点了哪个外链」在每页多一次全量查询 + 逐元素 `setAttribute`，对一个个人博客
+  不划算。要用就直接在链接上写 `data-umami-event`，Umami 自己会接管。
+- **51.LA / 百度统计**。它们和 GA/Umami 是同类，加进来只是让「选哪家」更长，
+  而自托管这条路（Umami）已经把「境内可达」解决了。真想加，见 README「已知限制」。
+
 ## [3.1.0] - 2026-10-29
 
 ### Added
@@ -932,7 +981,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/capzk/astro-theme-flux/compare/v2.2.1...v3.0.0
 [2.2.1]: https://github.com/capzk/astro-theme-flux/compare/v2.2.0...v2.2.1

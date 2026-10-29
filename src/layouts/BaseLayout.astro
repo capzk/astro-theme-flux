@@ -180,39 +180,54 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
 /* ---------------------------------------------------------------------------
  * 访客统计
  * ---------------------------------------------------------------------------
+ * 三家各自独立：`google` / `umami` / `clarity`，每家一个 `enable`，可以并存
+ * （Clarity 是热图与会话回放，和另外两家不是同一类东西）。总开关关掉就一行都不出。
+ *
  * 只在**生产构建**里输出：`astro dev` 打开页面时不该往真实报表里灌 localhost 的
  * 访问。Astro 的 build 与 dev 是两条路，`import.meta.env.PROD` 正好分得开，
  * 所以开发时连脚本都不会下载 —— 比在报表后台配「排除 localhost」省事得多。
  *
- * 两家都靠一个 id 判断「配好了没有」：填了才输出，没填就一行都不出现。
- * （`enable: true` 但 id 空着的情况，config/index.ts 会在构建期报警告。）
+ * 三家的共同点是「id 填了才算配好」：`enable` 开着但 id 空着，这里什么也不输出，
+ * config/index.ts 会在构建期提醒补上。
  */
-const gaId =
-  SITE.analytics.enable && import.meta.env.PROD && SITE.analytics.type === 'google'
-    ? SITE.analytics.google.measurementId.trim()
-    : '';
+const ANALYTICS_ON = SITE.analytics.enable && import.meta.env.PROD;
 
-const umami =
-  SITE.analytics.enable && import.meta.env.PROD && SITE.analytics.type === 'umami'
-    ? {
-        src: SITE.analytics.umami.src.trim(),
-        id: SITE.analytics.umami.websiteId.trim(),
-        domains: SITE.analytics.umami.domains?.trim() ?? '',
-        autoTrack: SITE.analytics.umami.autoTrack,
-        excludeSearch: SITE.analytics.umami.excludeSearch,
-        excludeHash: SITE.analytics.umami.excludeHash,
-      }
-    : null;
-const umamiOn = Boolean(umami?.src && umami.id);
+const gaId = ANALYTICS_ON && SITE.analytics.google.enable
+  ? SITE.analytics.google.measurementId.trim()
+  : '';
+
+const umami = ANALYTICS_ON && SITE.analytics.umami.enable ? SITE.analytics.umami : null;
+const umamiSrc = umami?.src.trim() ?? '';
+const umamiId = umami?.websiteId.trim() ?? '';
+const umamiOn = Boolean(umamiSrc && umamiId);
+
+const clarityId = ANALYTICS_ON && SITE.analytics.clarity.enable
+  ? SITE.analytics.clarity.projectId.trim()
+  : '';
 
 /**
- * gtag 的初始化那三行。写成字符串而不是 `<script>` 里的 JSX，是因为
- * `is:inline` 脚本的内容会被原样输出、不认 `{}` 插值；走 `set:html` 反而干净。
- * id 用 JSON.stringify 包一层，避免有人往配置里塞个引号把脚本打断。
+ * gtag 的初始化那三行、以及 Clarity 的自注入加载器，都写成字符串。
+ *
+ * 原因：`is:inline` 脚本的内容会被**原样**输出，不认 `{}` 插值；虽然可以用
+ * `define:vars`，但那个依赖 Astro 把变量声明前置在当前作用域里 —— 一旦哪天
+ * 它改成包一层 IIFE，`function gtag()` 就不再是全局的，统计会静默失效。
+ * 走 `set:html` 拼字符串没有这个隐患。
+ *
+ * id 一律用 `JSON.stringify` 包一层：有人往配置里塞个引号也不会把脚本打断。
  */
 const gaSnippet = gaId
   ? `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}` +
     `gtag('js',new Date());gtag('config',${JSON.stringify(gaId)});`
+  : '';
+
+/* Clarity 官方的安装代码原样照抄，只把项目 ID 换成配置里的值。
+   它是「自注入」的：自己 createElement('script') 并设 async —— 所以没有外链
+   script 标签，也没法用 dns-prefetch 之外的方式优化，这是它自己的设计。 */
+const claritySnippet = clarityId
+  ? `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};` +
+    `t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;` +
+    `y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})` +
+    `(window,document,"clarity","script",${JSON.stringify(clarityId)});`
   : '';
 
 /**
@@ -225,7 +240,11 @@ const gaSnippet = gaId
  * 同源的不必预解析（反代到 `/stats/script.js` 的情况），浏览器本来就有连接。
  */
 const analyticsOrigins: string[] = [];
-for (const url of [gaId ? 'https://www.googletagmanager.com' : '', umamiOn ? umami!.src : '']) {
+for (const url of [
+  gaId ? 'https://www.googletagmanager.com' : '',
+  umamiOn ? umamiSrc : '',
+  clarityId ? 'https://www.clarity.ms' : '',
+]) {
   if (!url) continue;
   try {
     const { origin: host } = new URL(url, origin);
@@ -375,9 +394,10 @@ const verifyOther = SITE.verification.other.filter(
     </script>
 
     <!--
-      访客统计：GA4 或 Umami，二选一，配了才输出（见 config/user/analytics.ts）。
+      访客统计：GA4 / Umami / Clarity，三家各自独立、可并存，配了才输出
+      （见 config/user/analytics.ts）。
 
-      两个都是 async 外链 + 一小段内联初始化 —— async 保证不挡解析，
+      都是 async 外链 + 一小段内联初始化 —— async 保证不挡解析，
       内容再小也不该让读者等它。刻意摆在 head 的最末尾而不是最前面：它不参与首屏渲染，
       排在前面的每一条 meta 都更该先被解析到。
     -->
@@ -395,14 +415,19 @@ const verifyOther = SITE.verification.other.filter(
       <script
         is:inline
         async
-        src={umami!.src}
-        data-website-id={umami!.id}
-        data-domains={umami!.domains || undefined}
-        data-auto-track={umami!.autoTrack ? undefined : 'false'}
-        data-exclude-search={umami!.excludeSearch ? 'true' : undefined}
-        data-exclude-hash={umami!.excludeHash ? 'true' : undefined}
+        src={umamiSrc}
+        data-website-id={umamiId}
+        data-host-url={umami?.hostUrl?.trim() || undefined}
+        data-domains={umami?.domains?.trim() || undefined}
+        data-auto-track={umami?.autoTrack ? undefined : 'false'}
+        data-exclude-search={umami?.excludeSearch ? 'true' : undefined}
+        data-exclude-hash={umami?.excludeHash ? 'true' : undefined}
+        data-performance={umami?.performance ? 'true' : undefined}
+        data-errors={umami?.errors ? 'true' : undefined}
+        data-release={umami?.errors ? umami?.errorRelease?.trim() || undefined : undefined}
       />
     )}
+    {clarityId && <script is:inline set:html={claritySnippet} />}
   </head>
 
   <body>
