@@ -176,6 +176,69 @@ const colorVars =
  * 没配就什么也不加 —— 默认观感与以前逐像素一致。
  */
 const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
+
+/* ---------------------------------------------------------------------------
+ * 访客统计
+ * ---------------------------------------------------------------------------
+ * 只在**生产构建**里输出：`astro dev` 打开页面时不该往真实报表里灌 localhost 的
+ * 访问。Astro 的 build 与 dev 是两条路，`import.meta.env.PROD` 正好分得开，
+ * 所以开发时连脚本都不会下载 —— 比在报表后台配「排除 localhost」省事得多。
+ *
+ * 两家都靠一个 id 判断「配好了没有」：填了才输出，没填就一行都不出现。
+ * （`enable: true` 但 id 空着的情况，config/index.ts 会在构建期报警告。）
+ */
+const gaId =
+  SITE.analytics.enable && import.meta.env.PROD && SITE.analytics.type === 'google'
+    ? SITE.analytics.google.measurementId.trim()
+    : '';
+
+const umami =
+  SITE.analytics.enable && import.meta.env.PROD && SITE.analytics.type === 'umami'
+    ? {
+        src: SITE.analytics.umami.src.trim(),
+        id: SITE.analytics.umami.websiteId.trim(),
+        domains: SITE.analytics.umami.domains?.trim() ?? '',
+        autoTrack: SITE.analytics.umami.autoTrack,
+        excludeSearch: SITE.analytics.umami.excludeSearch,
+        excludeHash: SITE.analytics.umami.excludeHash,
+      }
+    : null;
+const umamiOn = Boolean(umami?.src && umami.id);
+
+/**
+ * gtag 的初始化那三行。写成字符串而不是 `<script>` 里的 JSX，是因为
+ * `is:inline` 脚本的内容会被原样输出、不认 `{}` 插值；走 `set:html` 反而干净。
+ * id 用 JSON.stringify 包一层，避免有人往配置里塞个引号把脚本打断。
+ */
+const gaSnippet = gaId
+  ? `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}` +
+    `gtag('js',new Date());gtag('config',${JSON.stringify(gaId)});`
+  : '';
+
+/**
+ * 统计脚本的域名预解析。
+ *
+ * 只给 `dns-prefetch`、不给 `preconnect`：后者要立刻做一次完整握手（TCP + TLS），
+ * 会占掉一条连接，而统计脚本是 async 的非关键资源 —— 首屏那几个请求更应该拿走
+ * 这几毫秒。反过来 `dns-prefetch` 只花一次 DNS 查询，代价几乎为零。
+ *
+ * 同源的不必预解析（反代到 `/stats/script.js` 的情况），浏览器本来就有连接。
+ */
+const analyticsOrigins: string[] = [];
+for (const url of [gaId ? 'https://www.googletagmanager.com' : '', umamiOn ? umami!.src : '']) {
+  if (!url) continue;
+  try {
+    const { origin: host } = new URL(url, origin);
+    if (host !== origin.origin && !analyticsOrigins.includes(host)) analyticsOrigins.push(host);
+  } catch {
+    /* src 不是合法地址：留空即可，config 的构建期体检已经会说 */
+  }
+}
+
+/* 站长验证：只填了才输出，`other` 里 name / content 缺一个就整条跳过 */
+const verifyOther = SITE.verification.other.filter(
+  (item) => item.name?.trim() && item.content?.trim(),
+);
 ---
 
 <!doctype html>
@@ -194,6 +257,16 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
     <meta name="robots" content={robotsContent} />
     <link rel="canonical" href={canonical} />
     <meta name="generator" content={Astro.generator} />
+    {/* 站长认领：只出一行 meta，不放脚本、不发请求。填了才出现，见 config/user/analytics.ts */}
+    {SITE.verification.google.trim() && (
+      <meta name="google-site-verification" content={SITE.verification.google.trim()} />
+    )}
+    {SITE.verification.bing.trim() && (
+      <meta name="msvalidate.01" content={SITE.verification.bing.trim()} />
+    )}
+    {verifyOther.map((item) => (
+      <meta name={item.name.trim()} content={item.content.trim()} />
+    ))}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
     <link rel="alternate" type="application/atom+xml" title={SITE.title} href="/atom.xml" />
@@ -216,6 +289,11 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
     }
     <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={DARK_CHROME} media="(prefers-color-scheme: dark)" />
+
+    {/* 统计脚本的域名预解析（只 DNS，不握手，理由见 frontmatter） */}
+    {analyticsOrigins.map((host) => (
+      <link rel="dns-prefetch" href={host} />
+    ))}
 
     <!-- 配色来自 src/config 的 color 段，只覆盖亮色（见 frontmatter 里的说明） -->
     <style is:inline set:html={colorVars} />
@@ -295,6 +373,36 @@ const hue = typeof SITE.color.hue === 'number' ? SITE.color.hue : null;
         }
       })();
     </script>
+
+    <!--
+      访客统计：GA4 或 Umami，二选一，配了才输出（见 config/user/analytics.ts）。
+
+      两个都是 async 外链 + 一小段内联初始化 —— async 保证不挡解析，
+      内容再小也不该让读者等它。刻意摆在 head 的最末尾而不是最前面：它不参与首屏渲染，
+      排在前面的每一条 meta 都更该先被解析到。
+    -->
+    {gaId && (
+      <>
+        <script
+          is:inline
+          async
+          src={`https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}`}
+        />
+        <script is:inline set:html={gaSnippet} />
+      </>
+    )}
+    {umamiOn && (
+      <script
+        is:inline
+        async
+        src={umami!.src}
+        data-website-id={umami!.id}
+        data-domains={umami!.domains || undefined}
+        data-auto-track={umami!.autoTrack ? undefined : 'false'}
+        data-exclude-search={umami!.excludeSearch ? 'true' : undefined}
+        data-exclude-hash={umami!.excludeHash ? 'true' : undefined}
+      />
+    )}
   </head>
 
   <body>

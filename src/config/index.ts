@@ -143,6 +143,69 @@ function inspect(config: SiteConfig): string[] {
     );
   }
 
+  /* ---- 访客统计 -----------------------------------------------------------
+     这两项填错的症状高度一致：页面照常生成，脚本也照常下载，只是报表里一条数据
+     都没有 —— 而报表恰恰是「没人天天盯着」的东西，可能一个月后才发现。
+     所以在构建期把「格式明显对不上」的值挑出来。 */
+  const { analytics, verification } = config;
+
+  if (analytics.enable) {
+    if (analytics.type === 'google') {
+      const id = analytics.google.measurementId.trim();
+      if (!id) {
+        issues.push(
+          'analytics.type 是 google 且 enable 为 true，但 analytics.google.measurementId 是空的 —— ' +
+            '不会输出统计脚本。去 GA 后台 → 管理 → 数据流里抄「衡量 ID」（G- 开头），或把 enable 改回 false。',
+        );
+      } else if (!/^G-[A-Z0-9]{4,}$/i.test(id)) {
+        issues.push(
+          `analytics.google.measurementId 是 "${id}"，不像 GA4 的衡量 ID（应为 G- 开头加一串字母数字）。` +
+            (/^UA-/i.test(id)
+              ? 'UA- 那套 Universal Analytics 已在 2023 年停服，收不到任何数据 —— 去后台建一个 GA4 数据流。'
+              : '注意别填成「数据流 ID」（纯数字）或 GT- 开头的容器 ID，那两个都不会报错，只是没有数据。'),
+        );
+      }
+    } else {
+      const { src, websiteId } = analytics.umami;
+      if (!src.trim()) {
+        issues.push(
+          'analytics.type 是 umami 且 enable 为 true，但 analytics.umami.src 是空的 —— 不会输出统计脚本。' +
+            '填 https://umami.你的域名/script.js（或官方云 https://cloud.umami.is/script.js）。',
+        );
+      } else if (!/^(https?:\/\/|\/)/.test(src.trim())) {
+        issues.push(
+          `analytics.umami.src 是 "${src}"，看起来不像地址 —— 应该以 https:// 开头` +
+            '（或 / 开头，走站内反代）。',
+        );
+      }
+      if (!websiteId.trim()) {
+        issues.push(
+          'analytics.type 是 umami 且 enable 为 true，但 analytics.umami.websiteId 是空的 —— ' +
+            '脚本会加载但一条数据都不记。去 Umami 后台 → 网站 → 编辑里抄「网站 ID」（一串 UUID）。',
+        );
+      }
+    }
+  }
+
+  /* 整段标签粘进 content 字段是这一段最常见的错：属性会被当成值的一部分，
+     验证必然不过，而平台上只显示「验证失败」，不说为什么。 */
+  const verifyValues: [string, string][] = [
+    ['verification.google', verification.google],
+    ['verification.bing', verification.bing],
+    ...verification.other.map((item, i): [string, string] => [
+      `verification.other[${i}].content`,
+      item.content,
+    ]),
+  ];
+  for (const [key, value] of verifyValues) {
+    if (value.includes('<')) {
+      issues.push(
+        `${key} 里带着 HTML 标签 —— 这里只填 content 的值（引号里那一串），` +
+          '整段 <meta> 粘进来验证不会通过。',
+      );
+    }
+  }
+
   /* ---- 还是示例值 -----------------------------------------------------------
      这几项不改也能跑，站看着完全正常 —— 直到分享链接、RSS 里的地址、canonical、
      og:url 全都指向示例站。这是 fork 主题后最容易漏的一步，而且症状要等别人
@@ -214,6 +277,10 @@ export type {
   WalineEmojiInfo,
   GiscusConfig,
   ArtalkConfig,
+  AnalyticsConfig,
+  GoogleAnalyticsConfig,
+  UmamiConfig,
+  VerificationConfig,
 } from './types';
 export type { DeepPartial, UserConfig } from './merge';
 export { defineConfig } from './merge';

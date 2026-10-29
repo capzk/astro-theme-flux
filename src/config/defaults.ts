@@ -114,6 +114,31 @@ const DEFAULT_CONFIG: SiteConfig = {
     },
   },
 
+  /* 访客统计。**默认关闭** —— 统计会在每页下载一份第三方脚本，而 fork 下来的第一件事
+     往往还不是配统计；默认开着只会往你自己的报表里灌一堆 localhost 与示例站的访问。
+     打开就三件事：enable 改 true、type 选一家、填上对应那段的 id。 */
+  analytics: {
+    enable: false,
+    type: 'google',
+    google: { measurementId: '' },
+    umami: {
+      src: '',
+      websiteId: '',
+      /* 自动记页面浏览；设 false 就得自己调 umami.track() */
+      autoTrack: true,
+      /* 查询参数 / hash 算不算进页面路径。默认都算（与 Umami 自身默认一致） */
+      excludeSearch: false,
+      excludeHash: false,
+    },
+  },
+
+  /* 站长验证。全空 = 一行 meta 都不输出。填了才出现，见 types.ts 的 VerificationConfig */
+  verification: {
+    google: '',
+    bing: '',
+    other: [],
+  },
+
   darkMode: {
     enable: true,
     default: 'auto',

@@ -54,6 +54,7 @@
 | 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
 | 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
 | 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
+| 访客统计 | 可插拔：Google Analytics 4 / Umami 改一行切换；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
 | 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
 | RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
 | Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
@@ -110,7 +111,7 @@ fork 之后整批删掉即可，不影响任何功能。
 顺带解决的另一件事：默认值不再依赖 `src/assets/` 里的示例图（改用 `public/` 路径），
 所以「按图优化」不再是主题的硬前提 —— 想要就自己 `import`，不想要也没有任何东西会断。
 
-`user/` 里七个文件，按「你要解决的问题」分，而不是按配置树的层级分：
+`user/` 里八个文件，按「你要解决的问题」分，而不是按配置树的层级分：
 
 | 文件 | 管什么 |
 | --- | --- |
@@ -118,6 +119,7 @@ fork 之后整批删掉即可，不影响任何功能。
 | `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式 |
 | `content.ts` | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
 | `comment.ts` | 评论系统（Waline / Giscus / Artalk） |
+| `analytics.ts` | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 其他） |
 | `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案（默认关） |
 | `links.ts` | 友链 |
 | `pages.ts` | 页面开关：关于 / 友链。关掉后导航、sitemap 与页面本身一起变 |
@@ -192,6 +194,46 @@ CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比�
 类型仍是显式的（`SiteConfig['pages']`），写错类型 `npm run check` 照样报。
 
 上线前记得改 **`astro.config.mjs`** 的 `site`，它决定 RSS、sitemap、canonical 与 OG 里的绝对地址。本仓库里它填的是示例站的地址（`https://astro-theme-flux.pages.dev`），fork 之后第一件事就是换成你自己的域名 —— 忘了换，分享出去的链接会指向示例站。
+
+### 访客统计与站长验证
+
+这两件事经常被混为一谈，其实完全不同，所以配置里也分成两段（都在 `src/config/user/analytics.ts`）：
+
+| 你想要的 | 配哪 | 填什么 |
+| --- | --- | --- |
+| 多少人看了哪篇文章 | `analytics` | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
+| 搜索里哪些词带来流量 | `verification.google` | Search Console 的验证串 |
+| Bing 的收录与抓取情况 | `verification.bing` | `msvalidate.01` 的验证串 |
+
+`analytics` 是**脚本**（每页下载、会上报数据），`verification` 是**一行 meta**（认领所有权，不发任何请求）。
+
+```ts
+analytics: {
+  enable: true,
+  type: 'google',                               // 'google' | 'umami'，改这行就切换
+  google: { measurementId: 'G-XXXXXXXXXX' },    // GA4 的衡量 ID
+  umami:  { src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+},
+```
+
+**只在生产构建里输出。** `astro dev` 打开页面时连脚本都不下载，不会往真实报表里灌 localhost 的访问 —— 比去后台配「排除 localhost」省事。Umami 还能再加一层 `domains: 'example.com,www.example.com'`，挡住「同一份产物部署到测试域名」的情况。
+
+**两家的取舍。** GA4 数据全、生态成熟，但 `googletagmanager.com` 境内基本不通，脚本会挂到超时（`async`，不挡渲染，但这一页白等一个连接）。Umami 脚本只有 2KB 左右、不用 Cookie（所以不需要同意弹窗）、可以自己部署，读者主要在国内时它更实际。只支持同时开一家：两套并行会把同一份流量记两次，之后每次看报表都要先解释「为什么两边差 8%」。
+
+**Bing 没有访问统计脚本。** 它不像 GA 那样给你一段 `gtag.js` —— Bing 的访问数据并进了 Microsoft Clarity（另一段脚本，在 Clarity 后台单独申请）。所以 `verification.bing` 那一项是站点认领，用来看搜索关键词与抓取情况，不是统计。
+
+两个细节：脚本是 `async` 的，另外给它的域名补了一条 `dns-prefetch`（只查 DNS，不做完整握手 —— 统计不是首屏关键资源，不该跟 banner 图抢连接）。填错 id 不会报错、只会让报表永远空着，所以构建期会检查格式并点名：`UA-` 开头（2023 年已停服）、纯数字的数据流 ID、整段 `<meta>` 粘进 content 字段，都会被指出来。
+
+`verification.other` 留给其他平台，有几条写几条：
+
+```ts
+verification: {
+  other: [
+    { name: 'baidu-site-verification', content: 'codeva-xxxxxxxx' },
+    { name: 'yandex-verification', content: 'xxxxxxxx' },
+  ],
+},
+```
 
 ### SEO 与分享
 
@@ -596,7 +638,8 @@ src/
 │   ├── types.ts         #   字段类型与说明
 │   ├── defaults.ts      #   出厂默认值（升级时被替换）
 │   ├── merge.ts         #   深合并规则（30 行）
-│   └── user/            #   ★ 你的配置：site / appearance / content / comment / links / pages
+│   └── user/            #   ★ 你的配置：site / appearance / content / comment /
+│                        #     analytics / footer / links / pages
 ├── i18n.ts              # 界面文案
 ├── content.config.ts    # 集合与 front matter 校验
 ├── content/posts/       # 文章
@@ -634,7 +677,7 @@ src/
 
 ## 性能
 
-没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有分析脚本，也没有图标字体。首屏必须的请求只有 5 个：HTML、一份 CSS、banner 图、主题脚本、预取脚本；卡片封面是 `loading="lazy"`，滚到才取。
+没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有图标字体，也没有内置的分析脚本 —— 访客统计是可选的，默认关（见上文「访客统计与站长验证」）。首屏必须的请求只有 5 个：HTML、一份 CSS、banner 图、主题脚本、预取脚本；卡片封面是 `loading="lazy"`，滚到才取。
 
 | 资源 | 原始 | gzip | 请求数 |
 | --- | --- | --- | --- |
@@ -656,6 +699,7 @@ src/
 - **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML 才 12KB，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页 HTML 多 8KB（gzip 后）—— 但 HTML 设的是 `max-age=0, must-revalidate`，回访时 304 不带正文，内联的 CSS 也不会真的重传。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
 - **首屏大图的 preload 覆盖所有页面**，不只是首页。banner 写成字符串路径（`/img/x.webp`）时图是 CSS 背景加载的，浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍，所以 head 里补一条 `<link rel="preload" as="image">`；用 `import` 引入的图由 `<Image>` 输出 `<img fetchpriority="high">`，不走这条。文章页会把自己的封面传进来，否则会 preload 一张这页根本不用的图，白占首屏带宽。
 - **「下一篇」用 `viewport` 预取**（文章页底部那一条）。手机上不会触发 hover，而「读到底 → 点下一篇」是文章页最确定的下一步：滚到它就取，其余链接仍然只在悬停时取，不会误伤流量。
+- **统计脚本只做 `dns-prefetch`，不做 `preconnect`**。后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计是 `async` 的非关键资源 —— 那几毫秒更该留给 banner 图。`dns-prefetch` 只花一次域名查询，代价接近零。
 - **没启用 experimental 的 `clientPrerender`**（用 Speculation Rules 把目标页在后台完整渲染）。它确实更快，但会执行目标页的脚本 —— 评论区可能提前发请求、统计也会被多记一次。预取 HTML 已经能消掉大部分等待，不值得为这点差距换来副作用。
 
 ## 已知限制
@@ -673,6 +717,7 @@ src/
 - 图片优化只管 `cover` / `banner` / 配置里 `import` 进来的图。写成字符串（`/img/x.png`）的资源会被原样引用 —— 那是留给 Hexo 迁移与 `public/` 里现成图片的兼容路径。
 - 相关文章只在有标签或分类重合时才出现。文章很少或从来不打标签时，这一块会一直空着。
 - 界面文案目前只有中文，`src/i18n.ts` 已按字典组织，加语言只需扩一个对象。
+- 访客统计只有两家（GA4 / Umami），且同时只跑一家。想加第三家（Plausible、Microsoft Clarity、百度统计）：`config/types.ts` 加个类型 + `user/analytics.ts` 填值 + `BaseLayout.astro` 里 head 末尾补一段标签，三处合计十几行。Bing 没有客户端统计脚本，它那一项是站点认领，不是统计。
 - 评论的客户端默认从公共 CDN 加载，离线环境或内网部署会失败（页面上会给出提示与重试）。要完全自托管，把 `waline.js` / `waline.css` 放进 `public/waline/`，然后 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'` —— 见上文「客户端从哪加载」。`_headers` 里给这段路径 `immutable` 缓存，升级只换文件、不失效缓存。
 
 ## 更新日志

@@ -7,6 +7,45 @@
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-29
+
+### Added
+
+- **访客统计：GA4 与 Umami，改一行配置切换。** 新增 `analytics` 配置段与
+  `src/config/user/analytics.ts`：
+
+  ```ts
+  analytics: { enable: true, type: 'google', google: { measurementId: 'G-…' } }
+  ```
+
+  与 `comment` 同样的形态（`enable` + `type` + 每家一段），用不到的那段留着不影响构建。
+  三个实现上的取舍：
+
+  - **只在生产构建里输出**（`import.meta.env.PROD`）。`astro dev` 打开页面时连脚本都不下载，
+    不会往真实报表里灌 localhost 的访问 —— 比去报表后台配「排除 localhost」省事，
+    也不会因为忘配而弄脏数据。
+  - **只给统计域名做 `dns-prefetch`，不做 `preconnect`**。后者要立刻完成一次 TCP + TLS
+    握手、占掉一条连接，而统计是 `async` 的非关键资源，那几毫秒更该给 banner 图。
+    同源（反代到 `/stats/script.js`）时不输出，浏览器本来就有连接。
+  - **同时只跑一家**：并行会把同一份流量记两次，之后每次看报表都要先解释「为什么两边
+    差 8%」。迁移期想对比就临时贴脚本，不留一个长期存在的双开开关。
+
+  Umami 支持 `domains` / `autoTrack` / `excludeSearch` / `excludeHash`，对应它脚本上的
+  `data-*` 属性；`src` 认完整地址、官方云，也认 `/stats/script.js` 这种同源反代。
+
+- **站长验证：`verification` 配置段。** 输出 `google-site-verification`、`msvalidate.01`，
+  以及 `other` 里任意条 `{ name, content }`（百度 / Yandex / Pinterest…）。
+  它和 `analytics` 是两件事：验证只出一行 meta，不放脚本、不发请求。
+  **Bing 没有客户端访问统计脚本** —— 它的访问数据并进了 Microsoft Clarity，
+  所以 `verification.bing` 只做站点认领，不冒充统计。
+
+### Fixed
+
+- **配置体检新增三项针对「静默失效」的检查**：`measurementId` 不是 `G-` 开头
+  （含已停服的 `UA-`、纯数字的数据流 ID、`GT-` 容器 ID）、`umami.src` / `websiteId`
+  空着、验证串里带着 `<meta …>` 整段标签。这几种填错的共同点是**构建照常成功、
+  脚本照常加载，只是报表永远空着或验证永远不过**，而报表和验证状态都不是天天看的东西。
+
 ## [3.0.0] - 2026-10-29
 
 ### Removed
@@ -893,7 +932,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/capzk/astro-theme-flux/compare/v2.2.1...v3.0.0
 [2.2.1]: https://github.com/capzk/astro-theme-flux/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/capzk/astro-theme-flux/compare/v2.1.1...v2.2.0

@@ -11,6 +11,7 @@
  *   appearance.ts  banner、文章 banner、配色、暗色模式
  *   content.ts     首页卡片、文章页开关、每页条数、搜索
  *   comment.ts     评论系统（Waline / Giscus / Artalk）
+ *   analytics.ts   访客统计（GA4 / Umami）与站长验证（Search Console / Bing）
  *   footer.ts      页脚：站龄、订阅入口、ICP 备案
  *   links.ts       友链
  *   pages.ts       页面开关（关于 / 友链），关掉后导航与 sitemap 一起变
@@ -22,6 +23,7 @@ import site from './site';
 import appearance from './appearance';
 import content from './content';
 import comment from './comment';
+import analytics from './analytics';
 import footer from './footer';
 import pages from './pages';
 import { deepMerge, type UserConfig } from '../merge';
@@ -37,7 +39,7 @@ import { deepMerge, type UserConfig } from '../merge';
  * 因为 `astro.config.mjs` 还要直接 import 它来过滤 sitemap，那边不能有资源导入。
  * 包一层 `{ pages }` 之后，对合并逻辑来说它和别的部分没有区别。
  */
-const USER_CONFIG: UserConfig = [site, appearance, content, comment, footer, { pages }].reduce(
+const USER_CONFIG: UserConfig = [site, appearance, content, comment, analytics, footer, { pages }].reduce(
   (acc, part) => deepMerge(acc, part),
   {} as UserConfig,
 );

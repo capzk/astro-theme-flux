@@ -33,6 +33,7 @@ cover: ../../assets/covers/cover-2.webp
 | `appearance.ts` | 首页 banner、文章页 banner、深色模式、配色 | 想换样子时 |
 | `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
 | `comment.ts` | 评论三选一、懒加载、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
+| `analytics.ts` | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 百度…） | 想知道谁在看时 |
 | `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案 | 上线前后 |
 | `links.ts` | 友链数组 | 加友链时 |
 | `pages.ts` | 关于页 / 友链页的开关 | 不要这两个页面时 |
@@ -80,6 +81,10 @@ export const SITE = {
 
   // user/comment.ts —— 单独一篇，见「评论系统」
   comment: { enable, type, lazy, recent, waline?, giscus?, artalk? },
+
+  // user/analytics.ts
+  analytics:    { enable, type, google: {...}, umami: {...} },
+  verification: { google, bing, other: [...] },
 };
 ```
 
@@ -483,6 +488,76 @@ beian: {
 ```
 
 网页上的备案号必须**可点击跳到工信部**，纯文本挂着不算。所以这一项从结构上就是个链接，`link` 一般不用改。`enable` 开了却忘了填 `text`，页脚不会出现那一行 —— 构建期会提醒。
+
+## 访客统计与站长验证
+
+这两件事经常被当成一件，其实完全不同，所以配置里也分成两段 —— 都在 `src/config/user/analytics.ts`：
+
+| 你想要的 | 配哪 | 填什么 |
+| --- | --- | --- |
+| 多少人看了哪篇文章 | `analytics` | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
+| 搜索里哪些词带来流量 | `verification.google` | Search Console 的验证串 |
+| Bing 的收录与抓取情况 | `verification.bing` | `msvalidate.01` 的验证串 |
+
+`analytics` 是**脚本**：每页下载、会上报数据。`verification` 是**一行 meta**：只认领所有权，不发任何请求，也不下载任何东西。
+
+### 统计
+
+```ts
+analytics: {
+  enable: true,
+  type: 'google',                               // 'google' | 'umami'，改这行就切换
+  google: { measurementId: 'G-XXXXXXXXXX' },
+  umami:  { src: 'https://umami.example.com/script.js', websiteId: '3f2a…' },
+},
+```
+
+**只在生产构建里输出。** `astro dev` 打开页面时连脚本都不下载，不会往真实报表里灌 `localhost` 的访问 —— 这比去报表后台配「排除 localhost」省事，也不会因为忘了配而把数据弄脏。
+
+Umami 还能再加一层 `domains: 'example.com,www.example.com'`，挡住「同一份产物部署到测试域名」的情况。构建期那道闸管的是 `dev`，这一道管的是同一个产物换了个域名跑。
+
+两家的取舍：
+
+| | Google Analytics 4 | Umami |
+| --- | --- | --- |
+| 数据 | 全（路径、来源、受众、实时） | 够用（路径、来源、设备、自定义事件） |
+| 脚本体积 | gtag.js 约 100KB | 约 2KB |
+| Cookie | 有，欧盟需要同意弹窗 | 没有，不需要弹窗 |
+| 境内可达 | `googletagmanager.com` 基本不通 | 自托管即可，随便哪台机器 |
+| 成本 | 免费 | 免费（自托管）或官方云 |
+
+读者主要在国内的话选 Umami。选 GA 也不是不行，但要知道那个脚本会挂到超时 —— 它是 `async`，不会挡住渲染，可这一页终究白等一个连接。
+
+**同时只跑一家。** 两套并行会把同一份流量记两次，之后每次看报表都得先解释「为什么两边差 8%」，那个时间远超省下的配置。真要迁移期对比几天，把另一家的脚本临时贴进 `BaseLayout.astro` 里 head 的末尾，跑完删掉。
+
+两个实现细节：脚本带 `async`，另外给它的域名补了一条 `dns-prefetch`。只预解析不做 `preconnect` —— 后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计不是首屏关键资源，那几毫秒更该留给 banner 图。
+
+<div class="note note-warning">填错 id 不会报错，脚本照常下载，只是报表里一条数据都没有 —— 而报表是「没人天天盯着」的东西，可能一个月后才发现。所以构建期会检查格式：<code>UA-</code> 开头（2023 年已停服的 Universal Analytics）、纯数字的数据流 ID、<code>GT-</code> 容器 ID，都会被点名。</div>
+
+### 站长验证
+
+```ts
+verification: {
+  google: 'xxxx',        // Search Console
+  bing: 'xxxx',          // Bing Webmaster Tools（msvalidate.01）
+  other: [
+    { name: 'baidu-site-verification', content: 'codeva-xxxxxxxx' },
+  ],
+},
+```
+
+**填的是 content 的值，不是整段标签。** 从平台复制时只取引号里那串：
+
+```html
+✗ <meta name="msvalidate.01" content="ABC123" />
+✓ ABC123
+```
+
+粘整段进来验证必然不过，而平台上只显示「验证失败」、不告诉你原因 —— 构建期会把这种写法点出来。
+
+<div class="note note-info"><strong>Bing 没有客户端访问统计脚本。</strong>它不像 GA 那样给你一段 <code>gtag.js</code>。Bing 的访问数据并进了 Microsoft Clarity（另一段脚本，在 Clarity 后台单独申请），所以这里给的 <code>bing</code> 是站点认领：用来看搜索关键词、收录与抓取错误，不是看访问量。</div>
+
+`other` 留给其他平台，有几条写几条（Yandex、Pinterest 之类）。`name` 或 `content` 为空的条目会被跳过，不会输出空标签。
 
 ## 界面文案
 

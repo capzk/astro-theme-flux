@@ -382,6 +382,151 @@ export interface RecentConfig {
 }
 
 /**
+ * 访客统计 · Google Analytics 4
+ * ---------------------------------------------------------------------------
+ * 只认 GA4 的衡量 ID（`G-` 开头）。`UA-` 那套 Universal Analytics 已在 2023 年
+ * 停服，填了也收不到任何数据，所以不做兼容 —— 构建期会直接点出来。
+ *
+ * ⚠️ 境内访问 `googletagmanager.com` 基本是不通的，脚本会一直挂到超时。
+ * 它是 `async`，不挡渲染，但这一页终究白等一个连接。面向境内读者的站，
+ * 用下面的 Umami 更实际。
+ *
+ * @see https://developers.google.com/analytics/devguides/collection/ga4
+ */
+export interface GoogleAnalyticsConfig {
+  /**
+   * 衡量 ID，形如 `G-XXXXXXXXXX`。
+   * 在 GA 后台 → 管理 → 数据流 → 点开你的网站，「衡量 ID」就是那一行。
+   *
+   * 别填成「数据流 ID」（纯数字），也别填成 `GT-` 开头的容器 ID —— 那两个都不会报错，
+   * 只是报表里一条数据都没有。
+   */
+  measurementId: string;
+}
+
+/**
+ * 访客统计 · Umami
+ * ---------------------------------------------------------------------------
+ * 开源的轻量统计，可以自己部署（Docker / 单文件脚本 / Vercel），也可以用官方云。
+ * 相对 GA 的三点不同，也正是选它的理由：
+ *
+ *   · **不用 Cookie、不采集个人数据** —— 不需要 cookie 同意弹窗（GDPR 视角）
+ *   · **脚本 2KB 左右**，GA 的 gtag.js 是它的二十多倍
+ *   · **可以自己部署**，境内也能跑，数据在自己库里
+ *
+ * 用法本来就只有一行 `<script async src="…/script.js" data-website-id="…">`，
+ * 下面这些字段就是给那一行凑属性的。
+ *
+ * @see https://umami.is/docs/tracker-configuration
+ */
+export interface UmamiConfig {
+  /**
+   * 统计脚本的完整地址：
+   *
+   *   自托管   `https://umami.你的域名/script.js`
+   *   官方云   `https://cloud.umami.is/script.js`
+   *   同源反代 `/stats/script.js`（把 umami 反代到主域下，省一次跨域握手）
+   *
+   * 以 `/` 开头时按站内路径处理，构建期不会当成外链去猜域名。
+   */
+  src: string;
+  /**
+   * 站点 ID（一串 UUID）。Umami 后台 → 网站 → 点进你的站 → 「网站 ID」。
+   *
+   * 填错的后果很安静：脚本正常下载、`umami` 对象正常挂上，只是数据记到了
+   * 一个不存在的站点上 —— 报表永远是空的。所以构建期会拦一道。
+   */
+  websiteId: string;
+  /**
+   * 只在这些域名上统计，逗号分隔，如 `'capzk.com,www.capzk.com'`。
+   *
+   * 不写 = 不限制。填了之后 localhost、预览部署（`*.pages.dev`）都不会污染数据。
+   * 主题另外还在构建期做了「只在生产构建里输出」的判断，两层都挡。
+   */
+  domains?: string;
+  /**
+   * 自动记录页面浏览。默认 true。
+   * 设 false 之后脚本只挂载不记账，要自己在代码里调 `umami.track()` 才会上报 ——
+   * 一般只有做「混合统计」时才这么用。
+   */
+  autoTrack: boolean;
+  /**
+   * 页面路径里不带查询参数（`?from=rss`）。默认 false（带上）。
+   *
+   * 开着的好处是 RSS / 分享链接的 utm 不会把同一篇文章拆成几十个页面；
+   * 代价是看不到来源参数了 —— 但来源本来该由 referrer 记录。
+   */
+  excludeSearch: boolean;
+  /** 页面路径里不带 hash（`#标题`）。默认 false */
+  excludeHash: boolean;
+}
+
+/**
+ * 访客统计
+ * ---------------------------------------------------------------------------
+ * 两家，`type` 一行切换：`'google'`（GA4）/ `'umami'`。
+ *
+ * **为什么只给一个 `type`，而不是两个独立开关**：同时挂两套会让同一份流量被记两次，
+ * 之后每次对报表都要先解释「为什么两边差 8%」，那个时间远超省下的配置。
+ * 迁移期确实想并行跑几天的话，把另一家的脚本临时贴进
+ * `src/layouts/BaseLayout.astro` 的 `<head>` 末尾，跑完删掉 —— 比留一个长期存在的
+ * 双开开关更干净。
+ *
+ * 用不到的那一段留着不影响构建，所以「两套都填好、随时切」是常态。
+ */
+export interface AnalyticsConfig {
+  /** 总开关。关掉后一行标签都不输出，也不会下载任何第三方脚本 */
+  enable: boolean;
+  /** 用哪一家。改这里即可切换 */
+  type: 'google' | 'umami';
+  /** GA4 的私有配置（`type === 'google'` 时生效） */
+  google: GoogleAnalyticsConfig;
+  /** Umami 的私有配置（`type === 'umami'` 时生效） */
+  umami: UmamiConfig;
+}
+
+/**
+ * 站长验证
+ * ---------------------------------------------------------------------------
+ * 这一段**不是统计**，是「证明这个站是我的」：输出一行 `<meta>`，搜索引擎的站长
+ * 平台读到就把后台权限开给你。数据（点击、曝光、抓取错误）都在对方后台看，
+ * 站点这边不放任何脚本，也不产生任何请求。
+ *
+ * 所以两个「Google」别混：
+ *
+ *   | 想要什么 | 在哪配 | 填什么 |
+ *   | --- | --- | --- |
+ *   | 访问统计（多少人看） | `analytics` 段 | `G-XXXXXXXXXX` |
+ *   | Search Console（搜索表现） | 这一段 `google` | 验证串 |
+ *
+ * **Bing 只有验证，没有访问统计脚本。** 它没有类似 gtag.js 的东西 ——
+ * Bing 的访问数据早年间有过（Bing Webmaster 的「流量」报表），如今那块并入
+ * Microsoft Clarity，要的是另一段脚本、在 Clarity 后台单独生成。所以这里给的是
+ * `msvalidate.01`，用来认领站点、看搜索关键词与抓取情况。
+ *
+ * ⚠️ 填的是**content 的值**，不是整段标签。把
+ * `<meta name="msvalidate.01" content="ABC123" />` 整行粘进来是这一段最常见的错，
+ * 验证必然不过，而平台上只显示「验证失败」、不告诉你为什么 —— 构建期会点出来。
+ */
+export interface VerificationConfig {
+  /** Search Console 的验证串（`<meta name="google-site-verification" content="…">`） */
+  google: string;
+  /** Bing Webmaster Tools 的验证串（`msvalidate.01`） */
+  bing: string;
+  /**
+   * 其他平台的验证 meta，如百度 `baidu-site-verification`、Yandex
+   * `yandex-verification`、Pinterest `p:domain_verify`。
+   *
+   * 写成 `{ name: 'baidu-site-verification', content: 'codeva-xxxx' }`，
+   * 有几条写几条；`name` 或 `content` 为空的条目会被跳过（不会输出空标签）。
+   *
+   * 不做成 `baidu` / `yandex` 这样的具名字段，是因为这类平台太多、增删又频繁，
+   * 逐个加字段只会让类型越来越长，而值本身没有任何可校验的结构。
+   */
+  other: { name: string; content: string }[];
+}
+
+/**
  * 打字机效果。
  * ---------------------------------------------------------------------------
  * 对应原版 Fluid 的 `fun_features.typing`。零依赖手写，约 60 行。
@@ -556,6 +701,12 @@ export interface SiteConfig {
 
   /** 评论（Waline）。详见上方 WalineConfig 的字段说明 */
   comment: CommentConfig;
+
+  /** 访客统计：GA4 或 Umami，二选一。详见上方 AnalyticsConfig */
+  analytics: AnalyticsConfig;
+
+  /** 站长验证：Search Console / Bing Webmaster 等。详见上方 VerificationConfig */
+  verification: VerificationConfig;
 
   /** 暗色模式：默认跟随系统还是固定 */
   darkMode: {
