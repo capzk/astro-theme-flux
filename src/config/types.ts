@@ -892,6 +892,12 @@ export interface SiteConfig {
    */
   footer: {
     /**
+     * 版权行文案。支持 `{since}` / `{year}` / `{title}` 三个占位符，
+     * 例如 `'© {since} {title} · 保留所有权利'`。**留空则自动生成**
+     * 「© <起始年>–<今年> <站点标题> · 保留所有权利」（同年只显示一个年份）。
+     */
+    copyright: string;
+    /**
      * 「已运行 N 天」。天数是客户端算的 —— 构建期算的那一份会在站点长期不重建时
      * 停在旧数上（静态站一年不重新构建很常见），所以页面上先给出构建当天的结果
      * （无脚本时的兜底），再由脚本校正到访问当天。
@@ -911,6 +917,18 @@ export interface SiteConfig {
      * 默认开：它们是对外接口，藏着没好处；想做成极简页脚再关。
      */
     links: boolean;
+    /**
+     * 第二行的「技术栈」胶囊标签。每项 `{ label, href, icon? }`：
+     * `icon` 取内置的 `'astro' | 'vercel' | 'cloudflare' | 'flux' | 'github' | 'link'`，
+     * 不写就用通用链接图标。**空数组 = 不显示这一行**。数组整体替换，不做合并。
+     */
+    poweredBy: Array<{
+      label: string;
+      href: string;
+      icon?: 'astro' | 'vercel' | 'cloudflare' | 'flux' | 'github' | 'link';
+      /** 默认 true（新窗口打开）；指向站内地址时可设 false */
+      external?: boolean;
+    }>;
     /**
      * ICP 备案信息。**默认关**。
      *

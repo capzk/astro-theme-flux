@@ -11,6 +11,12 @@ import { defineConfig } from '../merge';
 export default defineConfig({
   footer: {
     /**
+     * 版权行文案。支持 {since} / {year} / {title}；留空则自动
+     * 「© 起始年–今年 站点标题 · 保留所有权利」。想改就取消注释并调整：
+     */
+    // copyright: '© {since} {title} · 保留所有权利',
+
+    /**
      * 「已运行 N 天」。
      *
      * `since` 是建站日期，写 `'2024-03-15'`。**留空就用 `site.since` 那一年的
@@ -31,6 +37,18 @@ export default defineConfig({
     links: true,
 
     /**
+     * 第二行「技术栈」胶囊。每项 { label, href, icon? }，icon 可选
+     * astro / vercel / cloudflare / flux / github / link。空数组 = 不显示这一行。
+     * 数组整体替换（不做合并），想加自己的部署方 / 友链就往里加。
+     */
+    poweredBy: [
+      { label: 'Built with Astro', href: 'https://astro.build/', icon: 'astro' },
+      { label: 'Theme Flux', href: 'https://github.com/capzk/astro-theme-flux', icon: 'flux' },
+      { label: 'Hosted on Vercel', href: 'https://vercel.com/', icon: 'vercel' },
+      { label: 'CDN by Cloudflare', href: 'https://www.cloudflare.com/', icon: 'cloudflare' },
+    ],
+
+    /**
      * ICP 备案信息。**默认关**，需要时才打开 —— 打开的三个步骤：
      *
      *   1. `enable: true`
@@ -40,8 +58,9 @@ export default defineConfig({
      * 网页上的备案号必须**可点击跳转**，纯文本挂着不算合规，所以这里默认带了链接。
      */
     beian: {
-      enable: false,
-      text: '',
+      /* 这里是示例占位，上线前换成你真实的备案号 */
+      enable: true,
+      text: '京ICP备12345678号-1',
       link: 'https://beian.miit.gov.cn/',
     },
   },

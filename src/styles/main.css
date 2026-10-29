@@ -2283,42 +2283,133 @@ footer {
   opacity: 0.18;
 }
 
-/* 四行文字之间统一的行距。用 `> * + *` 而不是逐个写：三块开关各关各的，
+/* 三行文字之间统一的行距。用 `> * + *` 而不是逐个写：三块开关各关各的，
    少一块时剩下的仍然挨得均匀 */
 .footer-inner > * + * {
   margin-top: 0.55rem;
 }
 
-/* 版权与站龄同一行。数字用等宽数字，脚本重算天数时几位数之间不会左右跳 */
-.footer-meta {
+/* 三行：订阅 / 技术栈 / 版权，各自居中；行内元素自动换行 */
+.footer-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  align-items: baseline;
+  gap: 0.4rem 0.6rem;
 }
-.footer-runtime {
+
+/* 行内分隔符「·」：显式写进模板并 aria-hidden，读屏不会念出来 */
+.footer-sep {
+  color: var(--line-color);
+  user-select: none;
+}
+
+/* —— 第一行：订阅入口 —— */
+.footer-subscribe a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  color: var(--sec-text-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-subscribe a:hover {
+  color: var(--link-hover-color);
+}
+.footer-svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+
+/* —— 第二行：技术栈胶囊 —— */
+.footer-stack {
+  gap: 0.5rem;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--line-color);
+  border-radius: 999px;
+  background-color: var(--button-bg-color);
+  font-size: 0.75rem;
+  color: var(--sec-text-color);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+a.pill:hover {
+  color: var(--text-color);
+  border-color: var(--link-hover-color);
+  background-color: var(--button-hover-bg-color);
+}
+/* 品牌色只上到图标，文字仍走次级色；悬停时再把非品牌图标点亮成强调色 */
+.pill.is-astro .footer-svg {
+  color: #ff5d01;
+}
+.pill.is-cloudflare .footer-svg {
+  color: #f6821f;
+}
+.pill.is-flux .footer-svg {
+  color: var(--link-hover-color);
+}
+a.pill.is-vercel:hover .footer-svg,
+a.pill.is-github:hover .footer-svg,
+a.pill.is-link:hover .footer-svg {
+  color: var(--link-hover-color);
+}
+
+/* 运行天数：等宽数字，脚本重算时几位数之间不会左右跳 */
+.uptime {
   font-variant-numeric: tabular-nums;
 }
-/* 两个 span 之间那个「·」：写在伪元素里，模板里就不必多一个会被读屏念出来的字符 */
-.footer-meta > * + *::before {
-  content: '·';
-  margin: 0 0.55rem;
-  opacity: 0.55;
+.pulse {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: #22c55e;
+  flex: none;
+  animation: footer-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes footer-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 0.3rem rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 
-/* 订阅 / 索引入口 */
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.3rem 1.15rem;
+/* —— 第三行：版权 / 备案 ——
+   版权与备案同字号（都继承这里），整行比上面两行略大一点，作为收尾 */
+.footer-meta {
+  font-size: 0.875rem;
 }
-
-.footer-inner a {
-  color: var(--sec-text-color);
+.footer-meta a {
+  color: var(--text-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
-.footer-inner a:hover {
+.footer-meta a:hover {
   color: var(--link-hover-color);
+}
+.beian {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+/* 尊重系统的「减少动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+  .footer-inner * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ---------- 17. 搜索弹层 ---------- */

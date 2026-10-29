@@ -183,6 +183,8 @@ const DEFAULT_CONFIG: SiteConfig = {
   },
 
   footer: {
+    /* 版权行文案，留空自动「© 起始年–今年 站点标题」。支持 {since} {year} {title} */
+    copyright: '',
     /* 站龄。`since` 留空就用 site.since 那一年的 1 月 1 日 */
     runtime: {
       enable: true,
@@ -190,6 +192,11 @@ const DEFAULT_CONFIG: SiteConfig = {
     },
     /* RSS / Atom / Sitemap 三个入口 */
     links: true,
+    /* 第二行的技术栈胶囊。空数组 = 不显示。默认只放两条「普适」的 */
+    poweredBy: [
+      { label: 'Astro', href: 'https://astro.build/', icon: 'astro' },
+      { label: 'Flux', href: 'https://github.com/capzk/astro-theme-flux', icon: 'flux' },
+    ],
     /* ICP 备案。境内托管才需要，默认关；打开后记得填 text */
     beian: {
       enable: false,

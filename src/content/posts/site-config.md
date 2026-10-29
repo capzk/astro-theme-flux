@@ -34,7 +34,7 @@ cover: ../../assets/covers/cover-2.webp
 | `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
 | `comment.ts` | 评论三选一、懒加载、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
 | `analytics.ts` | 访客统计（GA4 / Umami / Clarity）与站长验证（Search Console / Bing / 百度…） | 想知道谁在看时 |
-| `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案 | 上线前后 |
+| `footer.ts` | 页脚：版权文案、站龄、订阅入口、技术栈胶囊、ICP 备案 | 上线前后 |
 | `links.ts` | 友链数组 | 加友链时 |
 | `pages.ts` | 关于页 / 友链页的开关 | 不要这两个页面时 |
 
@@ -74,9 +74,11 @@ export const SITE = {
 
   // user/footer.ts
   footer: {
-    runtime: { enable, since },
-    links: boolean,
-    beian:   { enable, text, link },
+    copyright: string,                     // 支持 {since} {year} {title}
+    runtime:   { enable, since },
+    links:     boolean,
+    poweredBy: { label, href, icon? }[],    // 技术栈胶囊，空数组 = 不显示
+    beian:     { enable, text, link },
   },
 
   // user/comment.ts —— 单独一篇，见「评论系统」
@@ -442,11 +444,17 @@ const PAGES = {
 
 ```ts
 footer: {
+  copyright: '',            // 留空自动「© 起始年–今年 站点标题」
   runtime: {
     enable: true,
     since: '2024-03-15',
   },
   links: true,
+  poweredBy: [
+    { label: 'Built with Astro', href: 'https://astro.build/', icon: 'astro' },
+    { label: 'Hosted on Cloudflare', href: 'https://www.cloudflare.com/', icon: 'cloudflare' },
+    { label: 'Theme Flux', href: 'https://github.com/capzk/astro-theme-flux', icon: 'flux' },
+  ],
   beian: {
     enable: false,
     text: '',
@@ -455,7 +463,17 @@ footer: {
 },
 ```
 
-页脚从上到下四行：版权 + 站龄、订阅入口、主题信息、备案。上面那条线是 CSS 画的（两端渐隐，不是 `border-top`），宽度跟着版心走，没有可配的东西。
+页脚从上到下三行，整体居中：订阅入口 / 技术栈胶囊 / 版权与备案。可展示的文字全部来自这份配置，组件本身不写死正文。上面那条分割线是 CSS 画的（两端渐隐，不是 `border-top`），宽度跟着版心走，没有可配的东西。
+
+### 版权
+
+`copyright` 是第三行的主文案，支持 `{since}`、`{year}`、`{title}` 三个占位符：
+
+```ts
+copyright: '© {since} {title} · 保留所有权利',
+```
+
+**留空则自动生成**「© 起始年–今年 站点标题 · 保留所有权利」；起始年与今年相同时只显示一个年份。
 
 ### 站龄
 
@@ -472,6 +490,20 @@ footer: {
 ### 订阅入口
 
 RSS / Atom / Sitemap 三个链接，默认开。它们是对外接口，藏着没好处；想做成极简页脚就设 `links: false`。
+
+### 技术栈胶囊
+
+`poweredBy` 是第二行那排圆角标签，每项 `{ label, href, icon? }`：
+
+```ts
+poweredBy: [
+  { label: 'Built with Astro', href: 'https://astro.build/', icon: 'astro' },
+  { label: 'Hosted on Cloudflare', href: 'https://www.cloudflare.com/', icon: 'cloudflare' },
+  { label: 'Theme Flux', href: 'https://github.com/capzk/astro-theme-flux', icon: 'flux' },
+],
+```
+
+`icon` 可选 `astro` / `vercel` / `cloudflare` / `flux` / `github` / `link`，不写就用通用链接图标。默认新窗口打开，指向站内地址时加 `external: false`。**空数组就整行不显示**；数组整体替换、不做合并。站龄那个「已运行 N 天」的胶囊跟这一行一起出现。
 
 ### 备案
 
@@ -674,6 +706,10 @@ import { defineConfig } from '../merge';
 export default defineConfig({
   footer: {
     runtime: { since: '2024-03-15' },
+    poweredBy: [
+      { label: 'Built with Astro', href: 'https://astro.build/', icon: 'astro' },
+      { label: 'Hosted on Cloudflare', href: 'https://www.cloudflare.com/', icon: 'cloudflare' },
+    ],
     beian: { enable: true, text: '京ICP备12345678号-1' },
   },
 });

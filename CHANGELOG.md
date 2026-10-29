@@ -7,6 +7,50 @@
 
 ## [Unreleased]
 
+## [4.4.0] - 2026-10-29
+
+页脚从「左边版权、右边链接」的一行式布局，重做成三行居中：订阅入口 / 技术栈胶囊 /
+版权与备案，并且可展示的文字全部搬进了 `user/footer.ts`。同一版里还收了上一轮
+按官方文档做完整套体检后的整改（评论系统为主）。
+
+### Added
+
+- **`footer.poweredBy`**：技术栈胶囊数组，每项 `{ label, href, icon?, external? }`。
+  `icon` 内置 `astro` / `vercel` / `cloudflare` / `flux` / `github` / `link`，
+  写错或留空一律回落到通用链接图标 —— 配置笔误不会在页脚留个空洞。
+  `external` 默认 `true`，会带 `target="_blank" rel="noopener noreferrer"`。
+- **`footer.copyright`**：版权文案，支持 `{since}` / `{year}` / `{title}` 三个占位符；
+  留空则自动生成「© 起始年–今年 站点标题 · 保留所有权利」（起始年取自 `site.since`）。
+- `src/utils/json.ts` 的 `safeJson()`。把 `JSON.stringify` 之后必须做的 `<` `>` `&`
+  转义收口到一处，`Comments` / `RecentComments` / JSON-LD 三处共用，以后不用再各自记得。
+
+### Changed
+
+- **页脚排版**：三行居中，字号自上而下 `0.85rem`（订阅）→ `0.75rem`（胶囊）→
+  `0.875rem`（版权与备案），最后一行最大、作为收尾。版权与备案同字号 ——
+  备案号只继承 `.footer-meta` 不单独设字号，改一处两边一起变。
+- **评论首次展开的卡顿**：CSS 与评论脚本从串行改并行（`Promise.all`）；
+  Vue / Artalk 的实例化挪进 `requestIdleCallback`（新增 `client/idle.js` 的 `whenIdle`），
+  不再占展开那一帧；评论区加 `content-visibility: auto` +
+  `contain-intrinsic-size: auto 360px`，展开前后的高度差不再顶着页面跳。
+- 搜索弹层加了 `inert` 背景隔离、Tab 焦点环、关闭后焦点回落到开关按钮。
+- `Navbar` 的 `as unknown as Record<string, string>` 双重断言去掉，改用
+  `as Record<string, unknown>` + `typeof` 收窄；`config/merge.ts` 的「纯对象」判断
+  现在也认 `Object.create(null)` 的配置对象。
+- `[...slug].astro` 的 `getStaticPaths()` 不再给每一页都带一份整个 `posts` 数组，
+  props 只传当前 `post`。
+
+### Fixed
+
+- **最近评论一直不显示**：`recent.js` 把 Waline 的信封
+  `{ errno, errmsg, data }` 整个交给了 `normalize()`，而它对非数组一律返回 `[]`，
+  于是模块把自己静默移除了。现在先校验 `errno`、再取 `data`（同时兼容裸数组），
+  服务端返回错误时会把 `errno` / `errmsg` 打出来，不再无声消失。
+- `BaseLayout` 的 JSON-LD 之前是 `JSON.stringify` 直出、没有转义，改走 `safeJson()`。
+- `PostCard` 的封面去掉了 `width="480" height="320"` —— CSS 已经强制
+  `height: 10rem` + `object-fit: cover`，两处尺寸来源并存只会让人误判真实渲染尺寸。
+- 页脚 `.footer-inner > * + *` 的注释还写着「四行」，改成三行（纯注释）。
+
 ## [4.3.0] - 2026-10-29
 
 把 4.1.0 加的「用 Umami API 回读统计」整块移除了。**埋点脚本一行没动** ——
