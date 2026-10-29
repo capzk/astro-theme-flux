@@ -7,6 +7,26 @@
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-10-29
+
+4.1.0 里那条「`expanded` 失败就退回老 `metrics`」的分支删掉了 —— 不需要的兜底。
+
+### Removed
+
+- **没数据就报错，不再退回另一个接口。** `metrics/expanded` 与老的 `metrics` 口径不同
+  （后者只给 `{x, y}` 排行，不分 pageviews / visitors），混着返回只会让数字忽多忽少；
+  而支持 `expanded` 的是 Umami 2.11+，更低的版本该做的是升级 Umami，不是让代码替它兜着。
+  现在接口不通就直接失败，构建输出里能看见挂在哪一步。
+- **`readEnv` 不再同时读 `import.meta.env`。** Astro 起构建时已经把 `.env.local` 和
+  平台注入的变量都放进 `process.env`，第二条路径多余（实测过：只读 `process.env` 时
+  `.env.local` 里的密钥照样生效）。
+
+### Fixed
+
+- **`metrics/expanded` 返回的 `pageviews` 是字符串**（`"5"`，不是 `5`）—— Umami 那边是
+  SQL 的 count 聚合，bigint 序列化成 JSON 就成了字符串。类型声明和 `Number()` 转换一起补上；
+  之前靠隐式转换侥幸算对，但不该指望它。
+
 ## [4.1.0] - 2026-10-29
 
 把 1.x 删掉的文章浏览量加回来 —— 这次不是自己存一份计数，而是**用 Umami 的只读 API
@@ -30,6 +50,7 @@
 
 - **两条路径都做了**：`metrics/expanded`（Umami 2.11+，带 pageviews 明细）失败时自动
   退回老的 `metrics`（只有 `{x, y}`），自建的老实例也能用。
+  （**4.1.1 已移除这条回退**，两个接口口径不同，混着用没意义。）
 
 ### 说明
 
@@ -1018,7 +1039,8 @@
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...HEAD
+[4.1.1]: https://github.com/capzk/astro-theme-flux/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/capzk/astro-theme-flux/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/capzk/astro-theme-flux/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/capzk/astro-theme-flux/compare/v3.0.0...v3.1.0

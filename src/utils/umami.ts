@@ -54,15 +54,12 @@ function normalize(pathname: string): string {
 
 /**
  * 读环境变量。
- * 两个来源都看：Cloudflare Pages 这类平台注入的是 `process.env`，本地 `.env.local`
- * 走的是 Vite 的 `import.meta.env`。谁有值用谁，都没有就是没配。
+ * 只看 `process.env`：Astro 起构建时会把 `.env.local` / 平台注入的变量都放进去，
+ * 一条路径就够，不需要再去 `import.meta.env` 里找一遍。
  * 密钥**永远不写进配置文件**（那个文件是要提交的）。
  */
 function readEnv(key: string): string {
-  const fromProcess =
-    typeof process !== 'undefined' ? (process.env?.[key] ?? '') : '';
-  const fromImport = (import.meta.env as unknown as Record<string, string | undefined>)[key] ?? '';
-  return String(fromProcess || fromImport).trim();
+  return String(process.env[key] ?? '').trim();
 }
 
 /**
@@ -127,17 +124,19 @@ async function resolveCredential(
 }
 
 type MetricsRow = {
-  /* expanded 接口给 name，老的 metrics 接口给 x */
-  name?: string;
-  pageviews?: number;
-  x?: string;
-  y?: number;
+  name: string;
+  /**
+   * 实测是**字符串**（`"5"` 而不是 `5`）：Umami 那边是 SQL 的 count 聚合，bigint
+   * 序列化成 JSON 就成了字符串。所以这里统一过一遍 `Number()`，别直接当数字用。
+   */
+  pageviews: string | number;
 };
 
 /**
  * 按路径的浏览量。
- * 先试 `metrics/expanded`（带 pageviews 明细，Umami 2.11+），失败再退回
- * `metrics`（老版本只有 {x, y}）—— 多这十行，自建的老实例也能用。
+ * 走 `metrics/expanded`（Umami 2.11+，带 pageviews 明细）。更低版本没有这个接口 ——
+ * 那就升级 Umami，不退回 `metrics` 排行接口：老接口只给 `{x, y}`，口径和这个不一样，
+ * 两个接口混着用只会让数字忽多忽少，不如让请求直接报错、把问题摆出来。
  */
 async function fetchPageViews(
   base: string,
@@ -145,30 +144,19 @@ async function fetchPageViews(
   headers: Record<string, string>,
   limit: number,
 ): Promise<Map<string, number>> {
-  const range = `startAt=${ALL_TIME_START}&endAt=${Date.now()}`;
+  const rows = await fetchJson<MetricsRow[]>(
+    `${base}/websites/${websiteId}/metrics/expanded?type=path&startAt=${ALL_TIME_START}&endAt=${Date.now()}&limit=${limit}`,
+    headers,
+  );
+
   const pages = new Map<string, number>();
-
-  let rows: MetricsRow[] = [];
-  try {
-    rows = await fetchJson<MetricsRow[]>(
-      `${base}/websites/${websiteId}/metrics/expanded?type=path&${range}&limit=${limit}`,
-      headers,
-    );
-  } catch {
-    rows = await fetchJson<MetricsRow[]>(
-      `${base}/websites/${websiteId}/metrics?type=path&${range}&limit=${limit}`,
-      headers,
-    );
-  }
-
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const name = row.name ?? row.x;
-    if (!name) continue;
-    const views = Number(row.pageviews ?? row.y ?? 0);
+  for (const row of rows) {
+    if (!row?.name) continue;
+    const views = Number(row.pageviews ?? 0);
     if (!views) continue;
     /* excludeSearch 关着时，`/posts/a/?from=rss` 会自成一「路径」。
        合并到同一个键上，否则同一篇文章的阅读量会被拆成好几份。 */
-    const key = normalize(name);
+    const key = normalize(row.name);
     pages.set(key, (pages.get(key) ?? 0) + views);
   }
   return pages;
