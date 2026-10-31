@@ -24,7 +24,7 @@
 
 **布局与观感**
 
-- 首页：全屏 banner（背景图 + 黑色蒙版 + 站名大字 + 滚动箭头），下方浮起一张白卡片
+- 首页：全屏 banner（背景图 + 黑色蒙版 + 站名大字 + 滚动箭头），下方浮起一张门户卡片：置顶图片轮播 + 分类分区 + 最新列表
 - 卡片流：左图右文，封面带投影，摘要固定三行，meta 一行小字（日期 / 分类 / 标签）
 - 文章页：banner + 白卡片，正文收窄居中，右侧目录栏跟随滚动（三栏 `2fr 8fr 2fr`，对齐原版 Bootstrap 的 `col-lg-2/8/2`）
 - 顶栏：首页透明，滚动后变实色 + 阴影；移动端抽屉菜单
@@ -39,11 +39,11 @@
 | 站内搜索 | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起 |
 | 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 + 行号；围栏 meta 写 `{1,3-5}` 高亮指定行、写 `nolinenos` 关掉行号 |
 | 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
-| 分页 | 首页 `/page/2/`、归档 `/archives/page/2/`、分类与标签同理，形态与 Hexo 一致 |
+| 分页 | 归档 `/archives/page/2/`、分类与标签同理；首页是门户固定区块，不分页（全量浏览走 `/archives/`） |
 | 图片优化 | 封面与 banner 走 `astro:assets`：按屏宽生成多档 webp + `srcset`，首屏图 `fetchpriority="high"` |
 | 图片占位色 | 构建期把每张图缩成 2×2 取出主色调（一张图 18 个字符），垫在图片下面 —— 图没到时不会先白一块 |
 | 配色 | 四个字面颜色，或者一个 `hue` 让 oklch 派生整套（构建期定好，不带运行时） |
-| 页面开关 | 关于 / 友链可关，导航、sitemap、页面本身三处一起变（301 回首页） |
+| 页面开关 | 关于 / 友链可关，导航、sitemap、页面本身三处一起变（生成带 `noindex` 的跳转页回首页） |
 | 上下篇 | 默认按时间相邻；文章写了 `series` 就改成系列内前后，文章页顶部再列一份系列清单 |
 | 反抓取小件 | `mailto:` 降级成 `me [at] example.com`（脚本还原成链接）；防盗链图床的图自动补 `referrerpolicy` |
 | 相关文章 | 按标签（3 分）/ 分类（2 分）的重合度取前 3 篇，没有相关的一篇就不显示 |
@@ -79,13 +79,14 @@ npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
 
 ## 示例文章
 
-`src/content/posts/` 自带 14 篇示例，其中「指南」分类的 8 篇就是这份主题的使用文档，同时也充当排版样例：
+`src/content/posts/` 自带 18 篇示例，其中「指南」分类的 9 篇就是这份主题的使用文档，同时也充当排版样例：
 
 | 文章 | 讲什么 |
 | --- | --- |
 | 快速开始 | 环境要求、三步启动、目录结构 |
 | 站点配置详解 | `src/config/` 的结构、每一项的取值与效果 |
 | 写一篇文章 | front matter、分类与标签、正文可用语法 |
+| 门户首页 | 首页三大块、每分类版式与密度配置 |
 | 评论系统 | Waline / Giscus / Artalk 怎么搭起来、配置填哪几行、配完怎么验证 |
 | URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
 | 换成你自己的样子 | 配色、字体、版心与字号 |
@@ -186,7 +187,7 @@ CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比�
 
 1. 顶栏与移动端菜单里那一条自动消失（按 href 匹配，不用动 `nav`）
 2. `sitemap` 里不再出现
-3. 页面本身不输出内容，返回 301 跳到首页
+3. 页面本身不输出内容，生成一个带 `noindex` 的 meta refresh 页跳回首页（纯静态输出发不出真正的 301）
 
 归档、分类、标签没有开关 —— 它们是博客的骨架，关掉就不是同一个站了。
 `pages.ts` 是**唯一一个不用 `defineConfig` 的配置文件**：`astro.config.mjs` 要直接 import 它来
@@ -627,7 +628,7 @@ seriesOrder: 3                 # 系列里的次序（从 1 开始）；不写�
 | `languages/*.yml` | `src/i18n.ts` |
 | `hexo-generator-searchdb` | `src/pages/searchindex.json.ts` |
 
-URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`），旧链接不会 404。
+URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/archives/page/2/`），旧链接不会 404。首页已改成门户固定区块，不再生成 `/page/N/`。
 
 `slug` 字段也照搬 Hexo 的语义 —— 写了就替换文件名那一段。区别在于主题会把中文转成拼音（Hexo 原样保留中文），
 所以**从中文文件名的 Hexo 站迁过来，文章链接会变**，需要在新站配一批 301，或者给每篇补一个和旧链接一致的 `slug`。
@@ -638,7 +639,7 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/page/2/`�
 | --- | --- | --- |
 | 评论（13 种第三方服务） | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄 |
 | 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
-| 打字机副标题、视差 banner | ✕ | 锦上添花，需要额外 JS；banner 保留静态版 |
+| 打字机副标题、视差 banner | ✓ | 原生 JS，默认开；只改 `appearance.ts` 就能关，且尊重「减少动态效果」 |
 | fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
 | Bootstrap 栅格（CDN） | 自己写 flex/grid | 只用到栅格，为它引 200KB 不划算 |
 | iconfont（CDN） | 内联 SVG | 零请求、随 `currentColor` |
@@ -656,6 +657,7 @@ src/
 │   ├── types.ts         #   字段类型与说明
 │   ├── defaults.ts      #   出厂默认值（升级时被替换）
 │   ├── merge.ts         #   深合并规则（30 行）
+│   ├── shared/          #   运行时与构建期共用的零依赖数据（页面开关路径）
 │   └── user/            #   ★ 你的配置：site / appearance / content / comment /
 │                        #     analytics / footer / links / pages
 ├── i18n.ts              # 界面文案
@@ -667,6 +669,7 @@ src/
 ├── components/          # Navbar / Banner / Board / PostCard / PostList /
 │                        # ArchiveList / Toc / Pagination / SearchModal /
 │                        # Comments / RecentComments / Icon / Footer
+│   └── portal/          #   门户首页专用的分类分区与卡片
 ├── pages/               # 文件即路由（外加 llms.txt / llms-full.txt / atom.xml /
 │                        # rss.xml / searchindex.json / robots.txt 六个端点）
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链
@@ -689,23 +692,25 @@ src/
 ├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
 ├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
-└── styles/main.css      # 全部样式（变量分亮暗两套）
+├── styles/main.css      # 全站样式（变量分亮暗两套）
+└── styles/portal.css    # 门户首页专用样式（只在首页引入）
 
 ```
 
 ## 性能
 
-没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有图标字体，也没有内置的分析脚本 —— 访客统计是可选的，默认关（见上文「访客统计与站长验证」）。首屏必须的请求只有 5 个：HTML、一份 CSS、banner 图、主题脚本、预取脚本；卡片封面是 `loading="lazy"`，滚到才取。
+没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有图标字体，也没有内置的分析脚本 —— 访客统计是可选的，默认关（见上文「访客统计与站长验证」）。首屏必须的请求只有 4 个：HTML、banner 图、主题脚本、预取脚本（开启搜索时再多一个搜索 chunk，单独一次请求、不挡渲染）；样式表内联在 HTML 里，卡片封面是 `loading="lazy"`，滚到才取。
 
 | 资源 | 原始 | gzip | 请求数 |
 | --- | --- | --- | --- |
-| 首页 HTML（6 张卡片，含内联 CSS） | 63 KB | 14 KB | 1 |
-| 文章页 HTML（含内联 CSS） | 86 KB | 20.5 KB | 1 |
-| 样式表（内联进 HTML，不再单独请求） | 37 KB | 7.9 KB | 0 |
-| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱） | 8.7 KB | 3.4 KB | 1 |
+| 首页 HTML（门户版式，含内联 CSS） | 87 KB | 17.2 KB | 1 |
+| 文章页 HTML（含内联 CSS） | 66 KB | 16.3 KB | 1 |
+| 样式表（内联进 HTML；首页另含门户样式） | 39–44 KB | 8.3–9.0 KB | 0 |
+| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱） | 7.8 KB | 3.0 KB | 1 |
+| 搜索脚本（页面里有弹层时才动态加载） | 3.3 KB | 1.6 KB | 1（仅开启搜索时） |
 | 预取脚本 | 2.4 KB | 1.1 KB | 1 |
-| 评论脚本（懒加载，不参与首屏） | 4.4 KB | 2.0 KB | 0 |
-| 搜索索引（悬停才取，不参与首屏） | 61 KB | 28 KB | 0 |
+| 评论脚本（懒加载，不参与首屏） | 4.7 KB | 2.1 KB | 0 |
+| 搜索索引（悬停才取，不参与首屏） | 70 KB | 32 KB | 0 |
 | banner 默认图（SVG） | 2.5 KB | 0.8 KB | 1 |
 
 几个刻意的取舍：
@@ -714,7 +719,7 @@ src/
 - **文章页预连接评论服务端**，握手（跨境约 100~300ms）不算在「滚到评论区」那一刻里。
 - **评论是懒加载的**：从 CDN / 自托管取，`lazy` 控制提前多少像素开始。
 - **搜索索引不参与首屏**：鼠标移到搜索按钮或弹层打开时才开始取，敲字时索引通常已经就位。
-- **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML 才 12KB，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页 HTML 多 8KB（gzip 后）—— 但 HTML 设的是 `max-age=0, must-revalidate`，回访时 304 不带正文，内联的 CSS 也不会真的重传。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
+- **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML gzip 后 16KB，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页 HTML 多 8KB（gzip 后）—— 但 HTML 设的是 `max-age=0, must-revalidate`，回访时 304 不带正文，内联的 CSS 也不会真的重传。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
 - **首屏大图的 preload 覆盖所有页面**，不只是首页。banner 写成字符串路径（`/img/x.webp`）时图是 CSS 背景加载的，浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍，所以 head 里补一条 `<link rel="preload" as="image">`；用 `import` 引入的图由 `<Image>` 输出 `<img fetchpriority="high">`，不走这条。文章页会把自己的封面传进来，否则会 preload 一张这页根本不用的图，白占首屏带宽。
 - **「下一篇」用 `viewport` 预取**（文章页底部那一条）。手机上不会触发 hover，而「读到底 → 点下一篇」是文章页最确定的下一步：滚到它就取，其余链接仍然只在悬停时取，不会误伤流量。
 - **统计脚本只做 `dns-prefetch`，不做 `preconnect`**。后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计是 `async` 的非关键资源 —— 那几毫秒更该留给 banner 图。`dns-prefetch` 只花一次域名查询，代价接近零。

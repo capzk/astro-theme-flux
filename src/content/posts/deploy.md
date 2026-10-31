@@ -36,7 +36,7 @@ dist/
 ├── img/                        # public/ 原样搬过来
 ├── posts/hello-flux/index.html # ← 目录式，不是 hello-flux.html
 ├── tags/写作/index.html
-├── page/2/index.html
+├── archives/page/2/index.html
 └── …
 ```
 

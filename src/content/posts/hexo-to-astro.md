@@ -50,9 +50,9 @@ sticky: true
 
 ## 分页
 
-Hexo 的 `per_page` 换成 `SITE.pageSize`。列表页第 1 页在 `/`，第 2 页起在 `/page/N/` —— 与原版的 `page/2/` 完全一致。
+Hexo 的 `per_page` 换成 `SITE.pageSize`，但它现在只作用于分类与标签页。首页已经改成门户版式：置顶、分类分区、最新列表都是固定区块，不分页，全量浏览交给 `/archives/`。
 
-归档、分类、标签这三处也分了页，形态一样：`/archives/page/2/`、`/categories/指南/page/2/`、`/tags/Astro/page/2/`。归档的条数单独由 `SITE.archive.pageSize` 控制（时间线一行一篇，比卡片密），分类与标签沿用 `pageSize`。
+归档、分类、标签仍然分页，第 1 页是列表首页，第 2 页起是 `<base>/page/N/`：`/archives/page/2/`、`/categories/指南/page/2/`、`/tags/Astro/page/2/`。归档的条数单独由 `SITE.archive.pageSize` 控制（时间线一行一篇，比卡片密），分类与标签沿用 `pageSize`。
 
 ## 搜索
 

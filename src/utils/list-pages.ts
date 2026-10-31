@@ -6,9 +6,9 @@
  *
  * 为什么要把它们单独拎出来：
  *
- *   · **sitemap**。主题的示例站 59 个页面里有 40 个是这类清单（31 个标签页、
- *     4 个分页）。全塞进 sitemap，搜索引擎看到的是「一堆互相重复的清单页」
- *     和 13 篇真文章 —— 站点的内容密度被这堆清单稀释掉了。
+ *   · **sitemap**。主题的示例站里有大量这类清单（几十个标签页与分页）。
+ *     全塞进 sitemap，搜索引擎看到的是「一堆互相重复的清单页」和十几篇真文章
+ *     —— 站点的内容密度被这堆清单稀释掉了。
  *   · **meta robots**。清单页对读者有用（点进去找文章），对索引没用。
  *     所以给 `noindex, follow`：自己不进索引，但链接照跟，权重流向文章。
  *
@@ -34,9 +34,9 @@ function normalize(pathname: string): string {
 export function isListPage(pathname: string): boolean {
   const path = normalize(pathname);
 
-  /* 所有「第 2 页及以后」：/page/2/、/archives/page/2/、/tags/前端/page/2/ …
-     第 1 页不在此列 —— 它以 `/`、`/archives/`、`/tags/前端/` 的形态存在，
-     其中前两个是真正的入口页，单个标签页 / 分类页则由下面那条拦。 */
+  /* 所有「第 2 页及以后」：/archives/page/2/、/tags/前端/page/2/、/categories/前端/page/2/ …
+     第 1 页不在此列 —— 它以 `/archives/`、`/tags/前端/`、`/categories/前端/` 的形态存在，
+     归档首页是真正的入口页，单个标签页 / 分类页则由下面那条拦。 */
   if (/\/page\/\d+\/$/.test(path)) return true;
 
   /* 单个标签页、单个分类页。总览页 /tags/、/categories/ 不匹配（末尾没有第二段） */

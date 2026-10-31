@@ -7,6 +7,53 @@
 
 ## [Unreleased]
 
+> **升级提示（破坏性）**：首页改成门户固定区块后不再生成 `/page/N/`。主题自带的
+> `public/_redirects` 会把旧链接 301 到 `/archives/`，但那条规则只在 Cloudflare Pages
+> 生效；用 Vercel / nginx / 其他托管的话，需要自己配一条同样的跳转，否则旧书签会 404。
+> 想保留原来的分页首页，就别升级这一版。
+
+### Added
+
+- **首页改为门户版式**：置顶图片轮播 + 分类分区 + 最新列表，版式与密度由
+  `index.portal` 决定（每分类的卡片 / 列表、每行几个、轮播间隔）。全量浏览交给
+  `/archives/`，首页不再分页。
+
+### Changed
+
+- `portal.css` 改为只在首页引入，不再内联进全站每一页（文章页内联 CSS 少约 4.5 KB）。
+- 关闭搜索时不再把 `search.js` 并入首屏脚本，改为页面里存在搜索弹层时才动态 import。
+  代价是开启搜索时多一次请求（主脚本 3.4 → 3.0 KB gzip + 搜索 chunk 1.6 KB gzip）。
+- 门户轮播补 `inert` / `aria-current`：非当前张不可聚焦、不可点击（`pointer-events: none`
+  兜底），圆点标记当前项；鼠标悬停或键盘聚焦时暂停，`prefers-reduced-motion: reduce`
+  下不自动播放。修掉暂停 / 恢复重复调用 `setInterval` 导致定时器叠加的问题。
+- 轮播圆点补 `:focus-visible` 白描边 + 外圈暗影，并用伪元素把命中区从 9px 扩到 25px
+  （WCAG 2.2 目标尺寸 2.5.8）；圆点后加一层很淡的黑底，亮图上不再是「白点消失」。
+- `PAGE_PATH` 抽到零依赖的 `src/config/shared/page-paths.ts`，运行时判定与
+  `astro.config.mjs` 的 sitemap 过滤共用同一份，不再两边各抄一份。
+- **CSS 的浏览器下限降到 iOS 15.5**（`vite.build.cssTarget`）。Vite 7 默认目标
+  `baseline-widely-available` 是 iOS 16.4，压缩器会把 `@media (max-width: 720px)`
+  改写成区间语法 `@media (width <= 720px)`；16.3 及以下的手机整段媒体查询失效，
+  直接看到桌面布局。主题没有一处 CSS 需要 16.4，降级后首页 HTML 只多 0.3 KB。
+
+### Removed
+
+- **首页分页 `/page/N/`**。首页换成固定区块，旧地址由 `public/_redirects` 301 到
+  `/archives/`（仅 Cloudflare Pages 生效，见上方升级提示）。
+
+### Fixed
+
+- **手机上门户轮播无法手动切换**：原来只有「点圆点」一条路 —— 9px 的点在触屏上几乎点不中，
+  而手指最自然的左右扫也没有任何响应（`mouseenter` / `mouseleave` 在触屏上等于不存在）。
+  现在补了横滑切图（>40px 且以横向为主，`touch-action: pan-y` 保证纵向仍滚页面）、
+  滑完紧跟的那次 `click` 会被吞掉不开链接，窄屏圆点放大到 12px。
+- 首页在关闭 banner、或 `banner.title` 留空时没有 `<h1>`（Banner 内部是
+  `{title && <Heading>}`，空标题整段不渲染）。补一个 `.sr-only` 的一级标题。
+- `PAGE_PATH` 抽出后补一条编译期覆盖校验：以后 `SiteConfig['pages']` 新增开关而路径表
+  漏写时，`astro check` 会报错，而不是像现在这样静默通过（sitemap 不剔除、导航不隐藏）。
+- 文档与实现对齐：首页分页、示例文章数量、打字机 / 视差、页面开关的跳转方式，
+  以及若干示例文章里的过时描述。纯静态输出下的 `Astro.redirect` 说明改为
+  「meta refresh 页」而不是 301。
+
 ## [4.4.0] - 2026-10-29
 
 页脚从「左边版权、右边链接」的一行式布局，重做成三行居中：订阅入口 / 技术栈胶囊 /

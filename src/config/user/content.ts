@@ -58,7 +58,7 @@ export default defineConfig({
     wpm: 300,
   },
 
-  /* 首页 / 分类 / 标签的每页文章数 */
+  /* 分类 / 标签的每页文章数（首页是门户版式，不分页） */
   pageSize: 6,
   /* 归档是一行一篇的时间线，比卡片密，所以单独取值；填 0 表示不分页 */
   archive: { pageSize: 10 },

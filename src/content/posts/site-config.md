@@ -360,15 +360,15 @@ color: {
 ## 分页、搜索与 RSS
 
 ```ts
-pageSize: 6,                     // 首页 / 分类 / 标签，每页文章数
+pageSize: 6,                     // 分类 / 标签，每页文章数（首页是门户版式，不分页）
 archive: { pageSize: 10 },       // 归档页每页条数（时间线一行一篇，比卡片密，所以单独取值）
-search: true,                    // 关掉则不渲染搜索弹窗，也不生成 /searchindex.json
+search: true,                    // 关掉则不渲染搜索弹窗，也不加载搜索脚本
 rss: { excerptLength: 300 },     // RSS / Atom 摘要截断字数
 ```
 
-分页的 URL 形态统一：第 1 页是列表首页，第 N 页是 `<base>/page/N/`。所以归档是 `/archives/` → `/archives/page/2/`，分类是 `/categories/指南/` → `/categories/指南/page/2/`。`archive.pageSize` 写 0 或负数表示归档不分页。
+分页的 URL 形态统一：第 1 页是列表首页，第 N 页是 `<base>/page/N/`。所以归档是 `/archives/` → `/archives/page/2/`，分类是 `/categories/指南/` → `/categories/指南/page/2/`。`archive.pageSize` 写 0 或负数表示归档不分页。首页不在其中：门户版式只有固定区块，全量浏览走 `/archives/`。
 
-`search: false` 之后，按 `/` 和 `Ctrl/⌘ + K` 不会有任何反应 —— 快捷键监听在搜索脚本里，整段都不会被打包。
+`search: false` 之后，页面里不会再渲染搜索弹层，按 `/` 和 `Ctrl/⌘ + K` 也不会有任何反应 —— 入口和脚本都不会加载。`/searchindex.json` 仍会在构建期生成（它同时是一份可被外部读取的纯静态索引），只是站点自己不用它。
 
 `rss.excerptLength` 只管订阅源里的摘要长度，**和首页卡片的 `index.excerptLength` 无关**，两者各调各的。RSS 只输出纯文本摘要、没有全文：全文要渲染 Markdown，得用 Astro 的实验性 Container API，主题不想为这个把实验接口写进依赖面。
 
@@ -430,7 +430,7 @@ const PAGES = {
 | --- | --- |
 | 顶栏 / 移动端菜单 | 那一项消失（按 href 匹配，不用动 `nav`） |
 | `sitemap` | 不再列出 |
-| 页面本身 | 返回 301 跳首页，带 `noindex`，不让读者撞上空白页 |
+| 页面本身 | 生成带 `noindex` 的 meta refresh 页跳回首页，不让读者撞上空白页 |
 
 静态站没有「拒绝访问」这个动作：文件要么生成、要么不生成，而文件路由总是会生成。
 所以这里用「跳首页 + noindex」表达「这个页面下线了」，而不是假装 404 —— 一个 200 状态的

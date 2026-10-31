@@ -124,7 +124,7 @@ export function paginate<T>(items: T[], pageSize: number) {
 
 /**
  * 第 n 页的地址。`base` 是列表首页（以 `/` 结尾），第 1 页回到 base，
- * 其余走 `${base}page/n/` —— 与 `/page/2/`、`/archives/page/2/` 两种形态统一。
+ * 其余走 `${base}page/n/` —— `/archives/page/2/`、`/tags/前端/page/2/` 都走这一条。
  */
 export const pageUrlOf = (base: string, n: number) => (n <= 1 ? base : `${base}page/${n}/`);
 

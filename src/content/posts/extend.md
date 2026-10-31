@@ -24,9 +24,11 @@ cover: ../../assets/covers/cover-2.webp
 | `Banner.astro` | 顶部大图 + 标题 + 元信息行 | 首页、文章页、各列表页 |
 | `Board.astro` | 那张浮起的白卡片，含可选的右侧栏插槽 | 同上 |
 | `Toc.astro` | 右侧目录 | 文章页（作为 `Board` 的 `aside` 插槽） |
-| `PostCard.astro` | 首页单张卡片 | `PostList` |
-| `PostList.astro` | 卡片列表 + 空状态 | 首页、`/page/N/` |
-| `Pagination.astro` | 上一页 / 下一页 | 首页、`/page/N/` |
+| `PostCard.astro` | 卡片流里的单张卡片 | `PostList` |
+| `PostList.astro` | 卡片列表 + 空状态 | 分类、标签 |
+| `Pagination.astro` | 上一页 / 下一页 | 归档、分类、标签 |
+| `portal/CategorySection.astro` | 门户首页的分类分区（卡片或列表） | 首页 |
+| `portal/PortalCard.astro` | 门户首页的卡片 | `CategorySection` |
 | `SearchModal.astro` | 搜索弹窗的 DOM | `BaseLayout` |
 | `Comments.astro` | 评论区外壳：标题、计数、骨架屏、失败重试；加载逻辑在 `scripts/comments.js` | 文章页（可复用到任何页面） |
 | `RecentComments.astro` | 「本站最新评论」挂件的外壳；取数与渲染在 `scripts/recent.js` | 文章页（只有 Waline 时出现） |
