@@ -1,0 +1,82 @@
+---
+/**
+ * PortalCard —— 门户首页用的「小卡片」
+ *
+ * 与首页原版 PostCard（左图右文大卡）不同：这里封面在上、信息在下，
+ * 固定 16:9 缩略图，标题最多两行 —— 目的是在一屏里塞下更多分类内容，
+ * 单卡不喧宾夺主。封面逻辑原样复用 PostCard（cover > indexImg > 默认图），
+ * 没有封面时退化为一块占位底色，而不是破图。
+ */
+import { Image } from 'astro:assets';
+import { SITE } from '../../config';
+import { T } from '../../i18n';
+import type { Post } from '../../utils/posts';
+import { postUrl, termUrl } from '../../utils/posts';
+import { isAsset, type ImageSource } from '../../utils/image';
+import { lqipStyle } from '../../utils/lqip';
+import Icon from '../Icon.astro';
+
+interface Props {
+  post: Post;
+}
+const { post } = Astro.props;
+const { title, date, categories, sticky, indexImg, cover } = post.data;
+const url = postUrl(post);
+const coverSrc: ImageSource | undefined = cover ?? indexImg ?? SITE.index.defaultImg;
+
+const dateText = date.toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+---
+
+<article class="pcard">
+  <a
+    class="pcard-img"
+    href={url}
+    aria-hidden="true"
+    tabindex="-1"
+    style={coverSrc ? lqipStyle(coverSrc) : undefined}
+  >
+    {
+      coverSrc &&
+        (isAsset(coverSrc) ? (
+          <Image
+            src={coverSrc}
+            alt=""
+            widths={[200, 320, 480]}
+            sizes="(max-width: 520px) 44vw, 200px"
+            loading="lazy"
+          />
+        ) : (
+          <img src={coverSrc} alt={title} loading="lazy" />
+        ))
+    }
+  </a>
+
+  <div class="pcard-body">
+    <h3 class="pcard-title">
+      {sticky && <span class="index-pin">{T.pin}</span>}
+      <a href={url}>{title}</a>
+    </h3>
+
+    {
+      SITE.index.showCategory && categories.length > 0 && (
+        <div class="pcard-cat">
+          <Icon name="folder" />
+          <a href={termUrl('categories', categories[0])}>{categories[0]}</a>
+        </div>
+      )
+    }
+
+    {
+      SITE.index.showDate && (
+        <div class="pcard-meta">
+          <Icon name="date" />
+          <time datetime={date.toISOString()}>{dateText}</time>
+        </div>
+      )
+    }
+  </div>
+</article>

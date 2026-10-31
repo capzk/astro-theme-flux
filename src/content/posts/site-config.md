@@ -31,7 +31,7 @@ cover: ../../assets/covers/cover-2.webp
 | --- | --- | --- |
 | `site.ts` | 站名、描述、作者、语言、头像、分享封面、X 账号、导航菜单 | 建站第一步 |
 | `appearance.ts` | 首页 banner、文章页 banner、深色模式、配色 | 想换样子时 |
-| `content.ts` | 首页卡片、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
+| `content.ts` | 首页卡片 / 门户首页（`index.portal`，详见[门户首页](/posts/portal-home/)）、文章页各组件开关、分页、搜索 | 调「页面上有什么」 |
 | `comment.ts` | 评论三选一、懒加载、最新评论 | 配评论时，另见[评论系统](/posts/comments/) |
 | `analytics.ts` | 访客统计（GA4 / Umami / Clarity）与站长验证（Search Console / Bing / 百度…） | 想知道谁在看时 |
 | `footer.ts` | 页脚：版权文案、站龄、订阅入口、技术栈胶囊、ICP 备案 | 上线前后 |

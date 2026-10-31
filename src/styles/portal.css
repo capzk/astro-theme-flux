@@ -1,0 +1,338 @@
+/* ==========================================================================
+   22. 门户首页（实验）
+   --------------------------------------------------------------------------
+   参考 hexo-theme-solitude / 知更鸟 Begin 的「杂志布局」思路，选择性改造。
+   首页三大块：① 顶部置顶（左图片轮播 + 右置顶列表）② 中间分类列表
+   （每分类独立卡片 / 列表、可排序）③ 底部最新。仅作用于首页，复用 Flux
+   的设计令牌（--board-bg-color / --text-color / --sec-text-color /
+   --line-color / --link-hover-color / --board-radius / --board-shadow），
+   亮暗两套配色自动跟随，不写死颜色。
+   ========================================================================== */
+
+/* 首页无 banner 时：顶栏已切到实色，但 .board-wrap 默认 margin-top:-2rem 是给
+   「压在 banner 上」用的，没 banner 就会把内容顶到固定顶栏下面去。这里改成留出
+   顶栏高度，并在顶栏与内容之间多留一点呼吸感（实色顶栏约 3.3rem，5.5rem 约留出
+   2.2rem 间距）。带 home-no-banner 的 class 由 BaseLayout 在「首页且
+   banner.enable===false」时挂到 body 上，不影响其它页面。 */
+body.home-no-banner .board-wrap {
+  margin-top: 5.5rem;
+}
+
+.portal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 2.25rem clamp(1rem, 5%, 3rem);
+}
+.portal-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+/* ---------- 头条精选 ---------- */
+.pfeature {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1.5rem;
+  align-items: stretch;
+}
+.pfeature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pfeature-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line-color);
+}
+.pfeature-list a {
+  color: var(--text-color);
+  font-size: 1rem;
+  line-height: 1.4;
+  flex: 1 1 auto;
+  min-width: 0;
+  /* 单行截断：不换行，超出用省略号（原来限两行，长标题会把整行撑高） */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pfeature-list a:hover {
+  color: var(--link-hover-color);
+}
+.pfeature-list .post-meta {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* 置顶右侧栏（标题 + 列表整体） */
+.pfeature-side {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* 置顶：左侧图片轮播（纯图片自动切换，圆点导航） */
+.phero-carousel {
+  position: relative;
+  height: 100%;
+  min-height: 300px;
+  border-radius: var(--board-radius);
+  overflow: hidden;
+  background-color: var(--link-hover-bg-color);
+  border: 1px solid var(--line-color);
+}
+.phero-slide {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: 1;
+}
+.phero-slide.is-active {
+  opacity: 1;
+  z-index: 2;
+}
+.phero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.phero-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.45rem;
+  z-index: 3;
+}
+.phero-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.phero-dot.is-active {
+  background-color: #fff;
+  transform: scale(1.2);
+}
+
+/* ---------- 分类分区 ---------- */
+.psec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--line-color);
+}
+.psec-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-color);
+}
+.psec-title::before {
+  content: "";
+  width: 0.3rem;
+  height: 1.1rem;
+  border-radius: 2px;
+  background-color: var(--link-hover-color);
+}
+.psec-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sec-text-color);
+  background-color: var(--link-hover-bg-color);
+  border-radius: 1rem;
+  padding: 0.05rem 0.5rem;
+}
+.psec-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--sec-text-color);
+  font-size: 0.9rem;
+}
+.psec-more:hover {
+  color: var(--link-hover-color);
+}
+.psec-more .icon {
+  font-size: 1em;
+}
+
+/* 卡片网格：每行几个由全局 --portal-cards-per-row 决定（默认 4，固定不滚）。
+   轨道用 minmax(0, 1fr)：子项默认 min-width:auto，长标题会把轨道顶宽；包一层
+   零最小宽才能老实等分。手机降 2 列见文件底部响应式。 */
+.psec-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--portal-cards-per-row, 4), minmax(0, 1fr));
+  gap: 1.1rem;
+}
+
+/* 文字列表：几列由 --list-cols 决定（1 或 2，默认 1） */
+.psec-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  column-count: var(--list-cols, 1);
+  column-gap: 2.5rem;
+}
+.prow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px dashed var(--line-color);
+  break-inside: avoid;
+}
+.prow:last-child {
+  border-bottom: 0;
+}
+.prow-title {
+  color: var(--text-color);
+  font-size: 1rem;
+  line-height: 1.45;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.prow-title:hover {
+  color: var(--link-hover-color);
+}
+.prow-meta {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--sec-text-color);
+  font-size: 0.82rem;
+}
+
+/* ---------- 小卡片（滚动 / 网格通用） ---------- */
+.pcard {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--board-bg-color);
+  border: 1px solid var(--line-color);
+  border-radius: var(--board-radius);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.pcard:hover {
+  box-shadow: var(--board-shadow);
+  transform: translateY(-2px);
+}
+.pcard-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: var(--link-hover-bg-color);
+  background-size: cover;
+  background-position: center;
+}
+.pcard-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pcard-body {
+  padding: 0.65rem 0.7rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.pcard-title {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.pcard-title a {
+  color: inherit;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pcard-title a:hover {
+  color: var(--link-hover-color);
+}
+.pcard-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--sec-text-color);
+  font-size: 0.8rem;
+}
+.pcard-cat .icon {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+.pcard-cat a {
+  color: var(--sec-text-color);
+}
+.pcard-cat a:hover {
+  color: var(--link-hover-color);
+}
+.pcard-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--sec-text-color);
+  font-size: 0.8rem;
+}
+.pcard-meta .icon {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+/* ---------- 响应式 ---------- */
+/* 桌面端卡片每行几个（--portal-cards-per-row）、列表几列（--list-cols）都按配置走；
+   窄屏（≤720px，与置顶区同一断点）做两件事，免得手机上挤成一团：
+     · 卡片强制降为 2 列 —— 4 列在手机上每张只剩几十像素，封面和标题全糊
+     · 两列文字列表收回单列 —— 中文两列每行只放得下三五个字 */
+@media (max-width: 720px) {
+  .pfeature {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .psec-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .psec-list {
+    column-count: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pcard,
+  .phero-slide,
+  .phero-dot {
+    transition: none;
+  }
+}

@@ -1,0 +1,11 @@
+# Cloudflare Pages 的跳转规则（Netlify _redirects 格式）
+# ---------------------------------------------------------------------------
+# 首页旧分页 /page/N/ 已移除：门户首页改成固定区块布局、不再分页，全量浏览
+# 统一走 /archives/（它自己还有 /archives/page/N/）。
+# 这里把历史链接 301 到归档页，旧书签 / 外部引用不会 404。
+#
+# 只匹配 /page/... 这一段，不影响 /archives/page/N/、/categories/.../page/N/、
+# /tags/.../page/N/。别的平台（Vercel / nginx / 本地 dev）会忽略这个文件，
+# 只有 Cloudflare Pages 会在边缘生效。
+
+/page/*  /archives/  301

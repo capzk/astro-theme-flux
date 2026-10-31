@@ -16,6 +16,8 @@ import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
 import Icon from '../components/Icon.astro';
 import '../styles/main.css';
+/* 门户首页（实验）样式：仅首页用到，单独的 css 便于整体回退 */
+import '../styles/portal.css';
 
 /** 文章页专属的分享元信息，对应 og:type=article 那几个字段 */
 interface ArticleMeta {
@@ -102,6 +104,14 @@ const path = Astro.url.pathname;
  * 链接该跟还得跟，权重才能流向文章。
  */
 const isNoindex = noindex ?? isListPage(path);
+
+/**
+ * 顶栏是否透明：只有「首页且 banner 开着」才透明（透明态导航文字直接压在
+ * banner 图上）。banner 关掉时首页没有深色背景可压，透明导航的浅色字在白卡片
+ * 上会糊掉，所以这时让它从一开始就实色 —— 和站内其它页面一致。
+ * 这个值只决定顶栏观感，不影响 banner 的 preload 判定（那块仍用 isHome）。
+ */
+const navbarTransparent = isHome && SITE.banner.enable;
 
 /**
  * 索引策略，两种取值互斥：
@@ -431,10 +441,10 @@ const verifyOther = SITE.verification.other.filter(
     {clarityId && <script is:inline set:html={claritySnippet} />}
   </head>
 
-  <body>
+  <body class:list={[{ 'home-no-banner': isHome && !SITE.banner.enable }]}>
     <a class="skip-link" href="#main">{T.skipToContent}</a>
 
-    <Navbar isHome={isHome} path={path} />
+    <Navbar isHome={navbarTransparent} path={path} />
 
     <main id="main">
       <slot />

@@ -61,6 +61,15 @@ const DEFAULT_CONFIG: SiteConfig = {
     showDate: true,
     showCategory: true,
     showTags: true,
+    /* 门户首页（实验）的显示数量，抽出来方便调密度而不动页面代码 */
+    portal: {
+      featured: 5,
+      heroAutoplay: 5000,
+      cardsPerRow: 4,
+      /* 空数组 = 退回默认：按文章数取前 8 个分类、卡片一行 */
+      categories: [],
+      latest: { count: 10, cols: 2 },
+    },
   },
 
   post: {

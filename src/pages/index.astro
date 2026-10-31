@@ -1,32 +1,93 @@
 ---
 /**
- * 首页 —— banner + 卡片流
+ * 首页 —— 门户 / CMS 风（实验）
  *
- * 原版 index.ejs 就是这个结构：全屏 banner（站名 + 副标题 + 滚动箭头），
- * 下面一张白卡片里排着文章卡片。
+ * 选择性参考 hexo-theme-solitude / 知更鸟 Begin 的「杂志布局」，只改首页，
+ * 其他页面完全不动。整体分三大块（顺序与密度都在 src/config/user/content.ts
+ * 的 SITE.index.portal 里配）：
+ *   ① 顶部置顶：左侧纯图片自动轮播 + 右侧「置顶文章」列表（同一批 featured）
+ *   ② 中间分类列表：显式有序，每分类独立配「卡片」或「列表」
+ *      （卡片每行几个 = cardsPerRow；列表几列 = cols），分类名与顺序自由排
+ *   ③ 底部最新：不分类别，纯文字列表（cols 控制几列）
+ * banner 显不显示看 SITE.banner.enable（关掉时顶栏自动转实色、内容下移留白）。
+ * 样式在 src/styles/portal.css，复用 Flux 设计令牌。
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
-import PostList from '../components/PostList.astro';
+import CategorySection from '../components/portal/CategorySection.astro';
+import { Image } from 'astro:assets';
 import { SITE } from '../config';
-import { getPosts, stickyFirst } from '../utils/posts';
+import {
+  getPosts,
+  stickyFirst,
+  categoryCounts,
+  postsWithTerm,
+  postUrl,
+  termUrl,
+} from '../utils/posts';
+import { isAsset, type ImageSource } from '../utils/image';
+import { lqipStyle } from '../utils/lqip';
 import { siteJsonLd } from '../utils/seo';
 
 const all = await getPosts();
 const ordered = stickyFirst(all);
 
-const pageSize = SITE.pageSize;
-const posts = ordered.slice(0, pageSize);
-const lastPage = Math.max(1, Math.ceil(ordered.length / pageSize));
+/* 门户首页（实验）的显示数量都抽到 SITE.index.portal，调密度改配置即可 */
+const portal = SITE.index.portal;
 
-/* WebSite + Organization + Person 三个实体一次声明，文章页用 @id 指回来 */
+/* 置顶：前 N 篇同时驱动「左侧图片轮播」与「右侧置顶文章列表」 */
+const featured = ordered.slice(0, portal.featured);
+
+/* 中间分类列表：显式有序（portal.categories）；为空则退回按文章数前 8 个、卡片一行 */
+const catNames = new Set(categoryCounts(all).map((c) => c.name));
+
+/* 配置里写了、但文章 front matter 里根本不存在的分类名：会被下面 .filter 静默丢掉，
+   整块凭空消失。这是最隐蔽的一类配置错误（多半是错别字或大小写不一致），
+   构建期说一句，别让人对着「少了块内容」猜半天。 */
+if (portal.categories.length) {
+  const missing = portal.categories.map((s) => s.name).filter((name) => !catNames.has(name));
+  if (missing.length) {
+    console.warn(
+      `[Flux] 首页 portal.categories 里这些分类名在文章里不存在，会被跳过：` +
+        missing.map((n) => `「${n}」`).join(' ') +
+        '。检查拼写与大小写，须与 front matter 的 categories 完全一致。',
+    );
+  }
+}
+const sections = (
+  portal.categories.length
+    ? portal.categories
+    : categoryCounts(all).slice(0, 8).map((c) => ({
+        name: c.name,
+        layout: 'card' as const,
+        rows: 1,
+        cols: undefined,
+        count: undefined,
+      }))
+)
+  .filter((s) => catNames.has(s.name))
+  .map((s) => {
+    const posts = postsWithTerm(all, 'categories', s.name);
+    let count: number;
+    if (typeof s.count === 'number') count = s.count;
+    else if (s.layout === 'card') count = (s.rows ?? 1) * portal.cardsPerRow;
+    else count = (s.cols ?? 1) * 5; // 列表每列 5 篇
+    return {
+      name: s.name,
+      count: posts.length,
+      posts: posts.slice(0, count),
+      layout: s.layout,
+      cols: s.layout === 'list' ? (s.cols ?? 1) : undefined,
+      moreUrl: termUrl('categories', s.name),
+    };
+  });
+
 const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
 ---
 
 <BaseLayout isHome jsonLd={jsonLd}>
   {
-    /* banner 显不显示、长什么样，全看 src/config/user/appearance.ts —— 不用改这里 */
     SITE.banner.enable && (
       <Banner
         title={SITE.banner.title ?? SITE.title}
@@ -40,7 +101,124 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
     )
   }
 
-  <Board>
-    <PostList posts={posts} currentPage={1} lastPage={lastPage} />
+  <Board wide>
+    {
+      all.length === 0 ? (
+        <p class="search-empty">还没有文章。在 src/content/posts/ 里放一篇 Markdown 就会出现。</p>
+      ) : (
+        <div class="portal" style={`--portal-cards-per-row:${portal.cardsPerRow}`}>
+          <div class="portal-main">
+            {/* 置顶：左侧图片轮播 + 右侧置顶文章列表 */}
+            {
+              featured.length > 0 && (
+                <section class="pfeature">
+                  <div class="phero-carousel" data-autoplay={portal.heroAutoplay}>
+                    {featured.map((p, i) => {
+                      const cover: ImageSource = p.data.cover ?? p.data.indexImg ?? SITE.index.defaultImg;
+                      return (
+                        <a
+                          class:list={['phero-slide', { 'is-active': i === 0 }]}
+                          href={postUrl(p)}
+                          style={isAsset(cover) ? lqipStyle(cover) : undefined}
+                          aria-label={p.data.title}
+                        >
+                          {isAsset(cover) ? (
+                            <Image
+                              class="phero-img"
+                              src={cover}
+                              alt={p.data.title}
+                              widths={[320, 480, 720, 960]}
+                              sizes="(max-width: 720px) 100vw, 600px"
+                              loading={i === 0 ? 'eager' : 'lazy'}
+                            />
+                          ) : (
+                            <img class="phero-img" src={cover} alt={p.data.title} loading={i === 0 ? 'eager' : 'lazy'} />
+                          )}
+                        </a>
+                      );
+                    })}
+                    {featured.length > 1 && (
+                      <div class="phero-dots">
+                        {featured.map((_, i) => (
+                          <button
+                            type="button"
+                            class:list={['phero-dot', { 'is-active': i === 0 }]}
+                            data-i={i}
+                            aria-label={`第 ${i + 1} 张`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div class="pfeature-side">
+                    <ul class="pfeature-list">
+                      {featured.map((p) => (
+                        <li>
+                          <a href={postUrl(p)}>{p.data.title}</a>
+                          {SITE.index.showDate && (
+                            <span class="post-meta">
+                              <time datetime={p.data.date.toISOString()}>
+                                {p.data.date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+                              </time>
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              )
+            }
+
+            {/* 各分类分区 */}
+            {sections.map((s) => <CategorySection {...s} />)}
+
+            {/* 最新发布：不分类别，左右两列纯文字列表 */}
+            <CategorySection
+              name="最新"
+              count={all.length}
+              posts={ordered.slice(0, portal.latest.count)}
+              layout="list"
+              cols={portal.latest.cols}
+              moreUrl="/archives/"
+            />
+          </div>
+        </div>
+      )
+    }
   </Board>
+
+  <script>
+    /* 置顶图片轮播：纯图片自动切换 + 圆点切换，鼠标悬停暂停。
+       没有 JS 时只显示第一张（.is-active），页面依旧可读。 */
+    const carousels = document.querySelectorAll<HTMLElement>('.phero-carousel');
+    for (const el of carousels) {
+      const slides = Array.from(el.querySelectorAll<HTMLElement>('.phero-slide'));
+      const dots = Array.from(el.querySelectorAll<HTMLElement>('.phero-dot'));
+      if (slides.length <= 1) continue;
+      let idx = 0;
+      const ms = Number(el.dataset.autoplay) || 0;
+      let timer = 0;
+      const go = (n: number) => {
+        idx = (n + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
+        dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
+      };
+      const start = () => {
+        if (ms > 0) timer = window.setInterval(() => go(idx + 1), ms);
+      };
+      const stop = () => {
+        if (timer) window.clearInterval(timer);
+      };
+      dots.forEach((d, i) => d.addEventListener('click', () => {
+        go(i);
+        stop();
+        start();
+      }));
+      el.addEventListener('mouseenter', stop);
+      el.addEventListener('mouseleave', start);
+      start();
+    }
+  </script>
 </BaseLayout>

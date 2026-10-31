@@ -1,0 +1,70 @@
+---
+/**
+ * CategorySection —— 门户首页的一个「分类分区」
+ *
+ * 标题行：分类名 + 文章数徽标 + 「更多 →」跳到该分类页。
+ * 内容体按 `layout` 切换两种形态（首页三大块的中块用，每个分类独立配置）：
+ *   - card：卡片网格，每行几个由全局 `--portal-cards-per-row` 决定（默认 4），
+ *           section 的 `rows` 控制显示几行（篇数 = rows × 每行个数）
+ *   - list：纯文字列表，`cols` 控制几列（1 或 2，写进 `--list-cols`）；
+ *           不显示分类名（标题行已经是分类了），只出标题 + 日期
+ */
+import PortalCard from './PortalCard.astro';
+import { SITE } from '../../config';
+import type { Post } from '../../utils/posts';
+import { postUrl } from '../../utils/posts';
+import Icon from '../Icon.astro';
+
+interface Props {
+  name: string;
+  count: number;
+  posts: Post[];
+  layout: 'card' | 'list';
+  /** 列表式时的列数（1 或 2），仅 layout='list' 生效 */
+  cols?: number;
+  moreUrl: string;
+}
+const { name, count, posts, layout, cols = 1, moreUrl } = Astro.props;
+---
+
+<section class="psec" data-layout={layout}>
+  <header class="psec-head">
+    <h2 class="psec-title">
+      <span class="psec-name">{name}</span>
+      <span class="psec-count">{count}</span>
+    </h2>
+    <a class="psec-more" href={moreUrl}>
+      更多 <Icon name="arrow-right" />
+    </a>
+  </header>
+
+  {
+    layout === 'card' ? (
+      <div class="psec-grid">
+        {posts.map((p) => (
+          <PortalCard post={p} />
+        ))}
+      </div>
+    ) : (
+      <ul class="psec-list" style={cols > 1 ? `--list-cols:${cols}` : undefined}>
+        {posts.map((p) => (
+          <li class="prow">
+            <a class="prow-title" href={postUrl(p)}>
+              {p.data.title}
+            </a>
+            <span class="prow-meta">
+              {SITE.index.showDate && (
+                <time datetime={p.data.date.toISOString()}>
+                  {p.data.date.toLocaleDateString('zh-CN', {
+                    month: '2-digit',
+                    day: '2-digit',
+                  })}
+                </time>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</section>

@@ -16,6 +16,31 @@ export default defineConfig({
     showDate: true,
     showCategory: true,
     showTags: true,
+
+    /* 门户首页的显示数量与版式 —— 只作用于 src/pages/index.astro 的门户首页。
+       首页分三大块：①顶部置顶（左图轮播 + 右置顶列表）②中间分类列表
+       ③底部最新。想调首页长什么样，主要改这里的 portal。
+
+         featured      置顶区块取前几篇（同时驱动左图轮播 + 右置顶列表）
+         heroAutoplay  置顶图片轮播自动切换间隔(ms)，0 关闭
+         cardsPerRow   卡片式每行固定几个（全局统一，默认 4；列表式不读这个）
+         categories    中间分类列表（显式、有序；每个分类可独立配卡片/列表、
+                       几行/几列）。分类名要与文章 front matter 的 categories 一致；
+                       数组为空则退回「按文章数前 8 个、卡片一行」
+         latest        底部「最新」：count 总篇数、cols 几列（不分类别） */
+    portal: {
+      featured: 5,
+      heroAutoplay: 5000,
+      cardsPerRow: 4,
+      categories: [
+        { name: '指南', layout: 'card', rows: 2 },
+        { name: '实现', layout: 'card', rows: 1 },
+        { name: '随笔', layout: 'list', cols: 2 },
+        { name: '使用', layout: 'list', cols: 1 },
+        { name: '公告', layout: 'list', cols: 1 },
+      ],
+      latest: { count: 10, cols: 2 },
+    },
   },
 
   post: {

@@ -126,6 +126,56 @@ function inspect(config: SiteConfig): string[] {
     issues.push('nav 是空数组 —— 顶栏会一个链接都没有。');
   }
 
+  /* ---- 门户首页（实验） -----------------------------------------------------
+     首页 portal 的数值都有合法区间，越界不会报错，只会让版式静默塌掉：
+     `cardsPerRow` 写成 0 → `grid-template-columns: repeat(0, 1fr)` 是非法值，
+     整条声明被丢弃、卡片掉成单列；`latest.cols` 同理。这些在页面上不会崩，
+     只是「看着不对」，所以提到构建期来说。
+     分类名是否真的存在，要拿内容集合去核，这里拿不到 —— 放到 index.astro 里提示。 */
+  const { portal } = config.index;
+  if (portal.cardsPerRow < 1) {
+    issues.push(
+      `index.portal.cardsPerRow 是 ${portal.cardsPerRow} —— 每行卡片数至少为 1。` +
+        '设成 0 会让卡片网格失效（整行掉成单列）。',
+    );
+  }
+  if (portal.featured < 0) {
+    issues.push(`index.portal.featured 是 ${portal.featured} —— 置顶篇数不能为负。`);
+  }
+  if (portal.heroAutoplay < 0) {
+    issues.push(
+      `index.portal.heroAutoplay 是 ${portal.heroAutoplay} —— 轮播间隔不能为负（0 表示不自动播放）。`,
+    );
+  }
+  if (portal.latest.count < 0) {
+    issues.push(`index.portal.latest.count 是 ${portal.latest.count} —— 最新文章篇数不能为负。`);
+  }
+  if (portal.latest.cols < 1) {
+    issues.push(
+      `index.portal.latest.cols 是 ${portal.latest.cols} —— 列数至少为 1（0 会让列表格式失效）。`,
+    );
+  }
+  portal.categories.forEach((cat, i) => {
+    if (!cat.name.trim()) {
+      issues.push(`index.portal.categories[${i}].name 是空的 —— 这一项会被跳过，写个分类名。`);
+    }
+    if (cat.layout === 'card' && cat.rows !== undefined && cat.rows < 1) {
+      issues.push(
+        `index.portal.categories「${cat.name}」的 rows 是 ${cat.rows} —— 卡片行数至少为 1。`,
+      );
+    }
+    if (cat.layout === 'list' && cat.cols !== undefined && cat.cols < 1) {
+      issues.push(
+        `index.portal.categories「${cat.name}」的 cols 是 ${cat.cols} —— 列表列数至少为 1。`,
+      );
+    }
+    if (cat.count !== undefined && cat.count < 1) {
+      issues.push(
+        `index.portal.categories「${cat.name}」的 count 是 ${cat.count} —— 展示篇数至少为 1。`,
+      );
+    }
+  });
+
   /* ---- 页脚 ---------------------------------------------------------------
      这两项错了都不会报错，只是页脚少一行 / 少一处内容，而页脚恰恰是最没人
      盯着看的地方，所以更值得在构建时说一句。 */

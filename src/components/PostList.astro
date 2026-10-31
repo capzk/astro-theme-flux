@@ -2,7 +2,9 @@
 /**
  * PostList —— 卡片流 + 分页
  *
- * 首页与 `/page/N/` 共用这一份（差异只在页码）。
+ * 分类页 / 标签页共用这一份（差异只在页码与 `base`）。
+ * 首页已改成门户版式（src/pages/index.astro + styles/portal.css），不再走这里，
+ * 因此也不再生成 `/page/N/`（首页分页已移除，全量浏览走 `/archives/`）。
  */
 import Pagination from './Pagination.astro';
 import PostCard from './PostCard.astro';
