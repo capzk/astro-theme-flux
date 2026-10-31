@@ -11,7 +11,8 @@ import { SITE } from '../config';
 import { LINKS } from '../config';
 import { isPageEnabled } from '../utils/pages';
 
-/* 同 about.astro：关掉就跳回首页，导航与 sitemap 会一起消失 */
+/* 同 about.astro：关掉就生成一个 meta refresh 页跳回首页（静态输出没有真 301），
+   导航与 sitemap 会一起消失 */
 if (!isPageEnabled('links')) {
   return Astro.redirect('/', 301);
 }

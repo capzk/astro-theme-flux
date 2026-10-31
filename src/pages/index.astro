@@ -29,6 +29,8 @@ import {
 import { isAsset, type ImageSource } from '../utils/image';
 import { lqipStyle } from '../utils/lqip';
 import { siteJsonLd } from '../utils/seo';
+/* 门户首页（实验）样式：只在首页引入，避免内联进全站每一页 */
+import '../styles/portal.css';
 
 const all = await getPosts();
 const ordered = stickyFirst(all);
@@ -87,6 +89,9 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
 ---
 
 <BaseLayout isHome jsonLd={jsonLd}>
+  {/* banner 关掉、或标题留空时，页面会失去唯一的 h1。补一个只给读屏和搜索引擎看的标题 */}
+  {(!SITE.banner.enable || !(SITE.banner.title ?? SITE.title)) && <h1 class="sr-only">{SITE.title}</h1>}
+
   {
     SITE.banner.enable && (
       <Banner
@@ -121,6 +126,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                           href={postUrl(p)}
                           style={isAsset(cover) ? lqipStyle(cover) : undefined}
                           aria-label={p.data.title}
+                          inert={i !== 0}
                         >
                           {isAsset(cover) ? (
                             <Image
@@ -145,6 +151,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                             class:list={['phero-dot', { 'is-active': i === 0 }]}
                             data-i={i}
                             aria-label={`第 ${i + 1} 张`}
+                            aria-current={i === 0 ? 'true' : undefined}
                           />
                         ))}
                       </div>
@@ -190,34 +197,108 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
   </Board>
 
   <script>
-    /* 置顶图片轮播：纯图片自动切换 + 圆点切换，鼠标悬停暂停。
-       没有 JS 时只显示第一张（.is-active），页面依旧可读。 */
+    /* 置顶图片轮播：纯图片自动切换 + 圆点切换 + 手机上左右滑动切换；
+       鼠标悬停或键盘聚焦时暂停。没有 JS 时只显示第一张（.is-active），页面依旧可读。
+       开了系统「减少动态效果」就不自动播放，读者仍可手动点圆点 / 滑动切换。 */
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const carousels = document.querySelectorAll<HTMLElement>('.phero-carousel');
     for (const el of carousels) {
       const slides = Array.from(el.querySelectorAll<HTMLElement>('.phero-slide'));
       const dots = Array.from(el.querySelectorAll<HTMLElement>('.phero-dot'));
       if (slides.length <= 1) continue;
       let idx = 0;
-      const ms = Number(el.dataset.autoplay) || 0;
+      const ms = reducedMotion ? 0 : Number(el.dataset.autoplay) || 0;
       let timer = 0;
+      let hovering = false;
+      let focused = false;
       const go = (n: number) => {
         idx = (n + slides.length) % slides.length;
-        slides.forEach((s, i) => s.classList.toggle('is-active', i === idx));
-        dots.forEach((d, i) => d.classList.toggle('is-active', i === idx));
-      };
-      const start = () => {
-        if (ms > 0) timer = window.setInterval(() => go(idx + 1), ms);
+        slides.forEach((s, i) => {
+          const active = i === idx;
+          s.classList.toggle('is-active', active);
+          /* 非当前张设 inert：不可 Tab、不可点，读屏也不会念到被 opacity:0 藏起来的链接 */
+          s.inert = !active;
+        });
+        dots.forEach((d, i) => {
+          const active = i === idx;
+          d.classList.toggle('is-active', active);
+          if (active) d.setAttribute('aria-current', 'true');
+          else d.removeAttribute('aria-current');
+        });
       };
       const stop = () => {
         if (timer) window.clearInterval(timer);
+        timer = 0;
+      };
+      const start = () => {
+        stop();
+        if (ms > 0) timer = window.setInterval(() => go(idx + 1), ms);
+      };
+      /* 悬停或键盘焦点任一还在轮播里，就不恢复自动播放 */
+      const resume = () => {
+        if (!hovering && !focused) start();
       };
       dots.forEach((d, i) => d.addEventListener('click', () => {
         go(i);
         stop();
-        start();
       }));
-      el.addEventListener('mouseenter', stop);
-      el.addEventListener('mouseleave', start);
+      el.addEventListener('mouseenter', () => {
+        hovering = true;
+        stop();
+      });
+      el.addEventListener('mouseleave', () => {
+        hovering = false;
+        resume();
+      });
+      /* 键盘进入轮播时也暂停；焦点在圆点之间移动不算离开 */
+      el.addEventListener('focusin', () => {
+        focused = true;
+        stop();
+      });
+      el.addEventListener('focusout', (event) => {
+        const next = event.relatedTarget;
+        if (!(next instanceof Node) || !el.contains(next)) {
+          focused = false;
+          resume();
+        }
+      });
+      /* ---- 触屏：手指左右滑也能切 ----
+         手机上既没有 hover 也没有 mouseleave，「悬停暂停 + 圆点」那一套基本失效，
+         而且 9px 的圆点在触屏上很难点中。所以补两条：
+           1. 横滑超过 40px 且明显大于纵向位移 → 切上一张 / 下一张；
+           2. 滑完之后浏览器补的那次 click 必须拦掉，否则顺手就把当前这张的链接打开了。
+         手指一碰就先停掉自动播放，免得滑动途中自己翻页；只是点了一下没滑的话再恢复。 */
+      let downX = 0;
+      let downY = 0;
+      let swiped = false;
+      el.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse') return;
+        swiped = false;
+        downX = event.clientX;
+        downY = event.clientY;
+        stop();
+      });
+      el.addEventListener('pointerup', (event) => {
+        if (event.pointerType === 'mouse') return;
+        const dx = event.clientX - downX;
+        const dy = event.clientY - downY;
+        if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
+          swiped = true;
+          go(dx < 0 ? idx + 1 : idx - 1);
+          return;
+        }
+        start();
+      });
+      /* 手指一滑就变成页面滚动，pointerup 不会来，别把自动播放停死在这儿 */
+      el.addEventListener('pointercancel', () => start());
+      /* 捕获阶段先拦一次：滑动之后的那次 click 不该变成跳转 */
+      el.addEventListener('click', (event) => {
+        if (!swiped) return;
+        swiped = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+      go(0);
       start();
     }
   </script>

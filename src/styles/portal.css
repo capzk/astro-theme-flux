@@ -86,6 +86,8 @@ body.home-no-banner .board-wrap {
   overflow: hidden;
   background-color: var(--link-hover-bg-color);
   border: 1px solid var(--line-color);
+  /* 横向滑动留给轮播自己（触屏切图），纵向仍然交给页面滚动 */
+  touch-action: pan-y;
 }
 .phero-slide {
   position: absolute;
@@ -94,10 +96,13 @@ body.home-no-banner .board-wrap {
   opacity: 0;
   transition: opacity 0.6s ease;
   z-index: 1;
+  /* 藏起来的张不该接住点击；inert 之外再兜一层，老浏览器也安全 */
+  pointer-events: none;
 }
 .phero-slide.is-active {
   opacity: 1;
   z-index: 2;
+  pointer-events: auto;
 }
 .phero-img {
   width: 100%;
@@ -111,10 +116,16 @@ body.home-no-banner .board-wrap {
   bottom: 0.7rem;
   transform: translateX(-50%);
   display: flex;
-  gap: 0.45rem;
+  gap: 1rem;
+  /* 圆点是白的，压在亮图上会整个消失；垫一层很淡的黑，顺带让这块看起来像控件
+     （手机上「能点」这件事得看得出来）。不用 blur：小元素也吃合成开销。 */
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.28);
   z-index: 3;
 }
 .phero-dot {
+  position: relative;
   width: 9px;
   height: 9px;
   padding: 0;
@@ -124,6 +135,21 @@ body.home-no-banner .board-wrap {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: background-color 0.2s ease, transform 0.2s ease;
+}
+/* 视觉上仍是 9px 的小圆点，命中区靠伪元素撑到 25px —— WCAG 2.2 的 2.5.8 要求
+   可点区域不小于 24px，9px 在触屏上几乎点不中。间距同步放大到 1rem，
+   免得相邻热区互相重叠、点到旁边那颗。 */
+.phero-dot::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+}
+/* 圆点压在图片上，单色描边在亮图上会消失，所以白描边 + 外圈暗影一起给 */
+.phero-dot:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
 }
 .phero-dot.is-active {
   background-color: #fff;
@@ -320,6 +346,15 @@ body.home-no-banner .board-wrap {
 @media (max-width: 720px) {
   .pfeature {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* 触屏上 9px 的圆点几乎点不中，放大到 12px；间距仍 1rem → 中心距 28px、
+     命中区 24px，两两不重叠（WCAG 2.2 目标尺寸 2.5.8 的间距豁免）。 */
+  .phero-dot {
+    width: 12px;
+    height: 12px;
+  }
+  .phero-dot::before {
+    inset: -6px;
   }
   .psec-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -11,7 +11,10 @@ import { SITE } from '../config';
 import { isPageEnabled } from '../utils/pages';
 
 /* 关掉时整页不输出，直接跳回首页。放在最前面 —— 后面那些查询和渲染
-   没有理由为一个不存在的页面发生。导航与 sitemap 的联动见 utils/pages。 */
+   没有理由为一个不存在的页面发生。导航与 sitemap 的联动见 utils/pages。
+
+   注意：纯静态输出里 `Astro.redirect` 只会生成一个带 noindex 的 meta refresh
+   页，不是真正的 301。真要 301 得在托管平台的 `_redirects` 里配。 */
 if (!isPageEnabled('about')) {
   return Astro.redirect('/', 301);
 }
@@ -64,7 +67,7 @@ const title = '关于';
         <h2>去掉了哪些</h2>
         <p>
           评论系统（十几种第三方服务）、浏览量统计、文章加密、数学公式与流程图、
-          打字机副标题、多语言包（先内置中文）。
+          多语言包（先内置中文）。
           它们要么是外部服务依赖，要么需要额外的运行时库，与「静态、零依赖」的目标冲突。
           图片缩放没有砍掉，但换掉了 fancybox —— 自己写了一个几十行的灯箱。
         </p>

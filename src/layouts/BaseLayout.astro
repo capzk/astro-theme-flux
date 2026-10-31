@@ -16,8 +16,6 @@ import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
 import Icon from '../components/Icon.astro';
 import '../styles/main.css';
-/* 门户首页（实验）样式：仅首页用到，单独的 css 便于整体回退 */
-import '../styles/portal.css';
 
 /** 文章页专属的分享元信息，对应 og:type=article 那几个字段 */
 interface ArticleMeta {
@@ -461,8 +459,11 @@ const verifyOther = SITE.verification.other.filter(
     <script>
       import '../scripts/theme.js';
       import '../scripts/banner.js';
-      /* 搜索只在站点开启时打包进页面（未开启时这段引用会被摇掉） */
-      import '../scripts/search.js';
+      /* 搜索只在页面里真有弹层时才加载：SITE.search 关闭时 <SearchModal> 不渲染，
+         这里整段跳过。用动态 import 让它单独成 chunk，不挤进首屏那一个。 */
+      if (document.getElementById('search-modal')) {
+        void import('../scripts/search.js');
+      }
     </script>
   </body>
 </html>
