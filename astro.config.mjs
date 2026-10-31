@@ -16,6 +16,7 @@ import { codeMeta } from './src/plugins/shiki.js';
 import lqip from './src/integrations/lqip.mjs';
 import { createLastmodResolver } from './scripts/sitemap-lastmod.mjs';
 import PAGES from './src/config/user/pages.ts';
+import { PAGE_PATH } from './src/config/shared/page-paths.ts';
 import { isListPage } from './src/utils/list-pages.ts';
 
 /** 文章路径 → 最后修改日期。匹配不上返回 undefined，sitemap 就退回原样 */
@@ -32,8 +33,6 @@ const lastmodOf = createLastmodResolver();
  * 路径表与 `src/utils/pages.ts` 的 `PAGE_PATH` 是同一份 —— 那边是运行时判定，
  * 这边是构建期过滤，两边都不该出现「多一个页面就漏掉」的映射。
  */
-const PAGE_PATH = { about: '/about/', links: '/links/' };
-
 const DISABLED_PAGES = new Set(
   Object.entries(PAGES)
     .filter(([, enabled]) => enabled === false)
@@ -76,6 +75,25 @@ export default defineConfig({
      * @see https://docs.astro.build/zh-cn/reference/configuration-reference/#buildinlinestylesheets
      */
     inlineStylesheets: 'always',
+  },
+
+  /**
+   * CSS 的浏览器下限。
+   *
+   * Vite 7 默认目标 `baseline-widely-available` 是 **iOS 16.4**，压缩器会把
+   * `@media (max-width: 720px)` 改写成区间语法 `@media (width <= 720px)` ——
+   * 而区间语法正是 16.4 才有的。iOS 16.3 及以下（iPhone 8 / X 停在 16.7 之前的
+   * 机型、没升级的旧机）拿到的是一份**媒体查询整段失效**的样式表：手机上直接
+   * 看到桌面布局，侧栏不折叠、圆点挤成一团。
+   *
+   * 样式里没有一处真正需要 16.4 的东西（`aspect-ratio` / `:focus-visible` / `oklch`
+   * 都是 15.4 就有的），把 CSS 目标单独降到 15.5 换回传统媒体查询写法，代价是
+   * 少量前缀与体积（几十字节级）。脚本的 `build.target` 不动。
+   */
+  vite: {
+    build: {
+      cssTarget: ['chrome100', 'edge100', 'firefox100', 'safari15.5', 'ios15.5'],
+    },
   },
 
   /**

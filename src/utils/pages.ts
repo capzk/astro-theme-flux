@@ -7,14 +7,25 @@
  * 三处消费方：Navbar（藏菜单）、页面本身（跳回首页）、sitemap（由 astro.config 过滤）。
  */
 import { SITE, type SiteConfig } from '../config';
+import { PAGE_PATH } from '../config/shared/page-paths';
 
 export type PageKey = keyof SiteConfig['pages'];
 
-/** 开关对应的路径。带尾斜杠，与 nav 里写的形态一致 */
-export const PAGE_PATH: Record<PageKey, string> = {
-  about: '/about/',
-  links: '/links/',
-};
+/* 路径表放在零依赖的共享文件里 —— astro.config.mjs 过滤 sitemap 时读的是同一份 */
+export { PAGE_PATH };
+
+/**
+ * 编译期兜底：路径表必须覆盖 `SiteConfig['pages']` 的每一个开关。
+ * ---------------------------------------------------------------------------
+ * 零依赖的 `page-paths.ts` 是 `as const` 而不是 `Record<PageKey, string>`（那边不能
+ * import 类型，否则 astro.config 加载配置时就得跟着解析整棵配置）。代价是「新加一个
+ * 页面开关、忘了补路径」不会报错 —— 而漏一条的后果很隐蔽：sitemap 不剔除（
+ * `astro.config.mjs` 那边被 `.filter(Boolean)` 吃掉）、导航项不隐藏。
+ *
+ * 这一行把校验捞回来：对不上就 `astro check` 报错。导出只为不被当成未使用，
+ * 运行时就是同一个对象引用，不产生任何额外代码。
+ */
+export const PAGE_PATH_CHECK: Record<PageKey, string> = PAGE_PATH;
 
 /** 归一成「带尾斜杠的站内路径」，好让 `/about`、`/about/?a=1`、`/about/` 都认 */
 function normalize(href: string): string {
