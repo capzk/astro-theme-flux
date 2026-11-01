@@ -41,6 +41,17 @@ export default defineConfig({
       ],
       latest: { count: 10, cols: 2 },
     },
+
+    /* 手机端首页（≤767px）。门户版式在大屏好看，手机上却只能靠缩 ——
+       与其把 4 列卡片硬压成 2 列，不如换回原版 fluid 的单列卡片流
+       （封面在上，标题 + 三行摘要 + meta 在下），桌面端不受影响。
+
+         enable   设 false 则手机也显示门户版式
+         count    卡片流展示几篇（默认 10）；其余走「全部文章 → /archives/」 */
+    mobileFeed: {
+      enable: true,
+      count: 10,
+    },
   },
 
   post: {

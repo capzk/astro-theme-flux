@@ -1,0 +1,38 @@
+---
+/**
+ * MobileFeed —— 手机端首页的经典卡片流
+ *
+ * 门户版式（置顶轮播 + 分类网格）是给大屏的。手机上它只能靠缩：每行 4 张
+ * 卡片被迫降成 2 张、摘要只露得出几个字、置顶列表挤在图片下面。这一块换回
+ * 原版 fluid 的首页样子 —— 单列卡片，封面在上，标题 + 三行摘要 + meta 在下。
+ *
+ * PostCard 在 ≤767px 本来就是上下结构（见 main.css 的响应式节），所以这里
+ * 直接复用它，不再造一套卡片。显示切换在 styles/portal.css：桌面端这块
+ * `display: none`，手机端反过来把门户整块藏掉。
+ *
+ * 篇数由 `index.mobileFeed.count` 决定，剩下的走「全部文章」进 /archives/
+ * —— 首页没有分页（见 CHANGELOG 的破坏性变更）。
+ */
+import PostCard from '../PostCard.astro';
+import Icon from '../Icon.astro';
+import type { Post } from '../../utils/posts';
+
+interface Props {
+  posts: Post[];
+}
+const { posts } = Astro.props;
+---
+
+<div class="home-feed">
+  <div class="index-list">
+    {posts.map((post) => <PostCard post={post} />)}
+  </div>
+
+  {/* 手机端的「翻页」入口：卡片流只给前 N 篇，剩下的都在归档页 */}
+  <p class="home-feed-more">
+    <a href="/archives/">
+      全部文章
+      <Icon name="arrow-right" />
+    </a>
+  </p>
+</div>

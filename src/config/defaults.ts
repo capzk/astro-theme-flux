@@ -70,6 +70,8 @@ const DEFAULT_CONFIG: SiteConfig = {
       categories: [],
       latest: { count: 10, cols: 2 },
     },
+    /* 手机（≤767px）首页换成经典卡片流：默认 10 篇，其余走 /archives/ */
+    mobileFeed: { enable: true, count: 10 },
   },
 
   post: {

@@ -28,6 +28,7 @@ cover: ../../assets/covers/cover-2.webp
 | `PostList.astro` | 卡片列表 + 空状态 | 分类、标签 |
 | `Pagination.astro` | 上一页 / 下一页 | 归档、分类、标签 |
 | `portal/CategorySection.astro` | 门户首页的分类分区（卡片或列表） | 首页 |
+| `portal/MobileFeed.astro` | 手机端首页的单列卡片流（≤767px 顶替门户版式） | 首页 |
 | `portal/PortalCard.astro` | 门户首页的卡片 | `CategorySection` |
 | `SearchModal.astro` | 搜索弹窗的 DOM | `BaseLayout` |
 | `Comments.astro` | 评论区外壳：标题、计数、骨架屏、失败重试；加载逻辑在 `scripts/comments.js` | 文章页（可复用到任何页面） |

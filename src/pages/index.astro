@@ -11,11 +11,17 @@
  *   ③ 底部最新：不分类别，纯文字列表（cols 控制几列）
  * banner 显不显示看 SITE.banner.enable（关掉时顶栏自动转实色、内容下移留白）。
  * 样式在 src/styles/portal.css，复用 Flux 设计令牌。
+ *
+ * 手机端（≤767px）不显示上面这套门户版式，而是换成原版 fluid 的单列卡片流
+ * （components/portal/MobileFeed.astro）。门户那三块在窄屏上只能靠缩 ——
+ * 4 列卡片降成 2 列、摘要只露几字。两套版式同时在 DOM 里、由 CSS 切换，
+ * 见 portal.css 的「手机端」一节；开关与篇数是 index.mobileFeed。
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import CategorySection from '../components/portal/CategorySection.astro';
+import MobileFeed from '../components/portal/MobileFeed.astro';
 import { Image } from 'astro:assets';
 import { SITE } from '../config';
 import {
@@ -37,6 +43,11 @@ const ordered = stickyFirst(all);
 
 /* 门户首页（实验）的显示数量都抽到 SITE.index.portal，调密度改配置即可 */
 const portal = SITE.index.portal;
+
+/* 手机端卡片流：篇数与开关在 index.mobileFeed。桌面端这块是 display:none，
+   只有 ≤767px 才由 CSS 换成它、并把门户整块藏掉 */
+const mobileFeed = SITE.index.mobileFeed;
+const feedPosts = mobileFeed.enable ? ordered.slice(0, mobileFeed.count) : [];
 
 /* 置顶：前 N 篇同时驱动「左侧图片轮播」与「右侧置顶文章列表」 */
 const featured = ordered.slice(0, portal.featured);
@@ -107,11 +118,18 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
   }
 
   <Board wide>
+    {/* 手机端卡片流：桌面端 display:none，不占布局、也不参与键盘 Tab */}
+    {feedPosts.length > 0 && <MobileFeed posts={feedPosts} />}
+
     {
       all.length === 0 ? (
         <p class="search-empty">还没有文章。在 src/content/posts/ 里放一篇 Markdown 就会出现。</p>
       ) : (
-        <div class="portal" style={`--portal-cards-per-row:${portal.cardsPerRow}`}>
+        <div
+          class="portal"
+          data-mobile-feed={feedPosts.length > 0 ? '' : undefined}
+          style={`--portal-cards-per-row:${portal.cardsPerRow}`}
+        >
           <div class="portal-main">
             {/* 置顶：左侧图片轮播 + 右侧置顶文章列表 */}
             {
@@ -207,7 +225,10 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
       const dots = Array.from(el.querySelectorAll<HTMLElement>('.phero-dot'));
       if (slides.length <= 1) continue;
       let idx = 0;
-      const ms = reducedMotion ? 0 : Number(el.dataset.autoplay) || 0;
+      /* 手机端整块门户是 display:none（首页显示的是卡片流），看不见的轮播
+         没必要跑定时器；offsetParent 为 null 就是「当前不可见」。
+         圆点和滑动仍照常绑定 —— 断点只由宽度决定，把窗口拉宽后这些还能用。 */
+      const ms = reducedMotion || !el.offsetParent ? 0 : Number(el.dataset.autoplay) || 0;
       let timer = 0;
       let hovering = false;
       let focused = false;

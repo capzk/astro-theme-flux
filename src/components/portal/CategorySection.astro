@@ -25,6 +25,19 @@ interface Props {
   moreUrl: string;
 }
 const { name, count, posts, layout, cols = 1, moreUrl } = Astro.props;
+
+/* 列表式先按列切片，每列渲染成独立的 <ul>。
+   不这么做的后果是：交给 CSS 的 column-count 分栏，列是「按高度自动均衡」切的，
+   而分隔虚线是 `.prow:last-child { border-bottom: 0 }` 去掉的 —— :last-child 只
+   认整个列表的最后一项，于是左列每一行都留着虚线、右列末尾那行却没有，
+   两列底部看起来像漏画了一条。切片后每列都是独立列表，各自末项都不画线。 */
+const perColumn = cols > 1 ? Math.ceil(posts.length / cols) : posts.length;
+const columns =
+  cols > 1
+    ? Array.from({ length: cols }, (_, i) => posts.slice(i * perColumn, (i + 1) * perColumn)).filter(
+        (column) => column.length > 0,
+      )
+    : [posts];
 ---
 
 <section class="psec" data-layout={layout}>
@@ -46,25 +59,29 @@ const { name, count, posts, layout, cols = 1, moreUrl } = Astro.props;
         ))}
       </div>
     ) : (
-      <ul class="psec-list" style={cols > 1 ? `--list-cols:${cols}` : undefined}>
-        {posts.map((p) => (
-          <li class="prow">
-            <a class="prow-title" href={postUrl(p)}>
-              {p.data.title}
-            </a>
-            <span class="prow-meta">
-              {SITE.index.showDate && (
-                <time datetime={p.data.date.toISOString()}>
-                  {p.data.date.toLocaleDateString('zh-CN', {
-                    month: '2-digit',
-                    day: '2-digit',
-                  })}
-                </time>
-              )}
-            </span>
-          </li>
+      <div class="psec-cols" style={cols > 1 ? `--list-cols:${cols}` : undefined}>
+        {columns.map((column) => (
+          <ul class="psec-list">
+            {column.map((p) => (
+              <li class="prow">
+                <a class="prow-title" href={postUrl(p)}>
+                  {p.data.title}
+                </a>
+                <span class="prow-meta">
+                  {SITE.index.showDate && (
+                    <time datetime={p.data.date.toISOString()}>
+                      {p.data.date.toLocaleDateString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                      })}
+                    </time>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
         ))}
-      </ul>
+      </div>
     )
   }
 </section>

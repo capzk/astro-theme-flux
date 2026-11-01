@@ -77,7 +77,7 @@ body.home-no-banner .board-wrap {
   min-width: 0;
 }
 
-/* 置顶：左侧图片轮播（纯图片自动切换，圆点导航） */
+/* 置顶：左侧图片轮播（纯图片自动切换，底部分段指示条） */
 .phero-carousel {
   position: relative;
   height: 100%;
@@ -110,50 +110,54 @@ body.home-no-banner .board-wrap {
   object-fit: cover;
   display: block;
 }
+/* 底部指示条：几根很短的白色小棒，当前那根变长、变实。
+   以前是「9px 圆点 + 一块半透明黑底胶囊」—— 那个胶囊横着压掉一条图，
+   在亮图上尤其像一块贴上去的控件。现在背景框整个去掉，只让白棒自己带一点
+   极淡的投影：亮图暗图上都看得见，又不会在照片上形成一个「框」。 */
 .phero-dots {
   position: absolute;
   left: 50%;
-  bottom: 0.7rem;
+  bottom: 0.9rem;
   transform: translateX(-50%);
   display: flex;
-  gap: 1rem;
-  /* 圆点是白的，压在亮图上会整个消失；垫一层很淡的黑，顺带让这块看起来像控件
-     （手机上「能点」这件事得看得出来）。不用 blur：小元素也吃合成开销。 */
-  padding: 0.3rem 0.7rem;
-  border-radius: 999px;
-  background-color: rgba(0, 0, 0, 0.28);
+  align-items: center;
+  gap: 0.5rem;
   z-index: 3;
 }
 .phero-dot {
   position: relative;
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 3px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.5);
+  /* 阴影跟着棒子走，而不是铺一块底 —— 白色压在亮图上仍分得清 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: width 0.35s ease, background-color 0.25s ease;
 }
-/* 视觉上仍是 9px 的小圆点，命中区靠伪元素撑到 25px —— WCAG 2.2 的 2.5.8 要求
-   可点区域不小于 24px，9px 在触屏上几乎点不中。间距同步放大到 1rem，
-   免得相邻热区互相重叠、点到旁边那颗。 */
+/* 视觉上只有 3px 高，命中区靠伪元素撑到 24×25 —— WCAG 2.2 的 2.5.8 要求
+   可点区域不小于 24px。相邻中心距 22px、热区宽 20px，两两不重叠。 */
 .phero-dot::before {
   content: '';
   position: absolute;
-  inset: -8px;
-  border-radius: 50%;
+  inset: -11px -3px;
+  border-radius: 999px;
 }
-/* 圆点压在图片上，单色描边在亮图上会消失，所以白描边 + 外圈暗影一起给 */
+.phero-dot:hover {
+  background-color: rgba(255, 255, 255, 0.82);
+}
+/* 压在图片上，白描边在亮图上会消失，所以白描边 + 外圈暗影一起给 */
 .phero-dot:focus-visible {
   outline: 2px solid #fff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.35);
 }
+/* 当前项：拉长 + 实白。只改这一根的宽度，其余靠 flex 自然让位 */
 .phero-dot.is-active {
+  width: 26px;
   background-color: #fff;
-  transform: scale(1.2);
 }
 
 /* ---------- 分类分区 ---------- */
@@ -212,13 +216,20 @@ body.home-no-banner .board-wrap {
   gap: 1.1rem;
 }
 
-/* 文字列表：几列由 --list-cols 决定（1 或 2，默认 1） */
+/* 文字列表：几列由 --list-cols 决定（1 或 2，默认 1）。
+   用 grid 摆列、不用 column-count —— 列已经在 CategorySection 里按篇数切好，
+   每列一个独立 <ul>。column-count 的「按高度自动均衡」分栏里，列尾是靠内容
+   高度撞出来的，`.prow:last-child` 只能命中整体最后一项，于是左列每行都留着
+   分隔虚线、右列末尾那行没有，两列底部看着像漏画了一条。 */
+.psec-cols {
+  display: grid;
+  grid-template-columns: repeat(var(--list-cols, 1), minmax(0, 1fr));
+  gap: 0 2.5rem;
+}
 .psec-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  column-count: var(--list-cols, 1);
-  column-gap: 2.5rem;
 }
 .prow {
   display: flex;
@@ -226,8 +237,8 @@ body.home-no-banner .board-wrap {
   gap: 0.6rem;
   padding: 0.6rem 0;
   border-bottom: 1px dashed var(--line-color);
-  break-inside: avoid;
 }
+/* 每列的最后一项都不画线：列尾干净，两列底部就不会一有一无 */
 .prow:last-child {
   border-bottom: 0;
 }
@@ -338,7 +349,55 @@ body.home-no-banner .board-wrap {
   opacity: 0.85;
 }
 
+/* ---------- 手机端：经典卡片流 ---------- */
+/* 门户版式（轮播 + 分类网格）是给大屏的：窄到手机宽度时 4 列卡片只能降成 2 列、
+   摘要露不出几个字、置顶列表挤在图片下面。所以 ≤767px 换成原版 fluid 的首页
+   样子 —— 单列卡片流（PostCard 在手机上本来就是「图在上、信息在下」）。
+   两套版式都在 DOM 里，靠这里互斥显示；被藏起来那份里的懒加载图片浏览器
+   不会下载（display:none 的元素不在视口内）。断点与 main.css 的卡片断点一致。 */
+.home-feed {
+  display: none;
+}
+.home-feed-more {
+  margin: 2rem 0 0;
+  text-align: center;
+}
+.home-feed-more a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1.35rem;
+  border: 1px solid var(--line-color);
+  border-radius: 999px;
+  color: var(--sec-text-color);
+  font-size: 0.92rem;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.home-feed-more a:hover {
+  color: var(--link-hover-color);
+  border-color: var(--link-hover-color);
+}
+.home-feed-more .icon {
+  font-size: 0.95em;
+}
+
 /* ---------- 响应式 ---------- */
+/* 手机：门户让位给卡片流。选择器带 [data-mobile-feed] —— 这个属性只在首页真的
+   渲染了卡片流时才出现（index.mobileFeed.enable 为 false 时没有），否则关掉开关
+   的手机端会被藏掉门户又没东西可显示，一片空白。
+   桌面端一行都不生效：断点是 767.98，与 main.css 的卡片断点同源。 */
+@media (max-width: 767.98px) {
+  .portal[data-mobile-feed] {
+    display: none;
+  }
+  .home-feed {
+    display: block;
+    /* #board 在手机上左右内边距是 0，卡片流自己留边，别让图片贴到卡片沿上 */
+    padding: 0 1rem;
+  }
+}
+
+
 /* 桌面端卡片每行几个（--portal-cards-per-row）、列表几列（--list-cols）都按配置走；
    窄屏（≤720px，与置顶区同一断点）做两件事，免得手机上挤成一团：
      · 卡片强制降为 2 列 —— 4 列在手机上每张只剩几十像素，封面和标题全糊
@@ -347,20 +406,27 @@ body.home-no-banner .board-wrap {
   .pfeature {
     grid-template-columns: minmax(0, 1fr);
   }
-  /* 触屏上 9px 的圆点几乎点不中，放大到 12px；间距仍 1rem → 中心距 28px、
-     命中区 24px，两两不重叠（WCAG 2.2 目标尺寸 2.5.8 的间距豁免）。 */
+  /* 触屏没有 hover 兜底，3px 高的棒子更难戳中：棒子加高一点、间距放宽，
+     命中区 24×24、相邻中心距 25.6px，两两不重叠（WCAG 2.2 的 2.5.8）。 */
+  .phero-dots {
+    gap: 0.6rem;
+  }
   .phero-dot {
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 4px;
+  }
+  .phero-dot.is-active {
+    width: 28px;
   }
   .phero-dot::before {
-    inset: -6px;
+    inset: -10px -4px;
   }
   .psec-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .psec-list {
-    column-count: 1;
+  /* 两列文字列表收回单列 —— 中文两列每行只放得下三五个字 */
+  .psec-cols {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

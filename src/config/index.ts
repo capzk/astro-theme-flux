@@ -175,6 +175,14 @@ function inspect(config: SiteConfig): string[] {
       );
     }
   });
+  /* 手机端卡片流的篇数：0 会让手机首页只剩一个「全部文章」按钮（页面不崩，
+     但看起来像坏了），所以按错误处理。 */
+  if (config.index.mobileFeed.count < 1) {
+    issues.push(
+      `index.mobileFeed.count 是 ${config.index.mobileFeed.count} —— 手机首页至少展示 1 篇。` +
+        '想彻底不要卡片流就把 mobileFeed.enable 改 false（改回门户版式）。',
+    );
+  }
 
   /* ---- 页脚 ---------------------------------------------------------------
      这两项错了都不会报错，只是页脚少一行 / 少一处内容，而页脚恰恰是最没人
