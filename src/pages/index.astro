@@ -24,6 +24,7 @@ import CategorySection from '../components/portal/CategorySection.astro';
 import MobileFeed from '../components/portal/MobileFeed.astro';
 import { Image } from 'astro:assets';
 import { SITE } from '../config';
+import { T } from '../i18n';
 import {
   getPosts,
   stickyFirst,
@@ -201,7 +202,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
 
             {/* 最新发布：不分类别，左右两列纯文字列表 */}
             <CategorySection
-              name="最新"
+              name={T.latest}
               count={all.length}
               posts={ordered.slice(0, portal.latest.count)}
               layout="list"

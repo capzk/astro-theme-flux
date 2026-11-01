@@ -700,8 +700,24 @@ export interface SiteConfig {
   author: string;
   /** BCP 47，决定界面文案语言 */
   lang: string;
-  /** 头像（相对 public/ 或完整 URL），关于页与页脚用 */
+  /**
+   * 头像（相对 public/ 或完整 URL）：关于页展示，也作为 JSON-LD 里
+   * Organization.logo 的来源。
+   *
+   * 想要 Google 富媒体结果里的品牌 logo，请用 PNG / JPG —— 搜索抓取器不渲染
+   * SVG（`utils/seo.ts` 会直接跳过，给 SVG 是无效项）。只用于页面展示则 SVG 亦可。
+   */
   avatar: string;
+  /**
+   * 网站图标（favicon），相对 public/ 或完整 URL。建议 SVG（矢量、任意尺寸清晰）；
+   * 换成 .ico / .png 也行，`BaseLayout` 会按扩展名自动推 `type`，不用改代码。
+   */
+  favicon: string;
+  /**
+   * iOS「添加到主屏幕」图标（apple-touch-icon），相对 public/ 或完整 URL。
+   * 留空则不输出这一行；要配就用 180×180 的 PNG（iOS 不认 SVG）。
+   */
+  appleTouchIcon?: string;
   /**
    * X（Twitter）账号，**不带 @**，如 `'capzk'`。整条主页地址也认（会归一化）。
    *
@@ -718,6 +734,16 @@ export interface SiteConfig {
    * 文章自己配了位图封面时优先用文章的，否则回落到这张。
    */
   ogImage: string;
+  /**
+   * 默认分享封面（`ogImage`）的像素尺寸。**只在确实知道时填**。
+   *
+   * 填了之后，用到站点默认封面的页面（首页 / 列表页 / 关于页等）会输出
+   * `og:image:width/height` —— 部分平台（Slack / LinkedIn / Discord）拿到尺寸
+   * 就直接排版，省掉一次探测请求。但**尺寸标错比不标更糟**：平台会照着错的
+   * 宽高裁图。默认 og.png 就是 1200×630，所以出厂值填了它；你换了不同尺寸的
+   * ogImage 记得同步改，或者直接删掉这一项（留空 = 不输出宽高）。
+   */
+  ogImageSize?: { width: number; height: number };
   /**
    * 建站年份。两个用途：页脚版权写成 `© 2024–2026`，以及「已运行 N 天」的兜底起点
    * （`footer.runtime.since` 没写时用这一年的 1 月 1 日）。不设则用当前年。
@@ -868,8 +894,17 @@ export interface SiteConfig {
 
   /** 配色（对应 Fluid 的 color.* 项） */
   color: {
-    /** 顶栏底色 */
+    /** 顶栏底色（亮色模式） */
     navbar: string;
+    /**
+     * 顶栏底色（暗色模式），默认 #1f3144。
+     *
+     * ⚠️ 只用于浏览器地址栏的 `<meta name="theme-color">`：暗色那套实际配色
+     * 写死在 main.css 的 `[data-user-color-scheme="dark"]` 里，改这里**不会**
+     * 改变页面颜色。若你改了那边的 `--navbar-bg-color`，记得同步这一个，
+     * 否则地址栏与顶栏会有色差。
+     */
+    navbarDark: string;
     /** 页面底色 */
     bodyBg: string;
     /** 卡片 / 内容区底色 */

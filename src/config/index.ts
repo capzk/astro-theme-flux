@@ -54,6 +54,9 @@ function inspect(config: SiteConfig): string[] {
     ['banner.img', config.banner.img],
     ['postBanner.img', config.postBanner.img],
     ['ogImage', config.ogImage],
+    ['avatar', config.avatar],
+    ['favicon', config.favicon],
+    ['appleTouchIcon', config.appleTouchIcon],
     ['index.defaultImg', config.index.defaultImg],
   ] as const) {
     const missing = missingFile(src);
@@ -115,6 +118,15 @@ function inspect(config: SiteConfig): string[] {
     issues.push(
       `ogImage 指向 SVG（${config.ogImage}）—— 微博 / 微信 / Twitter 不会渲染它，分享卡片会是空白的。` +
         '换成 1200×630 的 PNG 或 JPG。',
+    );
+  }
+
+  /* 头像是 SVG 时页面照常显示，但 JSON-LD 的 Organization.logo 会被跳过
+     （Google 不渲染 SVG logo）—— 富媒体结果里就没有品牌图了。 */
+  if (config.avatar && /\.svg(\?|$)/i.test(config.avatar)) {
+    issues.push(
+      `avatar 指向 SVG（${config.avatar}）—— 页面能正常显示，但结构化数据的 Organization.logo ` +
+        '会缺失（Google 只认 PNG/JPG 这类位图）。想让搜索结果 / 知识面板出现 logo，换成 png 头像。',
     );
   }
 

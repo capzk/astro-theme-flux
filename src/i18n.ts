@@ -44,6 +44,8 @@ export const T = {
   nextPage: '下一页',
   pageN: (n: number) => `第 ${n} 页`,
   related: '相关文章',
+  /* 首页门户「最新」板块的分区名 */
+  latest: '最新',
   /* 评论区。计数单位跟在评论系统回填的数字后面，所以拆成两段 */
   comments: '评论',
   commentCountUnit: '条',

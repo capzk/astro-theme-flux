@@ -20,10 +20,18 @@ const DEFAULT_CONFIG: SiteConfig = {
   description: '丝滑的阅读体验：卡片式首页、全屏 banner、暗色模式、跟随滚动的目录。',
   author: 'capzk',
   lang: 'zh-CN',
-  avatar: '/img/avatar.svg',
+  /* 用 PNG 而不是 SVG：页面展示两者都行，但 JSON-LD 的 Organization.logo
+     只认位图（Google 不渲染 SVG logo）。换回 SVG 依然可显示，只是 logo 会缺。 */
+  avatar: '/img/avatar.png',
+  /* 网站图标。换 .ico / .png 也行，BaseLayout 会按扩展名推 type */
+  favicon: '/favicon.svg',
+  /* iOS 添加到主屏幕的图标（180×180 PNG）。留空 = 不输出 */
+  appleTouchIcon: '',
   /* X 账号，不带 @。留空则不输出 twitter:site / twitter:creator */
   twitter: '',
   ogImage: '/img/og.png',
+  /* 默认封面的实际尺寸（出厂 og.png 就是 1200×630）。换图记得同步改或删掉 */
+  ogImageSize: { width: 1200, height: 630 },
   since: 2026,
 
   nav: [
@@ -169,6 +177,9 @@ const DEFAULT_CONFIG: SiteConfig = {
 
   color: {
     navbar: '#2f4154',
+    /* 暗色顶栏色：只喂给 <meta name="theme-color">，与 main.css 的暗色
+       --navbar-bg-color 保持一致（改那边记得同步这里） */
+    navbarDark: '#1f3144',
     bodyBg: '#eee',
     board: '#ffffff',
     accent: '#30a9de',

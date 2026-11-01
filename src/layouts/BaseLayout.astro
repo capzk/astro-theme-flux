@@ -7,7 +7,7 @@
  */
 import { SITE } from '../config';
 import { T } from '../i18n';
-import { absoluteUrl, imageMimeOf, ogLocale, shareImage, twitterHandle } from '../utils/seo';
+import { absoluteUrl, imageMimeOf, ogLocale, twitterHandle } from '../utils/seo';
 import { safeJson } from '../utils/json';
 import { isListPage } from '../utils/list-pages';
 import type { ImageSource } from '../utils/image';
@@ -124,13 +124,37 @@ const navbarTransparent = isHome && SITE.banner.enable;
  */
 const robotsContent = isNoindex ? 'noindex, follow' : 'max-image-preview:large';
 
-/* 分享封面必须是绝对地址，且不能是 SVG（平台会渲染成空白卡片） */
-const shareImg = absoluteUrl(shareImage([image]), origin);
+/* 分享封面必须是绝对地址，且不能是 SVG（平台会渲染成空白卡片）。
+   `image` 在各自页面里已经筛过一遍（文章页会把封面裁成 1200×630 的 JPEG），
+   这里只再挡一道 SVG —— 不要用 shareImage() 重判扩展名：dev 下 getImage 产出的
+   是 `/_image/?href=…&f=jpeg`（结尾没有扩展名），按扩展名重判会误伤、回落到默认图。 */
+const shareImg = absoluteUrl(
+  image && !/\.svg(\?|$)/i.test(image) ? image : SITE.ogImage,
+  origin,
+);
 const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
 const shareMime = imageMimeOf(shareImg);
 
 /* 没配 X 账号就是 undefined，下面那两行 meta 整个不输出 */
 const twitter = twitterHandle();
+
+/* favicon 的 MIME 从扩展名推：换成 .ico / .png 时 type 也跟着对，不用改这里。
+   认不出就交给浏览器自己嗅探（不写 type 比写错强）。 */
+const faviconType = (() => {
+  const ext = (SITE.favicon.split(/[?#]/)[0].match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase();
+  return ext === 'svg' ? 'image/svg+xml'
+    : ext === 'ico' ? 'image/x-icon'
+    : ext === 'png' ? 'image/png'
+    : ext === 'webp' ? 'image/webp'
+    : undefined;
+})();
+
+/* 页面自己带了封面尺寸（文章页裁 1200×630）就用它；否则当页面用的是站点默认
+   ogImage 时，用配置里的 ogImageSize 补宽高（默认就是 1200×630）。 */
+const effectiveImageSize = imageSize ?? (!image ? SITE.ogImageSize : undefined);
+
+/* og:article:author 规范要的是「作者主页地址」，不是名字 —— 用关于页，关掉时退回首页 */
+const authorUrl = absoluteUrl(SITE.pages.about ? '/about/' : '/', origin);
 
 /* 同源的不必再握手（评论服务端和博客挂同一个域时会出现这种情况） */
 const preconnectList = preconnect.filter((item) => item !== origin.origin);
@@ -152,9 +176,8 @@ const bannerSource =
     : bannerImg ?? (isHome ? (SITE.banner.enable ? SITE.banner.img : undefined) : SITE.postBanner.img);
 const bannerPreload = typeof bannerSource === 'string' ? bannerSource.trim() : '';
 
-/* 浏览器地址栏配色。亮色跟随配置里的顶栏色，暗色取 main.css 里那套固定值 ——
-   用户手动切换过主题时可能与实际不符，但地址栏只是装饰，不值得为此加脚本。 */
-const DARK_CHROME = '#1f3144';
+/* 浏览器地址栏配色全部来自 config 的 color.navbar / color.navbarDark，
+   不再在这里写死暗色值 —— 改配色只改一处（见 src/config/user/appearance.ts）。 */
 
 /**
  * src/config 的 color 段 → 覆盖 main.css 里亮色那组变量。
@@ -278,6 +301,9 @@ const verifyOther = SITE.verification.other.filter(
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* 告诉 UA「本页支持亮/暗两套」：页面用 data-user-color-scheme 手动切换，
+        真正让原生滚动条 / 表单控件跟随的是 <html> 上的 CSS color-scheme */}
+    <meta name="color-scheme" content="light dark" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="author" content={SITE.author} />
@@ -295,7 +321,10 @@ const verifyOther = SITE.verification.other.filter(
     {verifyOther.map((item) => (
       <meta name={item.name.trim()} content={item.content.trim()} />
     ))}
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href={SITE.favicon} type={faviconType} />
+    {SITE.appleTouchIcon?.trim() && (
+      <link rel="apple-touch-icon" href={SITE.appleTouchIcon.trim()} />
+    )}
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
     <link rel="alternate" type="application/atom+xml" title={SITE.title} href="/atom.xml" />
     {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload 的说明 */}
@@ -316,7 +345,7 @@ const verifyOther = SITE.verification.other.filter(
       ))
     }
     <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content={DARK_CHROME} media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content={SITE.color.navbarDark} media="(prefers-color-scheme: dark)" />
 
     {/* 统计脚本的域名预解析（只 DNS，不握手，理由见 frontmatter） */}
     {analyticsOrigins.map((host) => (
@@ -343,10 +372,10 @@ const verifyOther = SITE.verification.other.filter(
     <meta property="og:image" content={shareImg} />
     {shareMime && <meta property="og:image:type" content={shareMime} />}
     {
-      imageSize && (
+      effectiveImageSize && (
         <>
-          <meta property="og:image:width" content={String(imageSize.width)} />
-          <meta property="og:image:height" content={String(imageSize.height)} />
+          <meta property="og:image:width" content={String(effectiveImageSize.width)} />
+          <meta property="og:image:height" content={String(effectiveImageSize.height)} />
         </>
       )
     }
@@ -366,7 +395,7 @@ const verifyOther = SITE.verification.other.filter(
           {article.modified && (
             <meta property="article:modified_time" content={article.modified.toISOString()} />
           )}
-          <meta property="article:author" content={SITE.author} />
+          <meta property="article:author" content={authorUrl} />
           {article.section && <meta property="article:section" content={article.section} />}
           {(article.tags ?? []).map((tag) => (
             <meta property="article:tag" content={tag} />

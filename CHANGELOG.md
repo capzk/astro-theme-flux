@@ -5,6 +5,33 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- 站点级图片配置补齐：`favicon` / `appleTouchIcon` / `ogImageSize` / `color.navbarDark`
+  四项进入 `SiteConfig`。favicon 与 iOS 主屏图标不再写死，`BaseLayout` 按扩展名自动推 `type`。
+- 默认头像改为 `public/img/avatar.png`（位图），让 JSON-LD 的 `Organization.logo`
+  开箱即有输出；原 `avatar.svg` 仍保留可用（仅展示、不进 logo）。
+- 示例文章《全站图片配置总纲：目录、格式、尺寸与位置》，逐项讲清全站图片的配置位置、
+  存放目录、格式与尺寸。
+
+### Fixed
+
+- 文章页隐藏的 `h1` 由 `display:none` 改为视觉隐藏（`clip`），保留无障碍树里的标题；
+  打印时再还原成常规标题。
+- 补 `color-scheme`（`<meta>` + CSS 亮/暗两套），让原生滚动条与表单控件跟随手动切换的主题。
+- 文章页 `og:image` 在 dev 下回落成默认图：`getImage` 产出的 `/_image/?…` 结尾没有扩展名，
+  被 `shareImage()` 误判；改为「`image` 非 SVG 即采用」。
+- `article:author` 改为作者主页绝对 URL；首页与列表页补 `og:image:width/height`。
+- 首页「最新」分区名与关于页标题接入 i18n。
+
+### Changed
+
+- 构建期体检新增：`favicon` / `appleTouchIcon` / `avatar` 的文件存在性检查；头像为 SVG 时
+  提示「`Organization.logo` 会缺失」。
+- 主题示例站页脚不再挂备案号（`footer.beian.enable: false`）。
+
 ## [5.0.0] - 2026-11-01
 
 首页从「卡片流 + 分页」换成门户固定区块（置顶轮播 / 分类分区 / 最新列表），全量浏览交给
@@ -1208,6 +1235,7 @@ do through the application is available in the API」），所以它不能进浏
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...HEAD
 [Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...HEAD
 [5.0.0]: https://github.com/capzk/astro-theme-flux/compare/v4.4.0...v5.0.0
 [4.4.0]: https://github.com/capzk/astro-theme-flux/compare/v4.3.0...v4.4.0

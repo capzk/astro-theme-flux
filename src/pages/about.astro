@@ -8,6 +8,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import { SITE } from '../config';
+import { T } from '../i18n';
 import { isPageEnabled } from '../utils/pages';
 
 /* 关掉时整页不输出，直接跳回首页。放在最前面 —— 后面那些查询和渲染
@@ -19,7 +20,7 @@ if (!isPageEnabled('about')) {
   return Astro.redirect('/', 301);
 }
 
-const title = '关于';
+const title = T.about;
 ---
 
 <BaseLayout title={title} description={`关于 ${SITE.title}`}>

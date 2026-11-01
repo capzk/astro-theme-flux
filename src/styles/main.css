@@ -8,6 +8,9 @@
    两套：亮色（默认）+ 暗色。暗色触发方式与原版一致 ——
    系统偏好 or 用户手动选择（html[data-user-color-scheme="dark"]）。 */
 :root {
+  /* 让原生 UI（滚动条 / 表单控件 / 默认背景）跟随主题，而不是只跟系统偏好。
+     下面暗色块会把它改成 dark —— 这一步对手动切换主题尤其重要。 */
+  color-scheme: light;
   --body-bg-color: #eee;
   --board-bg-color: #ffffff;
   --text-color: #3c4858;
@@ -44,6 +47,7 @@
 
 /* 暗色令牌 */
 [data-user-color-scheme="dark"] {
+  color-scheme: dark;
   --body-bg-color: #181c27;
   --board-bg-color: #252d38;
   --text-color: #c4c6c9;
@@ -1027,15 +1031,33 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   color: var(--link-hover-color);
 }
 
-/* 卡片里的 h1 只服务 SEO 与打印（对应原版 #seo-header）。
-   正常浏览时隐藏，标题只在 banner 上出现一次。 */
+/* 卡片里的 h1 只服务 SEO、无障碍与打印（对应原版 #seo-header）。
+   标题在 banner 上已经出现一次，视觉上不重复；但**不能用 `display:none`** ——
+   那样它会从无障碍树里消失，屏幕阅读器与标题大纲里整页就没有标题了。
+   改用「视觉隐藏」（与 .sr-only 同一套技巧）：看不见、但保留语义，打印时再显示。 */
 #seo-header {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 @media print {
   #seo-header {
-    display: block;
+    /* 打印时还原成常规标题：把上面那套「视觉隐藏」逐条抵消 */
+    position: static;
+    width: auto;
+    height: auto;
     margin: 0 0 0.75em;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
     font-size: 2em;
     line-height: 1.25;
     color: var(--post-heading-color);
