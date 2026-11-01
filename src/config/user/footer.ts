@@ -58,9 +58,9 @@ export default defineConfig({
      * 网页上的备案号必须**可点击跳转**，纯文本挂着不算合规，所以这里默认带了链接。
      */
     beian: {
-      /* 这里是示例占位，上线前换成你真实的备案号 */
-      enable: true,
-      text: '京ICP备12345678号-1',
+      /* 主题示例站不挂备案号。境内托管、需要展示时再：enable 改 true + 填真实备案号 */
+      enable: false,
+      text: '',
       link: 'https://beian.miit.gov.cn/',
     },
   },
