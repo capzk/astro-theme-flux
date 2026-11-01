@@ -12,7 +12,12 @@ export default defineConfig({
   description: '丝滑的阅读体验：卡片式首页、全屏 banner、暗色模式、跟随滚动的目录。',
   author: 'capzk',
   lang: 'zh-CN',
-  avatar: '/img/avatar.svg',
+  /* PNG 头像：既能展示，也能作为 JSON-LD 的 Organization.logo（Google 只认位图） */
+  avatar: '/img/avatar.png',
+  /* 网站图标。换 .ico / .png 也行，type 由 BaseLayout 按扩展名推 */
+  favicon: '/favicon.svg',
+  /* iOS 添加到主屏幕图标（180×180 PNG）。留空 = 不输出该行 */
+  // appleTouchIcon: '/img/apple-touch-icon.png',
   /**
    * X（Twitter）账号，**不带 @**。填了才会输出 `twitter:site` / `twitter:creator`，
    * 也会作为 `sameAs` 进结构化数据（Google 用它把「各处的你是同一个人」连起来）。
@@ -25,6 +30,8 @@ export default defineConfig({
    * 分享出去就是一张空白卡片。
    */
   ogImage: '/img/og.png',
+  /* 默认封面的实际尺寸（出厂 og.png 就是 1200×630）。换图记得同步改，或删掉这一项 */
+  ogImageSize: { width: 1200, height: 630 },
   /* 建站年份：页脚版权写成 `© 2025–2026` 这样的区间（同年只写一个），也是「已运行 N 天」的兜底起点 */
   since: 2026,
 
