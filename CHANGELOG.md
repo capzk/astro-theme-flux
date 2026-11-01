@@ -5,7 +5,11 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [5.0.0] - 2026-11-01
+
+首页从「卡片流 + 分页」换成门户固定区块（置顶轮播 / 分类分区 / 最新列表），全量浏览交给
+`/archives/`；手机端（≤767px）则换回原版 Fluid 的单列卡片流。首页的信息架构第一次动，
+旧链接要按下面的提示处理，所以按破坏性变更发大版本。
 
 > **升级提示（破坏性）**：首页改成门户固定区块后不再生成 `/page/N/`。主题自带的
 > `public/_redirects` 会把旧链接 301 到 `/archives/`，但那条规则只在 Cloudflare Pages
@@ -1204,8 +1208,9 @@ do through the application is available in the API」），所以它不能进浏
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v4.3.0...HEAD
-[4.3.0]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...v4.3.0
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/capzk/astro-theme-flux/compare/v4.4.0...v5.0.0
+[4.4.0]: https://github.com/capzk/astro-theme-flux/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/capzk/astro-theme-flux/compare/v4.2.1...v4.3.0
 [4.2.1]: https://github.com/capzk/astro-theme-flux/compare/v4.2.0...v4.2.1
 [4.2.0]: https://github.com/capzk/astro-theme-flux/compare/v4.1.1...v4.2.0
