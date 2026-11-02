@@ -17,16 +17,15 @@ _（无待发布改动）_
 
 ### Changed
 
-- **HTML 缓存改为「边缘 1 小时 + 浏览器后台更新」**（`public/_headers`）：
+- **HTML 缓存改为「浏览器后台更新 + 边缘 TTL」**（`public/_headers`）：
   `max-age=0, must-revalidate` → `max-age=0, s-maxage=3600, stale-while-revalidate=86400`。
   原来的写法在 Cloudflare Pages 上恰好是回访最贵的一种：Pages 的 HTML 既没有
   `ETag` 也没有 `Last-Modified`（实测带 `If-None-Match` 仍返回 200），
-  `must-revalidate` 没法「验证一下、没变就回 304」，只能整份重下；同时
-  `cf-cache-status` 恒为 `DYNAMIC`，边缘不留副本，每跳一次都要回源。
-  改完回访由边缘命中，浏览器侧先用手上副本、后台再更新。
-  **升级后请用 `curl -I` 连续两次确认 `cf-cache-status` 变成 `HIT`** ——
-  若线上仍是 `DYNAMIC`，说明 CF 后台有 Transform Rule / Cache Rule 盖掉了
-  这个文件（对照看 `referrer-policy` 是不是也还是 CF 设置的值）。
+  `must-revalidate` 没法「验证一下、没变就回 304」，只能整份重下。
+  改后浏览器回访先用手上副本渲染、后台更新（SWR 语义，不依赖 CDN，一定生效）。
+  **实测提醒**：Pages 的 HTML 不会仅凭 `s-maxage` 进边缘缓存 —— 上线后连续请求
+  同一页仍无 `cf-cache-status` / `Age` 头。要让 HTML 在边缘终结，需在 CF 后台
+  另加一条 Cache Rule，配法写在 `_headers` 的注释里；不加也不影响浏览器侧收益。
 
 ### Added
 

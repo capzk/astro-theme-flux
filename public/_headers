@@ -5,25 +5,33 @@
 #
 # ⚠️ 每条具体规则都先 `! Cache-Control` 再设值，不是啰嗦 —— 见文件末尾的说明。
 
-# HTML：边缘缓存 1 小时，浏览器端「先用手上的、后台再更新」
+# HTML：浏览器端「先用手上的、后台再更新」
 # ---------------------------------------------------------------------------
 # 原来写的是 `max-age=0, must-revalidate`，看着最保守，实际是回访最贵的一条：
 #
-#   1. Cloudflare Pages 返回的 HTML **没有 ETag、也没有 Last-Modified**（实测：
-#      带 `If-None-Match` 请求仍然回 200，不是 304）。没有校验器，`must-revalidate`
-#      就没法「验证一下、没变就回个 304」，只能整份重下 —— 一次站内跳转就是
-#      十几 KB 的正文重传。
-#   2. `max-age=0` 让边缘也不留副本（实测 `cf-cache-status: DYNAMIC`），
-#      每个请求都要回到 Pages 源上取。
+#   Cloudflare Pages 返回的 HTML **没有 ETag、也没有 Last-Modified**（实测：
+#   带 `If-None-Match` 请求仍然回 200，不是 304）。没有校验器，`must-revalidate`
+#   就没法「验证一下、没变就回个 304」，只能整份重下 —— 一次站内跳转就是
+#   十几 KB 的正文重传。
 #
-# 现在这组值把两件事一起解决：
-#   - `s-maxage=3600`：允许 Cloudflare 边缘缓存 HTML，回访在边缘终结（HIT）。
-#   - `stale-while-revalidate=86400`：浏览器可以立刻用旧副本渲染、后台再更新，
-#     把「没有 ETag 就必须整份重下」这条死结绕过去。
+# 现在这组值解决的就是这一条：
+#   - `max-age=0` + `stale-while-revalidate=86400`：副本立刻算陈旧，但浏览器
+#     **可以先用旧副本渲染、同时后台再取新的**（SWR 的语义），回访不再被
+#     那个「没有校验器就只能全量重下」的死结卡住。这条不依赖 CDN，一定生效。
+#   - `s-maxage=3600`：给共享缓存（CDN / 反向代理）的 TTL。
 #
-# 为什么 s-maxage 只给 1 小时：Pages 每次部署会自动清掉该项目的边缘缓存，
-# 所以新文章不会因为这条被压住；1 小时是「上传新图同名覆盖」这类场景的兜底。
-# 想立刻看到改动，`curl -I` 时加 `?v=时间戳`，或在 CF 后台 purge。
+# ⚠️ 实测：**Cloudflare Pages 的 HTML 不会仅凭 `s-maxage` 进边缘缓存**。
+#    上线后连续请求同一页，响应里既没有 `cf-cache-status` 也没有 `Age`
+#    （改之前是 `cf-cache-status: DYNAMIC`），说明它仍由 Pages 的资产服务直接
+#    返回。想让 HTML 真正在边缘终结，需要在 CF 后台另外加一条 Cache Rule：
+#
+#      Caching → Cache Rules → 新建
+#        匹配：`http.host eq "<你的域名>" and not starts_with(http.request.uri.path, "/_astro/")`
+#        设置：Eligible for cache ✅、Edge TTL「Use cache-control header if present」
+#              （即沿用这里的 s-maxage）、Browser TTL「Respect origin」
+#
+#    Pages 每次部署会自动 purge 该项目的缓存，所以加了规则也不会让新文章滞后。
+#    不加这条规则也完全可用 —— 收益只是「回访少一次回源」，浏览器侧那条已经到手。
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
