@@ -11,6 +11,7 @@ import Board from '../../components/Board.astro';
 import { SITE } from '../../config';
 import { T } from '../../i18n';
 import { categoryCounts, getPosts, postUrl, termUrl } from '../../utils/posts';
+import { formatDate } from '../../utils/date';
 
 const posts = await getPosts();
 const cats = categoryCounts(posts);
@@ -33,7 +34,7 @@ const cats = categoryCounts(posts);
             .map((post) => (
               <li>
                 <time datetime={post.data.date.toISOString()}>
-                  {post.data.date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                  {formatDate(post.data.date, 'card')}
                 </time>
                 <a href={postUrl(post)}>{post.data.title}</a>
               </li>

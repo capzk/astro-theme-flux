@@ -38,5 +38,10 @@ jobs:
       - name: 类型检查
         run: npm run check
 
+      # 纯函数的边界（分页越界、置顶排序、相关文章同分、base 幂等）在页面上
+      # 一时看不出来，改一行就可能悄悄坏掉。检查 + 构建都拦不住这一类。
+      - name: 单元测试
+        run: npm test
+
       - name: 构建
         run: npm run build

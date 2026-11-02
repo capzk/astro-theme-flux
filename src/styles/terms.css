@@ -1,0 +1,204 @@
+/* ==========================================================================
+   Flux · 归档、分类、标签、友链、分页
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 12. 归档 ---------- */
+.archive-year {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--post-heading-color);
+}
+.archive-year:first-child {
+  margin-top: 0;
+}
+.archive-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--line-color);
+}
+.archive-item {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.55rem 0 0.55rem 1.2rem;
+  font-size: 0.95rem;
+}
+.archive-item::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 1rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--link-hover-color);
+  opacity: 0.55;
+}
+.archive-item time {
+  flex: none;
+  color: var(--sec-text-color);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.archive-item a {
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.archive-item a:hover {
+  color: var(--link-hover-color);
+}
+
+/* ---------- 13. 分类 / 标签 ---------- */
+.term-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.term-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 1.5rem;
+  background-color: var(--button-bg-color);
+  color: var(--text-color);
+  font-size: 0.9rem;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+.term-chip:hover {
+  color: #fff;
+  background-color: var(--link-hover-color);
+  transform: translateY(-2px);
+}
+.term-count {
+  font-size: 0.75rem;
+  color: var(--sec-text-color);
+  font-variant-numeric: tabular-nums;
+}
+.term-chip:hover .term-count {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* 分类页：分类名 + 该分类下的文章 */
+.category-group {
+  margin-bottom: 2rem;
+}
+.category-group h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  color: var(--post-heading-color);
+}
+.category-group h2 .term-count {
+  font-weight: 400;
+}
+.category-posts {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.1rem;
+}
+.category-posts li {
+  padding: 0.35rem 0;
+  font-size: 0.95rem;
+}
+.category-posts time {
+  color: var(--sec-text-color);
+  font-size: 0.82rem;
+  margin-right: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 14. 友链 ---------- */
+.link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.link-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: var(--button-bg-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.link-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--img-shadow);
+  background-color: var(--button-hover-bg-color);
+}
+.link-avatar {
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--board-bg-color);
+}
+.link-meta {
+  min-width: 0;
+}
+.link-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-desc {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--sec-text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 15. 分页 ---------- */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+}
+.page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.1rem;
+  height: 2.1rem;
+  padding: 0 0.6rem;
+  border-radius: 0.125rem;
+  color: var(--text-color);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.page-link:hover {
+  background-color: var(--link-hover-bg-color);
+  color: var(--link-hover-color);
+}
+.page-link.is-current {
+  background-color: var(--link-hover-bg-color);
+  color: var(--link-hover-color);
+  font-weight: 700;
+}
+.page-link.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.page-ellipsis {
+  color: var(--sec-text-color);
+  padding: 0 0.25rem;
+}
+

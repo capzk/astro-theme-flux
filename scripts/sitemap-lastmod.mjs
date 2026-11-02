@@ -26,8 +26,13 @@ const KEYS = ['slug', 'date', 'updated', 'draft'];
 
 /**
  * 极简 front matter 读取：只认 `key: value` 单行写法。
- * 博客的这几个字段就是这么写的；遇到多行或引号包裹也能处理常见形态。
+ * 博客的这几个字段就是这么写的；遇到引号包裹、行尾注释也能处理。
  * 解析不出来就当没有，不影响构建。
+ *
+ * ⚠️ 这是**故意**的第二套解析：内容集合由 Astro 的 schema 校验，那边才是真相；
+ * 这里只为了在配置阶段拿到日期（此时内容集合还没同步）。所以刻意只支持
+ * 「单行标量」—— 写成多行 YAML（`date:\n  2026-01-01`）或 flow 集合时会被忽略，
+ * 结果是「这一页没有 lastmod」，不会给出错误的日期。
  */
 function readFrontMatter(raw) {
   const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
@@ -59,10 +64,17 @@ function toDate(value, fallback) {
 
 /**
  * 建「路径 → 最后修改日期」的映射表。
+ * @param {string} base 部署前缀（'/' 或 '/blog'）—— sitemap 给的 URL 含前缀，
+ *                      表里的键是逻辑路径，查之前要剥掉
  * @returns {(url: string) => string | undefined}
  */
-export function createLastmodResolver() {
+export function createLastmodResolver(base = '/') {
   const byPath = new Map();
+  const prefix = `/${String(base).replace(/^\/+|\/+$/g, '')}`;
+  const strip = (pathname) =>
+    prefix !== '/' && (pathname === prefix || pathname.startsWith(`${prefix}/`))
+      ? pathname.slice(prefix.length) || '/'
+      : pathname;
 
   let files;
   try {
@@ -86,7 +98,8 @@ export function createLastmodResolver() {
     }
 
     const fm = readFrontMatter(raw);
-    if (fm.draft === 'true') continue;
+    /* YAML 里 true 的写法不止一种：true / True / yes / 1 都算草稿 */
+    if (/^(true|yes|1)$/i.test(fm.draft ?? '')) continue;
 
     /* 只有 publish 日期时就用它 —— 首次发布的页面也算「变过」 */
     const lastmod = toDate(fm.updated, toDate(fm.date));
@@ -97,7 +110,7 @@ export function createLastmodResolver() {
 
   return (url) => {
     try {
-      return byPath.get(new URL(url).pathname);
+      return byPath.get(strip(new URL(url).pathname));
     } catch {
       return undefined;
     }

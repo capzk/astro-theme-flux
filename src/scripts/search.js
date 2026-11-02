@@ -12,6 +12,11 @@
  */
 
 const MODAL = 'search-modal';
+/**
+ * 搜索索引地址。`BASE_URL` 由 Vite 在构建期替换（默认 `'/'`，子路径部署时是
+ * `'/blog/'`，永远带尾斜杠）—— 写死 `/searchindex.json` 会让 base 部署下搜索永远空。
+ */
+const INDEX_URL = `${import.meta.env.BASE_URL}searchindex.json`;
 let index = null; // 懒加载：只有第一次打开搜索才请求索引
 let loading = null;
 
@@ -49,7 +54,7 @@ const TEXT = {
 async function loadIndex() {
   if (index) return index;
   if (!loading) {
-    loading = fetch('/searchindex.json')
+    loading = fetch(INDEX_URL)
       .then((res) => {
         if (!res.ok) throw new Error(String(res.status));
         return res.json();

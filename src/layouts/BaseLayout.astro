@@ -6,10 +6,12 @@
  * 深色模式与首帧防闪在这里处理（内联脚本，阻塞渲染但只有几行）。
  */
 import { SITE } from '../config';
+import { reportConfigIssues } from '../config/validate';
 import { T } from '../i18n';
 import { absoluteUrl, imageMimeOf, ogLocale, twitterHandle } from '../utils/seo';
 import { safeJson } from '../utils/json';
 import { isListPage } from '../utils/list-pages';
+import { publicPath, stripBase, withBase } from '../utils/url';
 import type { ImageSource } from '../utils/image';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
@@ -90,8 +92,17 @@ const {
 
 const pageTitle = title ? `${title} - ${SITE.title}` : `${SITE.title} - ${SITE.subtitle}`;
 const origin = Astro.site ?? new URL(Astro.url.origin);
+
+/**
+ * 配置体检。放在这里而不是 config/index.ts 的模块顶层，是为了让「读文件系统 /
+ * 读 import.meta.env.SITE」只发生在真正渲染页面的服务端上下文里，SITE 本身保持纯数据。
+ * 幂等由 reportConfigIssues 内部的守卫处理：一次构建只打一次，不会每页刷一遍。
+ */
+reportConfigIssues(SITE, { site: import.meta.env.SITE });
+
 const canonical = new URL(Astro.url.pathname, origin).href;
-const path = Astro.url.pathname;
+/* Astro.url.pathname 含部署前缀；isListPage / 导航高亮要的是逻辑路径 */
+const path = stripBase(Astro.url.pathname);
 
 /**
  * 列表页不索引。判定只写在 utils/list-pages 一处，astro.config 的 sitemap 过滤
@@ -129,7 +140,7 @@ const robotsContent = isNoindex ? 'noindex, follow' : 'max-image-preview:large';
    这里只再挡一道 SVG —— 不要用 shareImage() 重判扩展名：dev 下 getImage 产出的
    是 `/_image/?href=…&f=jpeg`（结尾没有扩展名），按扩展名重判会误伤、回落到默认图。 */
 const shareImg = absoluteUrl(
-  image && !/\.svg(\?|$)/i.test(image) ? image : SITE.ogImage,
+  publicPath(image && !/\.svg(\?|$)/i.test(image) ? image : SITE.ogImage),
   origin,
 );
 const shareAlt = title ? `${title} - ${SITE.title}` : `${SITE.title} · ${SITE.subtitle}`;
@@ -154,7 +165,7 @@ const faviconType = (() => {
 const effectiveImageSize = imageSize ?? (!image ? SITE.ogImageSize : undefined);
 
 /* og:article:author 规范要的是「作者主页地址」，不是名字 —— 用关于页，关掉时退回首页 */
-const authorUrl = absoluteUrl(SITE.pages.about ? '/about/' : '/', origin);
+const authorUrl = absoluteUrl(withBase(SITE.pages.about ? '/about/' : '/'), origin);
 
 /* 同源的不必再握手（评论服务端和博客挂同一个域时会出现这种情况） */
 const preconnectList = preconnect.filter((item) => item !== origin.origin);
@@ -174,7 +185,8 @@ const bannerSource =
   bannerImg === null
     ? undefined
     : bannerImg ?? (isHome ? (SITE.banner.enable ? SITE.banner.img : undefined) : SITE.postBanner.img);
-const bannerPreload = typeof bannerSource === 'string' ? bannerSource.trim() : '';
+const bannerPreload =
+  typeof bannerSource === 'string' ? publicPath(bannerSource.trim()) : '';
 
 /* 浏览器地址栏配色全部来自 config 的 color.navbar / color.navbarDark，
    不再在这里写死暗色值 —— 改配色只改一处（见 src/config/user/appearance.ts）。 */
@@ -321,12 +333,12 @@ const verifyOther = SITE.verification.other.filter(
     {verifyOther.map((item) => (
       <meta name={item.name.trim()} content={item.content.trim()} />
     ))}
-    <link rel="icon" href={SITE.favicon} type={faviconType} />
+    <link rel="icon" href={publicPath(SITE.favicon)} type={faviconType} />
     {SITE.appleTouchIcon?.trim() && (
-      <link rel="apple-touch-icon" href={SITE.appleTouchIcon.trim()} />
+      <link rel="apple-touch-icon" href={publicPath(SITE.appleTouchIcon.trim())} />
     )}
-    <link rel="alternate" type="application/rss+xml" title={SITE.title} href="/rss.xml" />
-    <link rel="alternate" type="application/atom+xml" title={SITE.title} href="/atom.xml" />
+    <link rel="alternate" type="application/rss+xml" title={SITE.title} href={withBase('/rss.xml')} />
+    <link rel="alternate" type="application/atom+xml" title={SITE.title} href={withBase('/atom.xml')} />
     {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload 的说明 */}
     {
       bannerPreload && (
@@ -344,8 +356,23 @@ const verifyOther = SITE.verification.other.filter(
         </>
       ))
     }
-    <meta name="theme-color" content={SITE.color.navbar} media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content={SITE.color.navbarDark} media="(prefers-color-scheme: dark)" />
+    {/* 地址栏配色。两条 meta 分别对应系统亮 / 暗；`data-light` / `data-dark`
+        是给运行期脚本用的原始值 —— 读者手动切过主题后，media 查询已经不能代表
+        页面的真实配色，脚本会摘掉 media、把 content 写成选中的那一色（见 theme.js） */}
+    <meta
+      name="theme-color"
+      content={SITE.color.navbar}
+      media="(prefers-color-scheme: light)"
+      data-light={SITE.color.navbar}
+      data-dark={SITE.color.navbarDark}
+    />
+    <meta
+      name="theme-color"
+      content={SITE.color.navbarDark}
+      media="(prefers-color-scheme: dark)"
+      data-light={SITE.color.navbar}
+      data-dark={SITE.color.navbarDark}
+    />
 
     {/* 统计脚本的域名预解析（只 DNS，不握手，理由见 frontmatter） */}
     {analyticsOrigins.map((host) => (
@@ -410,24 +437,41 @@ const verifyOther = SITE.verification.other.filter(
     <!--
       深色模式：首帧就把 data-user-color-scheme 写到 html 上，避免闪白。
       优先级：用户手动选择（localStorage）> 站点默认值 > 系统偏好。
+
+      `darkMode.enable: false` 时**直接锁死亮色**，连 localStorage 都不读：
+      关掉开关意味着切换按钮也不再渲染，此时若还尊重历史选择，读者会看到
+      一个自己再也切不回来的暗色页面。
+
+      同时把默认策略写到 `data-dark-default` 上：主题脚本据此判断
+      「系统偏好变化时要不要跟随」—— 只有 `'auto'` 才跟随。
       必须是内联脚本（外链脚本会晚一帧），代价只有几行。
     -->
-    <script is:inline define:vars={{ darkDefault: SITE.darkMode.enable ? SITE.darkMode.default : 'light' }}>
+    <script
+      is:inline
+      define:vars={{
+        darkEnable: SITE.darkMode.enable,
+        darkDefault: SITE.darkMode.enable ? SITE.darkMode.default : 'light',
+      }}
+    >
       (function () {
+        var root = document.documentElement;
+        var mode = 'light';
         try {
-          var saved = localStorage.getItem('flux-color-scheme');
-          var mode = saved;
-          if (!mode || mode === 'auto') {
-            if (darkDefault === 'auto') {
+          if (darkEnable) {
+            var saved = localStorage.getItem('flux-color-scheme');
+            if (saved === 'dark' || saved === 'light') {
+              mode = saved;
+            } else if (darkDefault === 'auto') {
               mode = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             } else {
               mode = darkDefault;
             }
           }
-          document.documentElement.dataset.userColorScheme = mode;
         } catch (e) {
-          document.documentElement.dataset.userColorScheme = 'light';
+          mode = 'light';
         }
+        root.dataset.userColorScheme = mode;
+        root.dataset.darkDefault = darkEnable ? darkDefault : 'light';
       })();
     </script>
 

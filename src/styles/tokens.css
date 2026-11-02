@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Flux · 设计令牌（颜色 / 字号 / 间距 / 亮暗两套）
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ==========================================================================
+   Flux
+   迁移自 hexo-theme-fluid（Material Design 风格），配色与尺寸取自原主题
+   的 _variables/base.styl 默认值，因此观感与原版一致。
+   ========================================================================== */
+
+/* ---------- 1. 设计令牌 ----------
+   两套：亮色（默认）+ 暗色。暗色触发方式与原版一致 ——
+   系统偏好 or 用户手动选择（html[data-user-color-scheme="dark"]）。 */
+:root {
+  /* 让原生 UI（滚动条 / 表单控件 / 默认背景）跟随主题，而不是只跟系统偏好。
+     下面暗色块会把它改成 dark —— 这一步对手动切换主题尤其重要。 */
+  color-scheme: light;
+  --body-bg-color: #eee;
+  --board-bg-color: #ffffff;
+  --text-color: #3c4858;
+  --sec-text-color: #718096;
+  --post-text-color: #2c3e50;
+  --post-heading-color: #1a202c;
+  --link-hover-color: #30a9de;
+  --link-hover-bg-color: #ebedef;
+  --line-color: #eaecef;
+  --navbar-bg-color: #2f4154;
+  --navbar-text-color: #ffffff;
+  /* 未滚动时顶栏压在 banner 上，顶部那层黑色渐变的深度（0~1）。
+     见第 4 节 .navbar::before；由 config 的 color.navbarScrim 覆盖 */
+  --navbar-scrim: 0.35;
+  --subtitle-color: #ffffff;
+  --scrollbar-color: #c4c6c9;
+  --scrollbar-hover-color: #a6a6a6;
+  --button-bg-color: #f6f8fa;
+  --button-hover-bg-color: #f2f3f5;
+  --highlight-bg-color: #f6f8fa;
+  --inlinecode-bg-color: rgba(175, 184, 193, 0.2);
+
+  --font-family-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
+  --font-family-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --board-radius: 0.5rem;
+  --img-shadow: 0 5px 11px 0 rgba(0, 0, 0, 0.18), 0 4px 15px 0 rgba(0, 0, 0, 0.15);
+  --board-shadow: 0 12px 15px 0 rgba(0, 0, 0, 0.24), 0 17px 50px 0 rgba(0, 0, 0, 0.19);
+  --navbar-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* 暗色令牌 */
+[data-user-color-scheme="dark"] {
+  color-scheme: dark;
+  --body-bg-color: #181c27;
+  --board-bg-color: #252d38;
+  --text-color: #c4c6c9;
+  --sec-text-color: #a7a9ad;
+  --post-text-color: #c4c6c9;
+  --post-heading-color: #c4c6c9;
+  --link-hover-color: #30a9de;
+  --link-hover-bg-color: #364151;
+  --line-color: #435266;
+  --navbar-bg-color: #1f3144;
+  --navbar-text-color: #d0d0d0;
+  --subtitle-color: #d0d0d0;
+  --scrollbar-color: #687582;
+  --scrollbar-hover-color: #9da8b3;
+  --button-bg-color: #2f4154;
+  --button-hover-bg-color: #46647e;
+  --highlight-bg-color: #2d333b;
+  --inlinecode-bg-color: rgba(99, 110, 123, 0.4);
+  --board-shadow: 0 12px 15px 0 rgba(0, 0, 0, 0.45), 0 17px 50px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* 色相派生
+   ---------------------------------------------------------------------------
+   html 上有 data-hue 时才生效 —— 只由配置驱动：`color.hue` 写了数字，
+   BaseLayout 就把 data-hue 与 --hue 一起写到 <html> 上（构建期定死，不分人）。
+
+   为什么用 oklch 而不是 hsl：oklch 的「明度」与人眼感知线性相关，固定 L 之后
+   换色相不会出现「黄色看着亮、蓝色看着暗」的问题；HSL 换色相则必须同时调明度，
+   否则某些色相下白字直接糊掉。这里的每个变量只换 H，L 与 C 都是定值。
+
+   亮暗两套明度：暗色下背景更深，强调色要提亮一点才看得清（0.68 → 0.76），
+   顶栏则要压暗（0.35 → 0.29）才不会在深色页面里浮起来。 */
+:root {
+  /* 兜底：万一 data-hue 在但 --hue 没写上，oklch() 也需要一个合法数字 */
+  --hue: 235;
+}
+
+/* 整组规则包在 @supports 里：oklch 出现在自定义属性的值里时，浏览器**解析时不会报错**，
+   要到「真正用到这个变量」的那一刻才判定非法 —— 那时整条 color 声明直接失效，
+   拿到的是继承来的颜色，可能白底白字，比没有这个功能糟得多。
+   不支持 oklch 的浏览器干脆别定义这几个变量，让它退回 main.css 的固定配色。 */
+@supports (color: oklch(0 0 0)) {
+  html[data-hue] {
+    --link-hover-color: oklch(0.68 0.14 var(--hue));
+  }
+  html[data-hue]:not([data-user-color-scheme='dark']) {
+    --navbar-bg-color: oklch(0.35 0.04 var(--hue));
+  }
+  html[data-hue][data-user-color-scheme='dark'] {
+    --link-hover-color: oklch(0.76 0.13 var(--hue));
+    --navbar-bg-color: oklch(0.29 0.035 var(--hue));
+  }
+}
+

@@ -15,6 +15,7 @@ import { SITE } from '../config';
 import { excerptOf, getPosts, postUrl } from '../utils/posts';
 import { isPageEnabled } from '../utils/pages';
 import { absoluteUrl } from '../utils/seo';
+import { withBase } from '../utils/url';
 
 /** 列多少篇。50 篇 × 约 120 字 ≈ 6KB，够模型判断，又不至于把一个站塞爆 */
 const RECENT = 50;
@@ -35,8 +36,8 @@ export const GET: APIRoute = async ({ site }) => {
     `- 作者：${SITE.author}`,
     `- 语言：${SITE.lang}`,
     `- 文章数：${posts.length}${latest ? `，最近更新 ${latest.toISOString().slice(0, 10)}` : ''}`,
-    `- 全文订阅：${url('/rss.xml')} · ${url('/atom.xml')}`,
-    `- 全站正文（一次抓完）：${url('/llms-full.txt')}`,
+    `- 全文订阅：${url(withBase('/rss.xml'))} · ${url(withBase('/atom.xml'))}`,
+    `- 全站正文（一次抓完）：${url(withBase('/llms-full.txt'))}`,
     '',
     '## 文章',
     '',
@@ -48,15 +49,15 @@ export const GET: APIRoute = async ({ site }) => {
     '',
     '## 页面',
     '',
-    `- [归档](${url('/archives/')}): 全部文章按年份排列`,
-    `- [分类](${url('/categories/')}): 按主题分组`,
-    `- [标签](${url('/tags/')}): 按关键词分组`,
+    `- [归档](${url(withBase('/archives/'))}): 全部文章按年份排列`,
+    `- [分类](${url(withBase('/categories/'))}): 按主题分组`,
+    `- [标签](${url(withBase('/tags/'))}): 按关键词分组`,
   ];
 
   /* 关于页与友链页是可关开关的（src/config/user/pages.ts），关掉就别在这里
      留一个只会跳首页的地址 —— 爬虫会把它当成「站点结构」记下来 */
-  if (isPageEnabled('about')) lines.push(`- [关于](${url('/about/')}): 站点与作者介绍`);
-  if (isPageEnabled('links')) lines.push(`- [友链](${url('/links/')}): 推荐的其他站点`);
+  if (isPageEnabled('about')) lines.push(`- [关于](${url(withBase('/about/'))}): 站点与作者介绍`);
+  if (isPageEnabled('links')) lines.push(`- [友链](${url(withBase('/links/'))}): 推荐的其他站点`);
 
   return new Response(lines.join('\n'), {
     headers: { 'Content-Type': 'text/plain; charset=utf-8' },

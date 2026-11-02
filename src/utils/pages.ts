@@ -8,6 +8,7 @@
  */
 import { SITE, type SiteConfig } from '../config';
 import { PAGE_PATH } from '../config/shared/page-paths';
+import { stripBase } from './url';
 
 export type PageKey = keyof SiteConfig['pages'];
 
@@ -39,7 +40,9 @@ export const isPageEnabled = (key: PageKey): boolean => SITE.pages?.[key] !== fa
 
 /** 当前路径属于哪个开关；不在开关表里返回 undefined */
 export function pageKeyOf(pathname: string): PageKey | undefined {
-  const path = normalize(pathname);
+  /* Astro.url.pathname 含 base 前缀（子路径部署时是 /blog/about/），
+     先剥回逻辑路径再和 PAGE_PATH 比 —— 否则关掉的页面在导航里藏不住 */
+  const path = normalize(stripBase(pathname));
   return (Object.keys(PAGE_PATH) as PageKey[]).find((key) => PAGE_PATH[key] === path);
 }
 

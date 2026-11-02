@@ -1,0 +1,140 @@
+/* ==========================================================================
+   Flux · 代码块与工具栏
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 9. 代码块（figure.highlight） ---------- */
+.highlight {
+  position: relative;
+  margin: 0 0 1rem;
+  border-radius: 4px;
+  background-color: var(--highlight-bg-color);
+  overflow: hidden;
+}
+/* 原版 .highlight pre 是 padding 1.45rem 1rem、line-height 1.5、字号 85%；
+   这里上内边距留到 2.4rem，给顶部那条工具挡出位置。 */
+.highlight pre {
+  margin: 0;
+  padding: 2.4rem 1rem 1.45rem;
+  overflow-x: auto;
+  font-family: var(--font-family-monospace);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  background: transparent !important;
+  tab-size: 2;
+}
+.highlight code {
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+  background: none;
+}
+
+/* 行号：Shiki 每行本来就是一个 <span class="line">，用 CSS 计数器画序号即可。
+   ::before 的内容不进入 innerText，所以复制代码不会把行号带出去。 */
+.highlight pre {
+  counter-reset: code-line;
+}
+.highlight .line {
+  counter-increment: code-line;
+}
+.highlight .line::before {
+  content: counter(code-line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-right: 0.75rem;
+  text-align: right;
+  color: var(--sec-text-color);
+  opacity: 0.45;
+  user-select: none;
+}
+
+/* 关掉行号（围栏 meta 写 nolinenos，见 plugins/shiki.js）。
+   终端输出、目录树这类块本来就没有「第几行」的概念，行号纯属碍眼。
+   用 content: none 而不是 display: none —— 后者会把那一列的宽度也带走，
+   同一篇文章里两种块并排时左边距就错开了。 */
+.highlight pre.no-linenos .line::before {
+  content: none;
+}
+
+/* 行高亮（围栏 meta 写 {1,3-5}）。
+   Shiki 的 .line 是行内元素 —— 换行靠行与行之间那个 "\n" 文本节点，
+   所以**不能**把它改成 block / inline-block，否则每行会多出一个空行。
+   代价是底色只覆盖文字宽度，不是整行通栏；配一条左侧内阴影，读起来
+   仍然是一整行的标记。 */
+.highlight .line.is-highlighted {
+  background-color: color-mix(in srgb, var(--link-hover-color) 12%, transparent);
+  box-shadow: inset 0.15rem 0 0 var(--link-hover-color);
+}
+
+/* 工具栏：横跨代码块顶部一条，语言名靠左、复制按钮靠右，互不侵占 */
+.code-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem 0;
+  /* 整条不挡鼠标，只有按钮自己可点 */
+  pointer-events: none;
+}
+/* 语言名：不进 textContent，复制代码时带不上 */
+.code-lang {
+  font-family: var(--font-family-monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sec-text-color);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 复制按钮：hover 代码块才显形 */
+.code-copy {
+  pointer-events: auto;
+  font-family: var(--font-family-monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--sec-text-color);
+  background-color: var(--button-bg-color);
+  border: 1px solid var(--line-color);
+  border-radius: 0.25rem;
+  margin: 0;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+.highlight:hover .code-copy,
+.code-copy:focus-visible {
+  opacity: 1;
+}
+.code-copy:hover {
+  color: var(--link-hover-color);
+  background-color: var(--button-hover-bg-color);
+}
+.code-copy.is-copied {
+  color: #2f9e44;
+  opacity: 1;
+}
+
+/* Shiki 双主题：亮/暗各取一套变量（defaultColor: false 时颜色在 span 的内联
+   style 里以 --shiki-light / --shiki-dark 形式给出） */
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light);
+}
+[data-user-color-scheme="dark"] .astro-code,
+[data-user-color-scheme="dark"] .astro-code span {
+  color: var(--shiki-dark);
+}
+[data-user-color-scheme="light"] .astro-code,
+[data-user-color-scheme="light"] .astro-code span {
+  color: var(--shiki-light);
+}
+

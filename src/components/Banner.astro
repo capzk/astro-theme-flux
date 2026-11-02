@@ -16,6 +16,7 @@ import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
 import { isAsset, type ImageSource } from '../utils/image';
 import { lqipGradientOf } from '../utils/lqip';
+import { publicPath } from '../utils/url';
 import { SITE, type TypingConfig } from '../config';
 
 /** banner 上的一条元信息（图标 + 文字） */
@@ -31,8 +32,9 @@ interface Props {
    */
   title?: string;
   /**
-   * 副标题。给数组就是「候选句子」：不开打字机时随机挑一句，
-   * 开了打字机就按顺序轮播。空数组 / 空字符串 = 不显示。
+   * 副标题。给数组就是「候选句子」：开打字机时按顺序轮播；
+   * 不开（或没 JS）时只显示第一句 —— 不随机，静态站每次构建出不同内容
+   * 会让缓存与 diff 一起变脏。
    */
   subtitle?: string | string[];
   /**
@@ -109,8 +111,10 @@ const typingOptions = !typing
     })();
 
 /* 本地资源走 <Image>（下面单独渲染），字符串走背景层 ——
-   后者不产生额外 DOM，也不会因为 <img> 的宽高比把 banner 撑变形。 */
-const bgImage = img && !isAsset(img) ? img : '';
+   后者不产生额外 DOM，也不会因为 <img> 的宽高比把 banner 撑变形。
+   字符串路径要过 publicPath：子路径部署时 public/ 也跟着挂在 base 下。
+   LQIP 查表用的是**原始**路径（表键是 `public/img/…`），所以先算再补前缀。 */
+const bgImage = img && !isAsset(img) ? publicPath(img) : '';
 
 /* 主色调占位。字符串图并成 background-image 的第二层（第一层是真图，
    盖在上面）；优化图垫在 .banner-bg 自己身上，等 <Image> 解码完就看不见了。 */

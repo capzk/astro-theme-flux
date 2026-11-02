@@ -21,6 +21,7 @@ import { SITE } from '../config';
 import { getPosts, plainTextOf, postUrl } from '../utils/posts';
 import { isPageEnabled } from '../utils/pages';
 import { absoluteUrl } from '../utils/seo';
+import { withBase, prefixMarkdownLinks } from '../utils/url';
 
 export const GET: APIRoute = async ({ site }) => {
   const origin = site ?? new URL('https://example.com');
@@ -36,14 +37,16 @@ export const GET: APIRoute = async ({ site }) => {
     `- 作者：${SITE.author}`,
     `- 语言：${SITE.lang}`,
     `- 文章数：${posts.length}`,
-    `- 仅目录（含摘要）：${url('/llms.txt')}`,
+    `- 仅目录（含摘要）：${url(withBase('/llms.txt'))}`,
     '',
     '以下按发布时间从新到旧排列。每篇开头是元信息，随后是 Markdown 原文。',
   ];
 
   for (const post of posts) {
     const { title, date, updated, tags, categories, description } = post.data;
-    const body = (post.body ?? '').trim();
+    /* 原文里的 `/posts/x/`、`/img/a.png` 在子路径部署下要补前缀 ——
+       这份文件不经过 HAST，渲染期那趟改写帮不到它（见 utils/url） */
+    const body = prefixMarkdownLinks((post.body ?? '').trim());
 
     lines.push(
       '',
@@ -65,8 +68,8 @@ export const GET: APIRoute = async ({ site }) => {
   /* 独立页面：正文不在内容集合里，靠 plainTextOf 拿不到，只能给一行说明。
      关掉的页面不出现 —— 和 llms.txt 保持同一口径 */
   const pages: string[] = [];
-  if (isPageEnabled('about')) pages.push(`- [关于](${url('/about/')}): 站点与作者介绍`);
-  if (isPageEnabled('links')) pages.push(`- [友链](${url('/links/')}): 推荐的其他站点`);
+  if (isPageEnabled('about')) pages.push(`- [关于](${url(withBase('/about/'))}): 站点与作者介绍`);
+  if (isPageEnabled('links')) pages.push(`- [友链](${url(withBase('/links/'))}): 推荐的其他站点`);
 
   if (pages.length > 0) {
     lines.push('', '---', '', '## 其他页面', '', ...pages);

@@ -1,0 +1,167 @@
+/* ==========================================================================
+   Flux · 页脚
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 16. 页脚 ---------- */
+/* 页脚不参与 flex 压缩：宁可让页面滚动，也不要把备案号挤掉一行 */
+footer {
+  flex-shrink: 0;
+}
+
+.footer-inner {
+  padding-bottom: 1.75rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--sec-text-color);
+}
+
+/* 与上方内容之间的分割线。
+   用「两端渐隐的 1px 渐变」而不是 border-top：上面那张卡片本身有圆角和投影，
+   正下方再来一条通栏硬边会被读成「卡片的底边框」，像多画了一笔。渐隐之后
+   它只在中间一段成立，才像一条独立的分隔线。
+   上下留白刻意不等（2.5 / 1.75）—— 线要更靠近页脚自己的内容，不能黏着卡片。 */
+.footer-inner::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin: 2.5rem 0 1.75rem;
+  background: linear-gradient(
+    to right,
+    transparent,
+    currentColor 18%,
+    currentColor 82%,
+    transparent
+  );
+  opacity: 0.18;
+}
+
+/* 三行文字之间统一的行距。用 `> * + *` 而不是逐个写：三块开关各关各的，
+   少一块时剩下的仍然挨得均匀 */
+.footer-inner > * + * {
+  margin-top: 0.55rem;
+}
+
+/* 三行：订阅 / 技术栈 / 版权，各自居中；行内元素自动换行 */
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem 0.6rem;
+}
+
+/* 行内分隔符「·」：显式写进模板并 aria-hidden，读屏不会念出来 */
+.footer-sep {
+  color: var(--line-color);
+  user-select: none;
+}
+
+/* —— 第一行：订阅入口 —— */
+.footer-subscribe a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  color: var(--sec-text-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-subscribe a:hover {
+  color: var(--link-hover-color);
+}
+.footer-svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex: none;
+}
+
+/* —— 第二行：技术栈胶囊 —— */
+.footer-stack {
+  gap: 0.5rem;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--line-color);
+  border-radius: 999px;
+  background-color: var(--button-bg-color);
+  font-size: 0.75rem;
+  color: var(--sec-text-color);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+a.pill:hover {
+  color: var(--text-color);
+  border-color: var(--link-hover-color);
+  background-color: var(--button-hover-bg-color);
+}
+/* 品牌色只上到图标，文字仍走次级色；悬停时再把非品牌图标点亮成强调色 */
+.pill.is-astro .footer-svg {
+  color: #ff5d01;
+}
+.pill.is-cloudflare .footer-svg {
+  color: #f6821f;
+}
+.pill.is-flux .footer-svg {
+  color: var(--link-hover-color);
+}
+a.pill.is-vercel:hover .footer-svg,
+a.pill.is-github:hover .footer-svg,
+a.pill.is-link:hover .footer-svg {
+  color: var(--link-hover-color);
+}
+
+/* 运行天数：等宽数字，脚本重算时几位数之间不会左右跳 */
+.uptime {
+  font-variant-numeric: tabular-nums;
+}
+.pulse {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: #22c55e;
+  flex: none;
+  animation: footer-pulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes footer-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 0.3rem rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+/* —— 第三行：版权 / 备案 ——
+   版权与备案同字号（都继承这里），整行比上面两行略大一点，作为收尾 */
+.footer-meta {
+  font-size: 0.875rem;
+}
+.footer-meta a {
+  color: var(--text-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.footer-meta a:hover {
+  color: var(--link-hover-color);
+}
+.beian {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+/* 尊重系统的「减少动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+  .footer-inner * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

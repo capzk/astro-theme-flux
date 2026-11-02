@@ -16,14 +16,16 @@
   ! Cache-Control
   Cache-Control: public, max-age=31536000, immutable
 
-# 图片与 favicon
+# public/ 里的图片：文件名**不带内容 hash**，换了图就是同名覆盖。
+# 所以只给一天 —— 30 天会让回访读者在换图后长达一个月看到旧图（banner、
+# 头像、og 图都是这类）。想长缓存就自己给文件名加 hash 或版本号再改这里。
 /img/*
   ! Cache-Control
-  Cache-Control: public, max-age=2592000
+  Cache-Control: public, max-age=86400
 
 /favicon.svg
   ! Cache-Control
-  Cache-Control: public, max-age=2592000
+  Cache-Control: public, max-age=86400
 
 # 自托管 Waline 客户端时（public/waline/waline-3.16.1.js 这种带版本号的文件名）
 # 把下面三行取消注释 —— 文件名里有版本号，换版本就是换文件名，可以永久缓存

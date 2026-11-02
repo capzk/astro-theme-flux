@@ -11,8 +11,10 @@ import { SITE } from '../config';
 import { T } from '../i18n';
 import type { Post } from '../utils/posts';
 import { excerptOf, postUrl, termUrl } from '../utils/posts';
+import { formatDate } from '../utils/date';
 import { isAsset, type ImageSource } from '../utils/image';
 import { lqipStyle } from '../utils/lqip';
+import { publicPath } from '../utils/url';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -32,11 +34,7 @@ const coverSrc: ImageSource | undefined = cover ?? indexImg ?? SITE.index.defaul
    同一篇在本页只真正算一次（见 utils/posts 的 plainTextOf） */
 const excerpt = excerptOf(post, summary);
 
-const dateText = date.toLocaleDateString('zh-CN', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
+const dateText = formatDate(date, 'card');
 ---
 
 <article class="index-card">
@@ -51,7 +49,9 @@ const dateText = date.toLocaleDateString('zh-CN', {
                封面是装饰性的（标题就是旁边的链接），所以 alt 留空。 */
             <Image src={coverSrc} alt="" widths={[240, 400, 560]} sizes="(max-width: 767px) 100vw, 240px" loading="lazy" />
           ) : (
-            <img src={coverSrc} alt={title} loading="lazy" />
+            /* 与上面的优化分支保持一致：外层的 <a> 已经是 aria-hidden 的纯装饰，
+               alt 写成标题只会在无障碍树里被忽略，却可能被搜索引擎当成重复文本 */
+            <img src={publicPath(coverSrc)} alt="" loading="lazy" />
           )}
         </a>
       </div>

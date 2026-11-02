@@ -101,7 +101,7 @@ jobs:
 
 `site` 填 `https://<用户名>.github.io`；如果用自定义域名，填那个域名，并在 `public/` 下放一个 `CNAME` 文件。
 
-<div class="note note-warning">如果仓库名不是 <code>&lt;用户名&gt;.github.io</code>，站点会部署在 <code>/仓库名/</code> 子路径下。这个主题默认按「根路径部署」写所有绝对路径（<code>/img/…</code>、<code>/favicon.svg</code>、<code>/rss.xml</code>），子路径会全部 404。要么用 <code>&lt;用户名&gt;.github.io</code> 这个仓库名，要么绑自定义域名，别硬扛。</div>
+<div class="note note-tip">如果仓库名不是 <code>&lt;用户名&gt;.github.io</code>，站点会部署在 <code>/仓库名/</code> 子路径下。这时把 <code>astro.config.mjs</code> 顶部的 <code>const BASE = '/仓库名'</code> 改掉就行：页面链接、public 里的图、正文里手写的 <code>/posts/…</code>、canonical、RSS、sitemap、搜索索引都会自动带上这个前缀。改完 <code>npm run build</code>，产物里不该再有「以 <code>/</code> 开头却不带前缀」的地址。唯一要手工处理的是 <code>public/_headers</code> 与 <code>public/_redirects</code> —— 这两个是托管平台的根相对配置，不会被改写（GitHub Pages 也不读它们）。</div>
 
 ## 方案二：Vercel / Netlify / Cloudflare Pages
 
@@ -173,7 +173,7 @@ your-domain.com {
 
 ## 那几个几乎人人踩一次的坑
 
-**页面能开，样式全丢**：通常是子路径部署（见上面 GitHub Pages 那段）。检查浏览器控制台里 `_astro/*.css` 是不是 404。
+**页面能开，样式全丢、图全裂**：多半是子路径部署但没改 `BASE`（见上面 GitHub Pages 那段）。样式本身是内联进 HTML 的，不会单独 404 —— 但 `background-image` 与 `<img>` 里的站内地址会全部指向域名根。看一眼控制台里 `/img/*` 是不是 404，就能确认。
 
 **文章页 404，首页正常**：`try_files` 缺 `$uri/index.html`，或者托管平台把 URL 当成了文件路径。
 
@@ -183,8 +183,9 @@ your-domain.com {
 
 **中英文混排的标签页 404**：`/tags/写作/` 这种中文路径，绝大多数托管平台没问题。但如果 404，多半是服务器没做 URL 解码，换英文标签最省事。
 
-## 上线之后值得做的三件事
+## 上线之后值得做的四件事
 
 1. 把站点提交到 [Google Search Console](https://search.google.com/search-console) 和百度站长平台，提交 `sitemap-index.xml`。
 2. **看一眼线上真正的 `robots.txt`**：仓库里那份由 `src/pages/robots.txt.ts` 从 `site` 现算，`Sitemap:` 一行不用你填。但托管平台可能自己接管这个文件 —— Cloudflare Pages 开了 Managed robots.txt 就会覆盖它，并且默认挡掉 GPTBot / ClaudeBot / CCBot / Bytespider 这些 AI 爬虫。`curl https://你的域名/robots.txt` 看到的才是搜索引擎看到的那份。
 3. 自己用手机打开一次 —— 主题在窄屏会隐藏目录、把卡片改成上下堆叠，这些都是看桌面版看不出来的。
+4. **加一份 CSP**。主题不内置（它得知道你开了哪些第三方服务），README 的「内容安全策略（CSP）」里有一份可以直接抄的模板。加完打开控制台看有没有 `Refused to …` —— CSP 配错不会白屏，只会让某块功能静默失效，最难查。

@@ -4,6 +4,7 @@ import sitemap from '@astrojs/sitemap';
 import { satteri } from '@astrojs/markdown-satteri';
 
 import {
+  baseLinks,
   codeChrome,
   codeToolbar,
   emailLinks,
@@ -19,8 +20,19 @@ import PAGES from './src/config/user/pages.ts';
 import { PAGE_PATH } from './src/config/shared/page-paths.ts';
 import { isListPage } from './src/utils/list-pages.ts';
 
-/** 文章路径 → 最后修改日期。匹配不上返回 undefined，sitemap 就退回原样 */
-const lastmodOf = createLastmodResolver();
+/**
+ * 部署前缀
+ * ---------------------------------------------------------------------------
+ * 部署在域名根就保持 `'/'`；要放到子路径（`example.com/blog/`）改成 `'/blog'`。
+ *
+ * 改这一处，`base` 配置、sitemap 过滤、lastmod 匹配会一起跟着变；运行时的
+ * `import.meta.env.BASE_URL` 也由 Astro 从同一个值派生，站内链接由
+ * `src/utils/url.ts` 的 `withBase()` 统一补前缀。
+ *
+ * ⚠️ `public/_headers` 与 `public/_redirects` 是托管平台的**根相对**文件，
+ *    不会被 base 改写。放在子路径时，里面每条路径都要手工加 `/blog` 前缀。
+ */
+const BASE = '/';
 
 /**
  * 被关掉的页面 → 不该出现在 sitemap 里。
@@ -41,6 +53,20 @@ const DISABLED_PAGES = new Set(
 );
 
 /**
+ * 去掉部署前缀，还原成主题内部使用的逻辑路径。
+ * 与 `src/utils/url.ts` 的 stripBase 同一套规则 —— 那边要用 import.meta.env，
+ * 不能在配置文件里 import，所以这里留一份十行的等价实现。
+ */
+function stripBase(pathname) {
+  if (BASE === '/') return pathname;
+  if (pathname === BASE) return '/';
+  return pathname.startsWith(`${BASE}/`) ? pathname.slice(BASE.length) : pathname;
+}
+
+/** 文章路径 → 最后修改日期。匹配不上返回 undefined，sitemap 就退回原样 */
+const lastmodOf = createLastmodResolver(BASE);
+
+/**
  * Flux · 配置
  * ---------------------------------------------------------------------------
  * 换域名只改 `site`。其余默认值都是主题调好的。
@@ -52,6 +78,8 @@ export default defineConfig({
      RSS / sitemap / canonical / OG 里的绝对地址都取自这里 ——
      fork 之后第一件事就是把它改成你自己的域名，否则分享出去的链接会指向这里。 */
   site: 'https://astro-theme-flux.pages.dev',
+  /* 部署前缀见文件顶部：改那一处即可，这里不要写死 */
+  base: BASE,
 
   /* 与 Hexo 版一致：/posts/hello/ 带尾斜杠、目录式输出，旧链接不会 404 */
   trailingSlash: 'always',
@@ -132,7 +160,9 @@ export default defineConfig({
     lqip(),
     sitemap({
       filter: (page) => {
-        const path = new URL(page).pathname;
+        /* 集成给回来的是含 base 的 pathname（/blog/tags/x/），先剥回逻辑路径，
+           否则子路径部署时所有过滤规则都会失灵 */
+        const path = stripBase(new URL(page).pathname);
         const withSlash = path.endsWith('/') ? path : `${path}/`;
         return !DISABLED_PAGES.has(withSlash) && !isListPage(withSlash);
       },
@@ -163,7 +193,9 @@ export default defineConfig({
         emailLinks(),
         imageLoading(),
         imageReferrer(),
-      ],
+        /* 根部署时 baseLinks 返回 null（这里滤掉）—— 主路径上不白跑一趟遍历 */
+        baseLinks(BASE),
+      ].filter(Boolean),
     }),
   },
 

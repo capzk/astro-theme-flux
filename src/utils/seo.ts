@@ -11,6 +11,7 @@
  * 而是同一个实体在各处说得一致。
  */
 import { SITE } from '../config';
+import { publicPath, withBase } from './url';
 
 /** 社交平台抓取封面时不渲染 SVG，只认这几种位图 */
 const RASTER_IMAGE = /\.(png|jpe?g|webp|avif|gif)(?:[?#].*)?$/i;
@@ -71,7 +72,9 @@ export function twitterHandle(): string | undefined {
  * 拿它当实体的身份证，比自造 `urn:xxx` 更容易被工具接受。
  */
 function siteIds(origin: URL | string) {
-  const base = absoluteUrl('/', origin);
+  /* 子路径部署时整站的「根」是 https://example.com/blog/ —— @id 必须跟着走，
+     否则首页与文章页声明的会是两个不同的站点实体 */
+  const base = absoluteUrl(withBase('/'), origin);
   return {
     base,
     website: `${base}#website`,
@@ -108,7 +111,7 @@ function personNode(origin: URL | string) {
  */
 function organizationNode(origin: URL | string) {
   const { base, publisher } = siteIds(origin);
-  const logo = RASTER_IMAGE.test(SITE.avatar) ? absoluteUrl(SITE.avatar, origin) : undefined;
+  const logo = RASTER_IMAGE.test(SITE.avatar) ? absoluteUrl(publicPath(SITE.avatar), origin) : undefined;
   return {
     '@type': 'Organization',
     '@id': publisher,

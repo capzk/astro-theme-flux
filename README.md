@@ -60,7 +60,8 @@
 | Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
 | AI 爬虫策略 | `robots.txt` 里一行 `Content-Signal`（允许引用、不允许训练）+ 一段注释掉的分机器人模板，想单独拒绝某一家就取消注释 |
 | 配置 | 三层：类型 / 出厂默认值 / 你的值。`defineConfig` 保类型检查，构建期体检静默失效的配置，升级主题不覆盖你的配置 |
-| CI | push 与 PR 都跑 `astro check` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡 |
+| 子路径部署 | `astro.config.mjs` 顶部改一个 `BASE`：页面链接、正文里手写的站内链接、public 图片、canonical、RSS、sitemap、搜索索引全都跟着走 |
+| CI | push 与 PR 都跑 `astro check` + `vitest` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡 |
 
 ## 开始使用
 
@@ -71,6 +72,7 @@ npm install
 npm run dev      # http://localhost:4321
 npm run build    # 产物在 dist/
 npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
+npm test         # 纯函数的单元测试（排序 / 分页 / base 前缀 / 配置体检…）
 ```
 
 要求 **Node ≥ 22.23.4**（Astro 7 的要求）。
@@ -653,7 +655,8 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/archives/
 ```
 src/
 ├── config/              # ★ 配置
-│   ├── index.ts         #   总出口：合并默认值 + 你的值，导出 SITE
+│   ├── index.ts         #   总出口：合并默认值 + 你的值，导出 SITE（纯数据，不读 fs）
+│   ├── validate.ts      #   构建期体检：配置「合法但不对」时说一句（依赖可注入，可单测）
 │   ├── types.ts         #   字段类型与说明
 │   ├── defaults.ts      #   出厂默认值（升级时被替换）
 │   ├── merge.ts         #   深合并规则（30 行）
@@ -672,7 +675,7 @@ src/
 │   └── portal/          #   门户首页专用的分类分区与卡片
 ├── pages/               # 文件即路由（外加 llms.txt / llms-full.txt / atom.xml /
 │                        # rss.xml / searchindex.json / robots.txt 六个端点）
-├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链
+├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链 / base 前缀
 ├── plugins/shiki.js     # 围栏 meta：行高亮 {1,3-5}、nolinenos
 ├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶、邮箱还原
 ├── scripts/search.js    # 站内搜索
@@ -685,17 +688,80 @@ src/
 │   ├── giscus.ts        #   Giscus 的构建期实现
 │   ├── artalk.ts        #   Artalk 的构建期实现
 │   └── client/          #   浏览器里怎么挂（每家一个文件）
-├── utils/posts.ts       # 取文章 / 排序 / 分页 / 相关文章 / 阅读统计（含构建期缓存）
+├── utils/posts.ts       # 取文章（astro:content）+ 转出下面的纯函数
+├── utils/post-list.ts   # 排序 / 分页 / 相关文章 / 系列：纯函数，零 astro:content 依赖
+├── utils/url.ts         # base 前缀：withBase / stripBase / publicPath
+├── utils/date.ts        # 日期格式化（版式三档，语言跟随 SITE.lang）
 ├── utils/slug.ts        # URL 规范化（含中文转拼音）
 ├── utils/image.ts       # 图片两种写法的统一处理
 ├── utils/lqip.ts        # 图片 → 占位色渐变（读 virtual:flux-lqip）
 ├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
 ├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
-├── styles/main.css      # 全站样式（变量分亮暗两套）
+├── styles/main.css      # 样式入口：只做 @import，规则分在下面这些分片里
+│   └── tokens / base / layout / cards / post / code / post-footer /
+│       comments / terms / footer / overlays / responsive
 └── styles/portal.css    # 门户首页专用样式（只在首页引入）
 
+tests/                   # vitest：只测纯函数（排序 / 分页 / base 前缀 / 配置体检）
+vitest.config.ts         # 测试配置（不加载 Astro，直接跑 TS）
 ```
+
+## 部署到子路径（`base`）
+
+默认按「域名根」部署。要放到子路径（GitHub Pages 的 `/<仓库名>/`、或 nginx 的
+`location /blog/`），只改一个地方 —— `astro.config.mjs` 顶部的：
+
+```js
+const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
+```
+
+改完之后这些都会跟着走，不需要手工补：
+
+| 位置 | 谁负责 |
+| --- | --- |
+| 页面里的站内链接、`public/` 里的图（`SITE.avatar`、`banner.img`…） | `src/utils/url.ts` 的 `withBase()` / `publicPath()` |
+| `SITE.nav` 里的导航项 | Navbar 渲染时过 `withBase()` |
+| 正文 Markdown 里手写的 `](/posts/x/)`、`<img src="/img/a.png">` | `src/plugins/markdown.js` 的 `baseLinks()` |
+| `/llms-full.txt`（直接吐 Markdown 原文，不经过 HAST） | `prefixMarkdownLinks()` |
+| `canonical` / `og:url` / JSON-LD / RSS / Atom / `sitemap` / `robots.txt` / 搜索索引 | 各自走 `withBase()`，`sitemap` 的过滤还要 `stripBase()` 才能和路由对上 |
+
+**唯一不会自动改的是 `public/_headers` 与 `public/_redirects`** —— 这两个是托管平台的
+根相对配置，`/page/*` 这种规则不会变成 `/blog/page/*`。真放到子路径时，记得手工给
+里面每条路径加前缀（而且这两家通常本来也不支持子路径挂载，更多是 nginx 场景）。
+
+验证方式：改完跑一次 `npm run build`，全站产物里不该再有「以 `/` 开头但不带前缀」的
+链接。改了 `astro.config.mjs` 之后 Astro 会自动清内容缓存；只改 `src/plugins/*` 时
+缓存不一定失效，遇到「改了没生效」先删 `.astro` 与 `node_modules/.astro` 再构建。
+
+## 内容安全策略（CSP）
+
+主题**没有**内置 CSP —— CSP 必须知道你最终开了哪些第三方服务，写死在主题里只会
+逼人整段覆盖。这里给一份可以直接抄的模板，按你实际开的项增删。
+
+放在 `public/_headers`（Cloudflare Pages / Netlify）或 nginx 的 `add_header` 里：
+
+```
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.clarity.ms https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://www.google-analytics.com https://*.clarity.ms; frame-src https://challenges.cloudflare.com; base-uri 'self'; form-action 'self'
+```
+
+几个必须解释的地方：
+
+- **`script-src` 里的 `'unsafe-inline'` 暂时去不掉**。首帧的深色模式脚本、统计初始化、
+  评论挂载都是 `is:inline`（内联 + `define:vars`），CSP 对内联脚本只认 nonce 或 hash。
+  要做严格 CSP，得把这些改成带 nonce 的外链脚本，等于放弃「零请求」这个取舍。
+- **`style-src` 也需要 `'unsafe-inline'`**：样式是整份内联进 HTML 的（见「性能」），
+  另外 LQIP 与部分版式用行内 `style` 属性。
+- 统计按需加：Google Analytics → `script-src` 加 `https://www.googletagmanager.com`、
+  `connect-src` 加 `https://*.google-analytics.com`；Umami 是你自己的域名，`connect-src`
+  要加那个域名；Clarity → `https://www.clarity.ms`（脚本）与 `https://*.clarity.ms`（回传）。
+- 评论：Waline / Artalk 的 CDN 要进 `script-src` 与 `style-src`，服务端地址进
+  `connect-src`；Giscus 走 `https://giscus.app`（`frame-src` + `script-src`）。
+- **`frame-src` 只放评论与 Turnstile**。别图省事写 `frame-src *`。
+
+上线后打开控制台看有没有 `Refused to …` 的报错 —— CSP 报错不会让页面白屏，只会
+让某块功能静默失效，正是最该盯一眼的那类问题。
 
 ## 性能
 

@@ -8,6 +8,7 @@
 import { SITE } from '../config';
 import { T } from '../i18n';
 import { isNavHidden } from '../utils/pages';
+import { withBase } from '../utils/url';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -45,7 +46,7 @@ if (nav.length === 0) {
 <header>
   <nav class:list={['navbar', { 'is-solid': !isHome }]} id="navbar" data-home={String(isHome)}>
     <div class="container nav-inner">
-      <a class="navbar-brand" href="/">{SITE.title}</a>
+      <a class="navbar-brand" href={withBase('/')}>{SITE.title}</a>
 
       <ul class="nav-links">
         {
@@ -53,7 +54,7 @@ if (nav.length === 0) {
             <li>
               <a
                 class:list={['nav-link', { 'is-active': isActive(item.href) }]}
-                href={item.href}
+                href={withBase(item.href)}
                 target={item.external ? '_blank' : undefined}
                 rel={item.external ? 'noopener noreferrer' : undefined}
               >
@@ -104,7 +105,7 @@ if (nav.length === 0) {
         nav.map((item) => (
           <li>
             <a
-              href={item.href}
+              href={withBase(item.href)}
               class:list={{ 'is-active': isActive(item.href) }}
               target={item.external ? '_blank' : undefined}
               rel={item.external ? 'noopener noreferrer' : undefined}

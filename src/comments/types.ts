@@ -57,7 +57,7 @@ export interface CommentSection extends CommentPayload {
  *
  * 各家的接口形状差得太远（Waline 是 `GET /comment?type=recent`，别家没有或者
  * 要鉴权），所以这里**不定义统一的返回结构** —— provider 只负责给出「去哪取、
- * 取几条」，把响应整理成 `<li>` 的活儿交给 `client/recent.js` 里那家自己的
+ * 取几条」，把响应整理成 `<li>` 的活儿交给 `src/scripts/recent.js` 里的
  * 归一化函数。多一层抽象的代价比多写十行适配还高。
  */
 export interface RecentCommentsSpec {

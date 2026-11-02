@@ -112,7 +112,7 @@ export const T = (SITE.lang.startsWith('en') ? en : zh) as typeof zh;
 注意两件事：
 
 1. **`as const` 和 `as typeof zh` 别丢**。组件里写的是 `T.xxx`，靠类型检查保证键名不写错；去掉之后拼错的键名会静默变成 `undefined`，页面上直接空一块。
-2. **带参数的项是函数**（`totalPosts(n)`），别改成字符串模板。日期格式在页面里用 `toLocaleDateString('zh-CN', …)` 写死了，加语言时要一起改成跟随 `SITE.lang`。
+2. **带参数的项是函数**（`totalPosts(n)`），别改成字符串模板。日期不在这里 —— 它走 `src/utils/date.ts` 的 `formatDate(date, 'day' | 'card' | 'long')`，语言跟随 `SITE.lang`，所以改 `lang` 之后日期格式会自己跟着变。
 
 真正的多语言站点（`/en/` 和 `/zh/` 两套路由）不在当前范围内 —— 那需要把 `pages/` 整个复制一份或改成 `[lang]` 动态段，工作量比这个主题现在的定位大。
 

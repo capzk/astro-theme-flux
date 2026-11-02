@@ -118,8 +118,12 @@ function start(section) {
       if (payload && typeof payload === 'object' && !Array.isArray(payload) && payload.errno) {
         throw new Error(`Waline ${payload.errno}: ${payload.errmsg || ''}`);
       }
-      const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
-      const items = normalize(config.type, list, config.length || 60);
+      /* 变量名刻意叫 rows 不叫 list：`list` 在上面的 start() 作用域里已经是
+         「要往哪个 <ul> 里塞」（DOM 节点）。这里再用同名 const 会把它遮蔽掉，
+         下面 render(list, items) 拿到的就变成数组 —— 数组没有 .append()，
+         抛错又被外层 catch 吞掉，挂件于是整块消失，且看不出任何报错。 */
+      const rows = Array.isArray(payload) ? payload : (payload?.data ?? []);
+      const items = normalize(config.type, rows, config.length || 60);
       /* 一条都没有时整块不出现 —— 一个「暂无评论」的空卡片比没有更冷清 */
       if (items.length === 0) {
         section.remove();

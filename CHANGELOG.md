@@ -5,6 +5,63 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+这一轮是「对照 Astro 官方文档做一次架构体检」的产物：不改变视觉版式，只补工程化和
+几个静默失效的缺陷。详细的逐项分析见仓库根目录的 `待修复项.md`。
+
+### Added
+
+- **子路径部署（`base`）支持**。`astro.config.mjs` 顶部一个 `const BASE`，改成
+  `'/blog'` 即可部署到 `example.com/blog/`。新增 `src/utils/url.ts`
+  （`withBase` / `stripBase` / `publicPath` / `prefixMarkdownLinks`，全部幂等）与
+  Markdown HAST 插件 `baseLinks`（含正文里整段原始 HTML 的 `raw` 节点）；导航、正文
+  链接、public 图片、canonical、og:url、JSON-LD、RSS / Atom、sitemap、robots.txt、
+  搜索索引、`llms-full.txt` 全部跟随。`public/_headers`、`public/_redirects` 是托管
+  平台的根相对配置，需手工加前缀（README 有说明）。
+- **`src/config/validate.ts`**：构建期体检从 `src/config/index.ts` 拆出，依赖改为参数
+  注入（`site` / `publicDir` / `fileExists`），`reportConfigIssues` 幂等、只在
+  BaseLayout 首次渲染时跑一次 —— 于是 `inspect()` 第一次变得可单测。
+- **`src/utils/date.ts`**：`formatDate(date, 'day' | 'card' | 'long')`。原先 9 处
+  `toLocaleDateString('zh-CN', …)` 把语言写死在组件里，改 `SITE.lang` 后日期不会跟着变。
+- **首页轮播的「暂停 / 继续自动播放」按钮**。自动播放超过 5 秒必须有显式开关
+  （WCAG 2.2.2），悬停 / 聚焦暂停只是顺手的，键盘与触屏用户抓不住。
+- **单元测试**：`vitest`，`tests/` 下 6 个文件 83 个用例，覆盖排序 / 分页边界 /
+  相关文章权重 / 系列排序 / slug 转写 / 配置深合并 / 列表页判定 / base 前缀 /
+  配置体检。CI 增加 `npm test` 一步。
+- README 新增「部署到子路径（`base`）」与「内容安全策略（CSP）」两节；后者给一份
+  可直接抄的模板，并解释为什么 `script-src` 暂时去不掉 `'unsafe-inline'`。
+
+### Changed
+
+- **`src/styles/main.css` 拆分**：原来 2800 行的单文件改成「入口只做 `@import`」+
+  12 个分片（tokens / base / layout / cards / post / code / post-footer / comments /
+  terms / footer / overlays / responsive）。构建产物的内联 CSS 与拆分前**逐字节相同**。
+- **`src/utils/posts.ts` 拆分**：`post-list.ts` 只放纯函数（零 `astro:content` 依赖，
+  可单测），`posts.ts` 负责取集合，并把纯函数原样转出 —— 页面导入路径不变。
+- **`SITE` 变成纯数据**：`src/config/index.ts` 不再 `import node:fs`、不再读
+  `import.meta.env.SITE`，只剩「默认值 ⊕ 你的值」。
+- **`index.portal.featured` 语义说清**：它是 hero 的**容量**（置顶优先、不足用最新
+  补位），不是「置顶开关」；置顶比容量多时构建期提示一句。
+- 点轮播圆点会同时把暂停状态同步到按钮（以前只 `stop()` 不标记，按钮显示「暂停」
+  但实际早就停了）。
+- `isListPage(pathname, base)` 新增第二个参数，`pageKeyOf()` 先 `stripBase` ——
+  子路径部署时 sitemap 给的是含前缀的 pathname，不剥前缀会永远匹配不上。
+
+### Fixed
+
+- `src/scripts/recent.js` 的变量遮蔽：`const list = payload.data` 盖住了外层那个
+  要往里塞节点的 `<ul>`，`render()` 收到数组后 `.append()` 抛错又被 `catch` 吞掉，
+  挂件整块消失且没有任何报错。改用 `rows`（`comment.recent` 默认关，所以长期没暴露）。
+- 深色模式三处语义错误：`darkMode.enable: false` 时仍读 localStorage（历史暗色用户被
+  锁死）、`default` 为固定值时仍跟随系统变化、手动切换后 `meta[name=theme-color]`
+  停在旧色。
+- `public/_headers` 里 `/img/*` 与 `/favicon.svg` 的 30 天强缓存：文件名没有内容 hash，
+  换图即同名覆盖，回访者最长一个月看旧图 —— 降到 1 天。
+- 卡片封面（`PostCard` / `PortalCard` 的字符串路径分支）走 `publicPath`，`alt` 留空
+  （外层 `<a>` 已是 `aria-hidden` 的装饰容器）。
+- RSS 频道的 `<link>` 缺 base 前缀，子路径部署时会指回域名根。
+
 ## [5.1.0] - 2026-11-01
 
 ### Added

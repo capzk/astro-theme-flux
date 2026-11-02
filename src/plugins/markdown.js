@@ -301,3 +301,66 @@ export function imageLoading() {
     },
   };
 }
+
+/* --------------------------------------------------------------------------
+ * 7. 正文里的站内链接补部署前缀
+ * ------------------------------------------------------------------------ */
+
+/**
+ * 子路径部署（`base: '/blog'`）时，主题自己的链接由 `src/utils/url.ts` 的
+ * `withBase()` 补前缀 —— 但**正文里手写的** `/posts/xxx/`、`/img/a.png` 不在 DOM
+ * 生成流程里，Astro 也不会替你改写，于是它们会全部 404。
+ *
+ * 这一趟在 HAST 阶段改：根相对的 `href` / `src` 前面加前缀。
+ * 判断「要不要加」的规则和 `withBase()` 完全一致（幂等）：
+ *
+ *   http(s)://…  外链              → 不动
+ *   //cdn…       协议相对          → 不动
+ *   #anchor     页内锚点           → 不动
+ *   mailto:…     其它 scheme       → 不动
+ *   /blog/xxx    已经有前缀        → 不动
+ *   /posts/xxx   根相对            → 加
+ *
+ * 根部署（base = '/'）时这个插件直接返回 null，由 astro.config 过滤掉 ——
+ * 主路径上不引入任何多余的遍历。
+ *
+ * 注意它**只改正文**：组件里的链接由 withBase 负责，配置里的 `SITE.nav`
+ * 由 Navbar 负责。三处各自的来源不同，混在一起反而容易漏。
+ */
+export function baseLinks(base = '/') {
+  const prefix = `/${String(base).replace(/^\/+|\/+$/g, '')}`;
+  if (prefix === '/') return null;
+
+  const needsPrefix = (value) =>
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    value !== prefix &&
+    !value.startsWith(`${prefix}/`);
+
+  const ATTRS = ['href', 'src', 'poster'];
+  /* 正文里整段的原始 HTML（比如 <figure><img src="/img/a.png">）不走 HAST 元素，
+     而是作为 `raw` 节点原样穿过 —— 上面那个 element 访问器碰不到它。
+     只能用正则在字符串层面改：属性名 + 引号成对，值限定为根相对路径。 */
+  const RAW_ATTR = /\b(href|src|poster)\s*=\s*(["'])(\/[^"']*)\2/g;
+
+  return {
+    name: 'flux:base-links',
+    element: {
+      filter: ['a', 'img', 'source', 'video', 'audio', 'iframe'],
+      visit(node, ctx) {
+        for (const attr of ATTRS) {
+          const value = node.properties?.[attr];
+          if (typeof value !== 'string' || !needsPrefix(value)) continue;
+          ctx.setProperty(node, attr, `${prefix}${value}`);
+        }
+      },
+    },
+    raw(node) {
+      const next = node.value.replace(RAW_ATTR, (whole, attr, quote, url) =>
+        needsPrefix(url) ? `${attr}=${quote}${prefix}${url}${quote}` : whole,
+      );
+      /* 没变就别返回新节点 —— 每次返回都算一次替换，白白多一趟写回 */
+      return next === node.value ? undefined : { ...node, value: next };
+    },
+  };
+}

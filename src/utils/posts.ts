@@ -1,32 +1,29 @@
 /**
  * 文章数据层
  * ---------------------------------------------------------------------------
- * 「取文章 → 排序 → 统计」都收在这里，页面只消费结果。换排序规则、改置顶
- * 策略、增加相关文章算法，都不用翻每个页面。
+ * 两类东西分开住：
+ *
+ *   posts.ts       需要 `astro:content` 的部分 —— 取集合、生成 URL、正文摘要
+ *   post-list.ts   纯函数 —— 排序、分组、切页、相关文章、系列（可单测）
+ *
+ * 页面仍然只从 `utils/posts` 一处引入：下面把 post-list 的结果原样转出，
+ * 调用方不用关心某个函数住哪个文件。
  */
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection } from 'astro:content';
 import { postSlug } from './slug';
+import { withBase } from './url';
+import { byDateDesc, type Post } from './post-list';
 
-export type Post = CollectionEntry<'posts'>;
+export type { Post } from './post-list';
 
 /** 开发环境显示草稿，构建产物里剔除 */
 const visible = ({ data }: { data: { draft?: boolean } }) =>
   import.meta.env.DEV ? true : !data.draft;
 
-const byDateDesc = (a: Post, b: Post) => b.data.date.getTime() - a.data.date.getTime();
-
 /** 全部可见文章，时间倒序 */
 export async function getPosts(): Promise<Post[]> {
   const posts = await getCollection('posts', visible);
   return posts.sort(byDateDesc);
-}
-
-/** 首页用：置顶排前，其余时间倒序 */
-export function stickyFirst(posts: Post[]): Post[] {
-  return [...posts].sort((a, b) => {
-    const pin = Number(b.data.sticky) - Number(a.data.sticky);
-    return pin !== 0 ? pin : byDateDesc(a, b);
-  });
 }
 
 /**
@@ -53,8 +50,11 @@ export function slugOf(post: Post): string {
   return slug;
 }
 
-/** /posts/<slug>/ —— slug 由文件名或 front matter 的 `slug` 决定，全小写 ASCII */
-export const postUrl = (post: Post) => `/posts/${slugOf(post)}/`;
+/**
+ * /posts/<slug>/ —— slug 由文件名或 front matter 的 `slug` 决定，全小写 ASCII。
+ * `withBase` 让子路径部署（`base: '/blog'`）下的链接也正确；默认部署是恒等变换。
+ */
+export const postUrl = (post: Post) => withBase(`/posts/${slugOf(post)}/`);
 
 /**
  * 把文章列表编成 slug → post 的映射，顺带检查撞车。
@@ -91,93 +91,6 @@ export function postsBySlug(posts: Post[]): Map<string, Post> {
   return map;
 }
 
-/** 中文标签直接进 URL（/tags/前端/），与 Hexo 版一致 */
-export const termUrl = (kind: 'tags' | 'categories', name: string) =>
-  `/${kind}/${encodeURIComponent(name)}/`;
-
-/** 某个分类 / 标签下的文章（保持传入顺序，即时间倒序） */
-export const postsWithTerm = (posts: Post[], kind: 'tags' | 'categories', name: string) =>
-  posts.filter((post) => post.data[kind].includes(name));
-
-/** 按年份分组，给归档页 */
-export function groupByYear(posts: Post[]) {
-  const map = new Map<number, Post[]>();
-  for (const post of posts) {
-    const year = post.data.date.getFullYear();
-    if (!map.has(year)) map.set(year, []);
-    map.get(year)!.push(post);
-  }
-  return [...map.entries()].sort((a, b) => b[0] - a[0]);
-}
-
-/**
- * 切页。页码从 1 开始；`page(n)` 越界时返回空数组，所以路由生成阶段必须先用
- * `lastPage` 兜住 —— 别指望这里替你把页码钳到合法范围，那会掩盖路由算错的问题。
- */
-export function paginate<T>(items: T[], pageSize: number) {
-  const size = Math.max(1, pageSize);
-  return {
-    lastPage: Math.max(1, Math.ceil(items.length / size)),
-    page: (n: number) => items.slice((n - 1) * size, n * size),
-  };
-}
-
-/**
- * 第 n 页的地址。`base` 是列表首页（以 `/` 结尾），第 1 页回到 base，
- * 其余走 `${base}page/n/` —— `/archives/page/2/`、`/tags/前端/page/2/` 都走这一条。
- */
-export const pageUrlOf = (base: string, n: number) => (n <= 1 ? base : `${base}page/${n}/`);
-
-/** 标签计数，按数量倒序 */
-export function tagCounts(posts: Post[]) {
-  return countOf(posts.flatMap((p) => p.data.tags));
-}
-
-/** 分类计数，按数量倒序 */
-export function categoryCounts(posts: Post[]) {
-  return countOf(posts.flatMap((p) => p.data.categories));
-}
-
-function countOf(names: string[]) {
-  const map = new Map<string, number>();
-  for (const name of names) map.set(name, (map.get(name) ?? 0) + 1);
-  return [...map.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
-/** 上一篇 / 下一篇（按时间正序相邻） */
-export function neighbours(posts: Post[], current: Post) {
-  const asc = [...posts].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
-  const i = asc.findIndex((p) => p.id === current.id);
-  return { prev: i > 0 ? asc[i - 1] : undefined, next: i < asc.length - 1 ? asc[i + 1] : undefined };
-}
-
-/**
- * 相关文章：按标签 / 分类的重合度打分，取前几条。
- *
- * 权重是「标签 3 分、分类 2 分」—— 标签通常更具体（`Astro`、`slug`），
- * 分类更宽泛（`随笔`），所以标签命中更能说明两篇在讲同一件事。
- * 同分按时间倒序，避免每次构建挑出不同的文章。零分的直接丢弃：
- * 与其拿「都发在这个博客」当相关性，不如整块不显示。
- */
-export function relatedPosts(posts: Post[], current: Post, limit = 3): Post[] {
-  const tags = new Set(current.data.tags);
-  const categories = new Set(current.data.categories);
-
-  return posts
-    .filter((post) => post.id !== current.id)
-    .map((post) => {
-      const tagHits = post.data.tags.filter((tag) => tags.has(tag)).length;
-      const categoryHits = post.data.categories.filter((c) => categories.has(c)).length;
-      return { post, score: tagHits * 3 + categoryHits * 2 };
-    })
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score || byDateDesc(a.post, b.post))
-    .slice(0, limit)
-    .map((entry) => entry.post);
-}
-
 /** 正文纯文本（去 Markdown 标记），用于摘要与搜索索引 */
 export function plainText(body: string): string {
   return body
@@ -188,44 +101,6 @@ export function plainText(body: string): string {
     .replace(/[#>*`_~|-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-/* ---------------------------------------------------------------------------
- * 系列
- * ------------------------------------------------------------------------- */
-export interface SeriesInfo {
-  name: string;
-  /** 系列里的全部文章，按 seriesOrder 升序；没写序号的按发布时间排在后面 */
-  items: Post[];
-  /** 当前这篇在 items 里的下标（0 起） */
-  index: number;
-}
-
-/**
- * 当前文章所属的系列。不属于任何系列、或者同名文章只有它自己，都返回 null ——
- * 一篇文章谈不上「系列」，那种情况下显示一个只有一行的清单只是噪音。
- *
- * 排序规则：写了 `seriesOrder` 的按序号走，没写的按发布时间排在它们后面。
- * 这样「只关心顺序、懒得编号」的写法也是可用的，而且不会因为一半有号一半没号
- * 而乱掉 —— 没号的永远不会插到有号的中间。
- */
-export function seriesOf(posts: Post[], current: Post): SeriesInfo | null {
-  const name = current.data.series?.trim();
-  if (!name) return null;
-
-  const items = posts
-    .filter((post) => post.data.series?.trim() === name)
-    .sort((a, b) => {
-      const ao = a.data.seriesOrder ?? Number.POSITIVE_INFINITY;
-      const bo = b.data.seriesOrder ?? Number.POSITIVE_INFINITY;
-      if (ao !== bo) return ao - bo;
-      return a.data.date.getTime() - b.data.date.getTime();
-    });
-
-  if (items.length < 2) return null;
-
-  const index = items.findIndex((post) => post.id === current.id);
-  return index === -1 ? null : { name, items, index };
 }
 
 /* ---------------------------------------------------------------------------
@@ -275,3 +150,27 @@ export function readingStats(post: Post, wpm: number): { words: number; minutes:
   statsCache.set(key, stats);
   return stats;
 }
+
+/* ---------------------------------------------------------------------------
+ * 纯函数转出
+ * ---------------------------------------------------------------------------
+ * 排序 / 分组 / 切页 / 相关文章 / 系列都在 post-list.ts（零 astro:content 依赖，
+ * 可单测）。这里原样转出，页面继续 `from '../utils/posts'` 一处引入即可。
+ * ------------------------------------------------------------------------- */
+export {
+  byDateDesc,
+  stickyFirst,
+  stickyOnly,
+  postsWithTerm,
+  termUrl,
+  groupByYear,
+  paginate,
+  pageUrlOf,
+  tagCounts,
+  categoryCounts,
+  countOf,
+  neighbours,
+  relatedPosts,
+  seriesOf,
+} from './post-list';
+export type { SeriesInfo } from './post-list';

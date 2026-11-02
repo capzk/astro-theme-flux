@@ -30,9 +30,20 @@ function normalize(pathname: string): string {
   return withSlash.endsWith('/') ? withSlash : `${withSlash}/`;
 }
 
-/** 是否为列表页（清单页） */
-export function isListPage(pathname: string): boolean {
-  const path = normalize(pathname);
+/**
+ * 是否为列表页（清单页）。
+ *
+ * `base` 是站点部署的前缀（`/` 或 `/blog`）。sitemap 集成交给 filter 的是**完整
+ * URL 的 pathname**，子路径部署时形如 `/blog/tags/x/` —— 不剥掉前缀就永远匹配不上，
+ * 结果是一堆清单页重新混进 sitemap（而页面自己仍然 noindex，两边打架）。
+ */
+export function isListPage(pathname: string, base = '/'): boolean {
+  const prefix = `/${base.replace(/^\/+|\/+$/g, '')}`;
+  const bare =
+    prefix !== '/' && (pathname === prefix || pathname.startsWith(`${prefix}/`))
+      ? pathname.slice(prefix.length) || '/'
+      : pathname;
+  const path = normalize(bare);
 
   /* 所有「第 2 页及以后」：/archives/page/2/、/tags/前端/page/2/、/categories/前端/page/2/ …
      第 1 页不在此列 —— 它以 `/archives/`、`/tags/前端/`、`/categories/前端/` 的形态存在，

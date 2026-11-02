@@ -1,0 +1,152 @@
+/* ==========================================================================
+   Flux · 基础元素、排版与图标
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 2. 基础 ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+html {
+  height: 100%;
+}
+
+/*
+ * 页脚贴底
+ * ---------------------------------------------------------------------------
+ * body 撑满一屏并变成纵向 flex 容器，main 吃掉剩余高度 —— 内容不满一屏时
+ * （友链 / 分类 / 标签 / 目录这类短页面），页脚被压到视口底部，而不是跟在
+ * 内容后面浮在半空中。
+ *
+ * 原版 Fluid 的 html/body 只是 `height: 100%`，并没有这套机制：它的页脚也在
+ * 正常流里，靠每页的 banner（首页 100vh、其他页 40vh）把内容撑高才看不出问题。
+ * 这里用 flex 是标准解法，顺带把「banner 高度调小」这个自由度还给使用者。
+ */
+body {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-family: var(--font-family-sans-serif);
+  overflow-wrap: break-word;
+}
+
+/* 内容区吃掉剩余空间；页脚不参与压缩 */
+#main {
+  flex: 1 0 auto;
+}
+
+body {
+  background-color: var(--body-bg-color);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+body.is-locked {
+  overflow: hidden;
+}
+
+a {
+  color: var(--text-color);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+
+a:hover {
+  color: var(--link-hover-color);
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-style: none;
+}
+
+code {
+  color: inherit;
+}
+
+table {
+  font-size: inherit;
+  color: var(--post-text-color);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-color);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-hover-color);
+}
+::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+
+::selection {
+  background: rgba(48, 169, 222, 0.22);
+}
+
+/* 跳到主要内容（无障碍） */
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 2000;
+  background: var(--navbar-bg-color);
+  color: #fff;
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 6px 0;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+.container {
+  width: 100%;
+  /* 原版用 Bootstrap 的 .container，≥1200 时 max-width 1140 */
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ---------- 3. 图标 ---------- */
+/* 内联 SVG（Feather 风格）：描边着色，随 font-size 缩放 */
+.icon {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.125em;
+  flex: none;
+}
+
+/* 只给读屏的文本 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+

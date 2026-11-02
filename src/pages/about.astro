@@ -10,6 +10,7 @@ import Board from '../components/Board.astro';
 import { SITE } from '../config';
 import { T } from '../i18n';
 import { isPageEnabled } from '../utils/pages';
+import { publicPath } from '../utils/url';
 
 /* 关掉时整页不输出，直接跳回首页。放在最前面 —— 后面那些查询和渲染
    没有理由为一个不存在的页面发生。导航与 sitemap 的联动见 utils/pages。
@@ -35,7 +36,7 @@ const title = T.about;
 
   <Board>
     <div class="about">
-      <img class="about-avatar" src={SITE.avatar} alt={SITE.author} width="112" height="112" />
+      <img class="about-avatar" src={publicPath(SITE.avatar)} alt={SITE.author} width="112" height="112" />
       <h1 class="about-name">{SITE.author}</h1>
       <p class="about-bio">{SITE.description}</p>
 

@@ -10,6 +10,7 @@ import Board from '../components/Board.astro';
 import { SITE } from '../config';
 import { LINKS } from '../config';
 import { isPageEnabled } from '../utils/pages';
+import { publicPath } from '../utils/url';
 
 /* 同 about.astro：关掉就生成一个 meta refresh 页跳回首页（静态输出没有真 301），
    导航与 sitemap 会一起消失 */
@@ -29,7 +30,7 @@ const title = '友链';
         LINKS.map((item) => (
           <a class="link-card" href={item.url} target="_blank" rel="noopener noreferrer">
             {item.avatar ? (
-              <img class="link-avatar" src={item.avatar} alt="" width="44" height="44" loading="lazy" />
+              <img class="link-avatar" src={publicPath(item.avatar)} alt="" width="44" height="44" loading="lazy" />
             ) : (
               <span class="link-avatar" aria-hidden="true" />
             )}

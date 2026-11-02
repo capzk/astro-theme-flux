@@ -1,0 +1,574 @@
+/* ==========================================================================
+   Flux · 导航栏、Banner、内容面板
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 4. 导航栏 ---------- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  font-size: 0.875rem;
+  background-color: transparent;
+  transition: background-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out,
+    padding 0.5s ease-in-out;
+  padding: 1rem 0;
+}
+
+/* 滚动后 / 非首页：实色 + 阴影（原版 top-nav-collapse） */
+.navbar.is-solid {
+  background-color: var(--navbar-bg-color);
+  box-shadow: var(--navbar-shadow);
+  padding: 0.4rem 0;
+}
+
+/* 未滚动时顶栏是透明的，文字直接躺在 banner 图上 —— 而图是可以换成任何一张的，
+   所以不能指望「白色字恰好压得住」。这里补一层自上而下的渐变压暗（scrim）：
+   - 用渐变而不是整条实色底：实色会在图中间切出一条硬边，一眼就看出是「贴了个条」；
+   - 渐变顶端正好盖住文字、往下几十像素内收干净，看起来像照片本身的暗角；
+   - 用伪元素而不是 background-image，是为了能和 .is-solid 的实色「交叉淡化」：
+     滚动时实色淡入、scrim 淡出，两者叠化，不会先变灰再变深跳一下。
+   z-index: -1 让它压在文字下面 —— .navbar 自己有 z-index，已经是独立层叠上下文，
+   所以这一层不会漏到页面背景上去。 */
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -1.75rem;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, var(--navbar-scrim)) 0%,
+    rgba(0, 0, 0, calc(var(--navbar-scrim) * 0.4)) 62%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  /* 时长与 .navbar 的 background-color 过渡保持一致：两层一起交叉淡化，
+     加起来的「暗度」几乎是常数，滚过触发点时不会一暗一亮 */
+  transition: opacity 0.5s ease-in-out;
+}
+.navbar.is-solid::before {
+  opacity: 0;
+}
+
+/* 透明态的文字保险：即便把 navbarScrim 调到 0，一层极浅的投影也能把白字托起来。
+   实色态不需要 —— 深底色上叠阴影只会让字发毛。 */
+.navbar:not(.is-solid) .navbar-brand,
+.navbar:not(.is-solid) .nav-link,
+.navbar:not(.is-solid) .icon-btn {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 2.5rem;
+}
+
+.navbar-brand {
+  color: var(--navbar-text-color);
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.navbar-brand:hover {
+  color: var(--navbar-text-color);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  list-style: none;
+  padding: 0;
+  margin-block: 0;
+}
+
+.nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  color: var(--navbar-text-color);
+  font-size: 0.875rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
+.nav-link:hover {
+  color: var(--link-hover-color);
+}
+.nav-link.is-active {
+  color: var(--link-hover-color);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 透明态（刚打开首页、还没滚动）的悬停与选中：一律保持白色，靠**底**区分而不是靠色相。
+   原因很实际 —— accent 是 #30a9de 一类的蓝，压在浅色照片上等于隐形；
+   而同一块底在某些图上是深色、某些图上是浅色，只有「白色字 + 半透明白底」两种图都成立。
+   滚动变成实色顶栏后，自动回到上面的 accent 蓝。 */
+.navbar:not(.is-solid) .nav-link:hover {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.navbar:not(.is-solid) .nav-link.is-active {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.navbar:not(.is-solid) .icon-btn:hover {
+  color: var(--navbar-text-color);
+  background-color: rgba(255, 255, 255, 0.16);
+}
+.nav-link .icon {
+  font-size: 0.9rem;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--navbar-text-color);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+.icon-btn:hover {
+  color: var(--link-hover-color);
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.icon-btn .icon {
+  font-size: 1.05rem;
+}
+
+/* 主题切换按钮：同一时刻只显示一个图标 ——
+   亮色显示月亮（点了进暗色），暗色显示太阳（点了回亮色）。
+   两个 <svg> 都留在 DOM 里，靠根元素上的 data-user-color-scheme 切，
+   这个属性由 <head> 的内联脚本在首帧就写好，所以不会闪、也不需要 JS 参与切换。 */
+#theme-toggle .icon-sun {
+  display: none;
+}
+html[data-user-color-scheme="dark"] #theme-toggle .icon-sun {
+  display: inline-block;
+}
+html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
+  display: none;
+}
+
+/* 移动端菜单按钮：收起时显示汉堡，展开时显示叉。
+   状态由 aria-expanded 表达，所以图标也跟着它走，不需要额外加 class。
+   注意这两处规则必须留在全局样式里 —— 放在组件 <style> 里会被 Astro 加上
+   组件作用域，而 <Icon> 渲染的 svg 属于子组件，匹配不到，规则会静默失效。 */
+#menu-toggle .icon-close {
+  display: none;
+}
+#menu-toggle[aria-expanded="true"] .icon-menu {
+  display: none;
+}
+#menu-toggle[aria-expanded="true"] .icon-close {
+  display: inline-block;
+}
+
+.nav-toggle {
+  display: none;
+}
+
+/* 移动端抽屉 */
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1029;
+  background-color: var(--navbar-bg-color);
+  padding: 4.5rem 1rem 2rem;
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  overflow-y: auto;
+}
+.mobile-menu.is-open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.mobile-menu ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.mobile-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--navbar-text-color);
+  font-size: 0.95rem;
+}
+.mobile-menu a:active {
+  transform: scale(0.98);
+}
+.mobile-menu .icon {
+  font-size: 1.1rem;
+}
+
+/* ---------- 5. Banner ---------- */
+.banner {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--subtitle-color);
+  background-color: var(--navbar-bg-color);
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+/* 背景层：单独一层，视差只动它 —— 把 transform 写在 <header> 上会把标题一起拖走 */
+.banner-bg {
+  position: absolute;
+  inset: 0;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform-origin: center center;
+}
+
+/* 优化过的 banner 图（<Image> 渲染的 <img>）：铺满容器并裁切，
+   与原来 background-size: cover 的观感一致。字符串图仍走 CSS 背景图。 */
+.banner-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.banner-mask {
+  position: absolute;
+  inset: 0;
+  background-color: #000;
+  opacity: 0.3;
+}
+
+.banner-text {
+  position: relative;
+  z-index: 2;
+  max-width: calc(960px - 6rem);
+  width: 80%;
+  padding: 0 1rem;
+  overflow-wrap: break-word;
+}
+
+.banner-title {
+  margin: 0;
+  /* 原版 banner 标题用的是 Bootstrap 的 .h2，也就是 2rem */
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  color: var(--subtitle-color);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  animation: banner-fade-up 0.8s ease both;
+}
+
+.banner-subtitle {
+  margin: 0.75rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 400;
+  opacity: 0.9;
+  animation: banner-fade-up 0.8s 0.12s ease both;
+}
+
+/* 打字机：占住一行高度，免得文字变长变短时下面的元信息上下跳 */
+.banner-subtitle[data-banner-typing] {
+  min-height: 1.6em;
+}
+/* 光标。字符由 data-cursor 决定（构建期写入），空字符串就不显示 */
+.banner-subtitle[data-banner-typing]::after {
+  content: attr(data-cursor);
+  margin-left: 0.12em;
+  animation: banner-cursor 1s step-end infinite;
+}
+
+@keyframes banner-cursor {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* 读者开了「减少动态效果」：光标不再闪，动效全部让位给静态文字 */
+@media (prefers-reduced-motion: reduce) {
+  .banner-subtitle[data-banner-typing]::after {
+    animation: none;
+  }
+  .banner-title,
+  .banner-subtitle,
+  .banner-metas {
+    animation: none;
+  }
+}
+
+/* 标题下方的元信息：一个 .banner-metas 是一行，行内是若干 .banner-meta。
+   原版文章页就是「日期」一行、「字数 + 阅读时长」一行。 */
+.banner-metas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+  opacity: 0.92;
+  animation: banner-fade-up 0.8s 0.18s ease both;
+}
+.banner-metas + .banner-metas {
+  margin-top: 0.25rem;
+  animation-delay: 0.26s;
+}
+.banner-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.banner-meta .icon {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+/* 底部滚动提示：原版是一整条 6rem 高、贴满底边的可点区域，
+   图标 2rem、上内边距 2rem、1.5s 无限上下跳动（没有圆形底） */
+.scroll-down-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 6rem;
+  text-align: center;
+  color: var(--subtitle-color);
+}
+.scroll-down-bar .icon {
+  display: inline-block;
+  position: relative;
+  padding-top: 2rem;
+  font-size: 2rem;
+  animation: scroll-down 1.5s infinite;
+}
+
+@keyframes banner-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes scroll-down {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translateY(0.6rem);
+    opacity: 1;
+  }
+}
+
+/* ---------- 6. 内容面板（board） ---------- */
+.board-wrap {
+  position: relative;
+  z-index: 3;
+  margin-top: -2rem;
+  padding-bottom: 3rem;
+}
+
+#board {
+  position: relative;
+  padding: 3rem 0;
+  background-color: var(--board-bg-color);
+  border-radius: var(--board-radius);
+  box-shadow: var(--board-shadow);
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* 卡片内部左右留白：照原版 .post-content 的 10%（窄屏退回固定值，
+   否则手机上正文会被挤成一条） */
+.board-inner {
+  padding: 0 10%;
+}
+@media (max-width: 767px) {
+  .board-inner {
+    padding: 0 2rem;
+  }
+}
+@media (max-width: 424px) {
+  .board-inner {
+    padding: 0 1rem;
+  }
+}
+
+/* 文章页：三栏式布局
+   对应原版 post.ejs 的 Bootstrap 栅格 col-lg-2 / col-lg-8 / col-lg-2，也就是 2/8/2 共 12 份。
+   直接按份数写，卡片宽度自然跟着视口走，与原版一致：
+     1920 → 中列 1280、卡片封顶 1108、目录列 320
+     1440 → 中列  960、卡片  960、目录列 240
+     1200 → 中列  800、卡片  800、目录列 200
+   卡片封顶 1108 = 原版 .container 的 1140 减掉左右各 1rem 内边距。 */
+.board-shell.has-rails {
+  display: grid;
+  /* 三列都必须包一层 minmax(0, …)。grid 子项默认 min-width: auto，
+     列宽会被内容的 min-content 顶开 —— 目录项是 white-space: nowrap，
+     一旦出现一个超长标题，第三列就涨过 2fr，把中间的正文挤窄；
+     滚动高亮时 is-active 加粗改变文字宽度，列宽再变一次，就成了左右抖。
+     包上 minmax(0, …) 后轨道宽度只由 fr 决定，内容再长也只在栏内 ellipsis。 */
+  grid-template-columns: minmax(0, 2fr) minmax(0, 8fr) minmax(0, 2fr);
+  align-items: start;
+}
+.board-shell.has-rails > #board {
+  grid-column: 2;
+  width: 100%;
+  max-width: 1108px;
+  justify-self: center;
+  /* 同上：代码块、长 URL 之类也不该把中列顶宽 */
+  min-width: 0;
+}
+/* 原版这一层是 container-fluid（全宽），栅格按视口百分比铺开，不设上限 */
+.container:has(> .board-shell.has-rails) {
+  max-width: none;
+  padding: 0;
+}
+
+/* 右侧目录栏（原版 .sidebar：sticky，top 2rem + 自身 3rem 上内边距，
+   滚动后目录顶部正好落在固定顶栏下方，并与卡片正文首行对齐） */
+.sidebar {
+  position: sticky;
+  top: 2rem;
+  padding: 3rem 0;
+}
+.board-shell.has-rails > .sidebar {
+  grid-column: 3;
+  justify-self: start;
+  width: 100%;
+  /* 让目录栏自己可收缩，长标题不会反过来把轨道顶宽 */
+  min-width: 0;
+  /* 列宽本身已是视口的 2/12（约 320/240/200），右侧留 2rem 就是原版
+     「col 的 15px 内边距」那个量级，再靠 -1rem 往卡片方向贴近一点 */
+  padding-right: 2rem;
+  margin-left: -1rem;
+}
+
+#toc {
+  min-width: 0;
+}
+.toc-header {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-color);
+}
+.toc-header .icon {
+  font-size: 1.25rem;
+}
+/* 目录过长时栏内滚动，滚动条隐藏（原版同样处理） */
+.toc-body {
+  max-height: 75vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.toc-body::-webkit-scrollbar {
+  display: none;
+}
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-item {
+  padding: 0.05rem 0;
+}
+.toc-link {
+  position: relative;
+  display: block;
+  padding-left: 0.85rem;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+/* 当前章节左侧的小竖条：默认 0.2rem 高且透明，激活时拉长到 1rem */
+.toc-link::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 50%;
+  width: 0.15rem;
+  height: 0.2rem;
+  margin-top: -0.1rem;
+  border-radius: 2px;
+  background-color: var(--link-hover-color);
+  opacity: 0;
+  transition: height 0.15s ease, margin-top 0.15s ease, opacity 0.15s ease;
+}
+/* 三级及以下：缩进一级、字号降一档（原版 ol ol a 的 0.85rem） */
+.toc-item[data-depth="3"] .toc-link {
+  padding-left: 1.85rem;
+  font-size: 0.85rem;
+}
+.toc-item[data-depth="4"] .toc-link {
+  padding-left: 2.85rem;
+  font-size: 0.85rem;
+}
+.toc-link:hover {
+  color: var(--link-hover-color);
+}
+.toc-link.is-active {
+  color: var(--link-hover-color);
+  font-weight: 700;
+}
+.toc-link.is-active::before {
+  height: 1rem;
+  margin-top: -0.5rem;
+  opacity: 1;
+}
+

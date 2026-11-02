@@ -13,6 +13,7 @@ import PortalCard from './PortalCard.astro';
 import { SITE } from '../../config';
 import type { Post } from '../../utils/posts';
 import { postUrl } from '../../utils/posts';
+import { formatDate } from '../../utils/date';
 import Icon from '../Icon.astro';
 
 interface Props {
@@ -70,10 +71,7 @@ const columns =
                 <span class="prow-meta">
                   {SITE.index.showDate && (
                     <time datetime={p.data.date.toISOString()}>
-                      {p.data.date.toLocaleDateString('zh-CN', {
-                        month: '2-digit',
-                        day: '2-digit',
-                      })}
+                      {formatDate(p.data.date, 'day')}
                     </time>
                   )}
                 </span>

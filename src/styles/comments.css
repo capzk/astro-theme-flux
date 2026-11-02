@@ -1,0 +1,194 @@
+/* ==========================================================================
+   Flux · 评论区（可插拔）
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 11. 评论区（可插拔；Waline 是参考实现） ----------
+   结构只有三件东西：标题、挂载点、加载/失败状态 —— 外壳由主题给，
+   里面那一坨由评论系统自己渲染（src/comments/client/ 里各家负责挂载）。
+   所以这套样式对任何评论系统都成立，换一家也不改。
+
+   Waline 自带完整样式，这里基本不覆盖它的类名（上游一改版就会错位），
+   只把它的 CSS 变量接到主题令牌上 —— 主题改配色、切暗色，评论区自动跟着走，
+   不用维护第二套颜色。唯一一处例外是人机验证码的排布，原因见下面
+   「人机验证（Turnstile）」那一段。变量名是 Waline 的公开接口：
+   https://waline.js.org/reference/client/style.html
+
+   注意「暗色不需要另写一套」这件事：Waline 的暗色是往 <html> 上写一组变量，
+   而我们在这里给 .comment-section 自己赋了值 —— 直接赋的值永远赢过继承来的值，
+   所以无论亮暗，区内的颜色都走主题令牌。
+   这一段的变量只对 Waline 有意义；别的评论系统（例如 iframe 型的 Giscus）
+   自己管配色，用不到这些变量，留着也无害。 */
+.comment-section {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line-color);
+
+  --waline-font-size: 0.95rem;
+  --waline-theme-color: var(--link-hover-color);
+  --waline-active-color: var(--link-hover-color);
+  --waline-white: #fff;
+  --waline-color: var(--post-text-color);
+  --waline-bg-color: var(--board-bg-color);
+  --waline-bg-color-light: var(--button-bg-color);
+  --waline-bg-color-hover: var(--button-hover-bg-color);
+  --waline-border-color: var(--line-color);
+  --waline-disable-bg-color: var(--button-bg-color);
+  --waline-disable-color: var(--sec-text-color);
+  --waline-info-bg-color: var(--button-bg-color);
+  --waline-info-color: var(--sec-text-color);
+  --waline-bq-color: var(--button-bg-color);
+  --waline-code-bg-color: var(--highlight-bg-color);
+  --waline-light-grey: var(--sec-text-color);
+  --waline-dark-grey: var(--text-color);
+}
+
+/* 标题与「相关文章」同一档：小号、次级色、加一点字距，像个小节而不是大标题 */
+.comment-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--sec-text-color);
+  letter-spacing: 0.04em;
+}
+.comment-title .icon {
+  width: 1.15em;
+  height: 1.15em;
+  color: var(--link-hover-color);
+}
+.comment-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-left: 0.2rem;
+  padding: 0.1rem 0.55rem;
+  border-radius: 1rem;
+  background-color: var(--button-bg-color);
+  color: var(--sec-text-color);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+/* 计数还没回填、或者这家评论系统没有计数接口时，这枚徽标只剩一个「条」，
+   不如整枚藏起来。判据是「里面的 span 还空着」—— 不认具体是哪一家 */
+.comment-count:has(span:empty) {
+  display: none;
+}
+
+.comment-body {
+  min-height: 4rem;
+  /* 预留一段高度并在离屏时不渲染这块子树：既减轻滚动时的布局 / 绘制开销，
+     也让 Waline 挂载瞬间不至于让下方内容明显下跳（CLS）。 */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 360px;
+}
+/* Waline 的面板自带 .5em 外边距，会把输入框往里缩一圈，跟标题对不齐 */
+.comment-body .wl-panel {
+  margin: 0;
+}
+
+/* ── 人机验证（Turnstile）──────────────────────────────────────────────
+   这是全文件唯一覆写 Waline 类名的例外，得把来龙去脉写清楚：
+
+   Waline 3.x 的 render 参数把 size 写死成 'compact' —— 按 Cloudflare 文档这是
+   150×140，比 normal（300×65）还高一倍多，本是给手机侧栏那种窄容器用的。
+   上游又对这几种 .wl-captcha* 元素一条规则都没写，它塞进 .wl-footer 之后整条
+   工具栏就被撑到 140px，左边的图标和右边的字数、「发送」全悬在中间。
+
+   尺寸和生命周期在 src/comments/client/turnstile.js 里改（换成 flexible、
+   并在拿到 token 后立刻把 widget 撤掉），所以这里只剩「万一它真的显示出来，
+   让它独占一行」这一件事 —— 平时那个容器是空的，不该凭空多出一行。
+
+   上游哪天自己改成 flexible 并接管 remove，或者换掉这几个类名，整段删掉。 */
+.comment-body .wl-info {
+  display: contents;
+}
+.comment-body .wl-footer {
+  align-items: center;
+}
+/* 验证码和下面那条工具栏之间留一点气口，只在它真的出现时给 */
+.comment-body .wl-footer:has(.wl-captcha-container iframe) {
+  row-gap: 0.5em;
+}
+.comment-body .wl-captcha-container:has(iframe) {
+  order: -1;
+  flex: 0 0 100%;
+}
+
+/* 骨架屏：形状照着「一个输入面板 + 几条评论」勾，加载完不会跳一下 */
+.comment-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--line-color);
+  border-radius: 0.5rem;
+}
+.comment-skeleton span {
+  display: block;
+  border-radius: 4px;
+  background-color: var(--button-bg-color);
+  /* 只动 opacity：不触发布局，也不跑合成层以外的东西 */
+  animation: comment-breathe 1.6s ease-in-out infinite;
+}
+.comment-skeleton-panel {
+  height: 5.5rem;
+}
+.comment-skeleton-line {
+  height: 0.8rem;
+}
+.comment-skeleton-line.is-short {
+  width: 45%;
+}
+@keyframes comment-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 失败提示：一块浅底 + 一个「重试」，不弹窗、不遮正文 */
+.comment-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  background-color: var(--button-bg-color);
+  font-size: 0.9rem;
+  color: var(--sec-text-color);
+}
+/* [hidden] 只是 UA 的 display:none，被上面的 flex 盖掉了，得自己补一条 */
+.comment-status[hidden] {
+  display: none;
+}
+.comment-status-text {
+  margin: 0;
+}
+.comment-retry {
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--link-hover-color);
+  border-radius: 1rem;
+  background-color: transparent;
+  color: var(--link-hover-color);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.comment-retry:hover {
+  background-color: var(--link-hover-color);
+  color: #fff;
+}
+/* 脚本加载失败时骨架屏没有意义，藏掉，只留提示 */
+.comment-section[data-state="error"] .comment-body {
+  display: none;
+}
+

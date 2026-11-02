@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Flux · 首页卡片流
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 7. 首页卡片 ---------- */
+.index-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.index-card {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 2.5rem;
+}
+.index-card:last-child {
+  margin-bottom: 0;
+}
+
+.index-img {
+  flex: 0 0 240px;
+  width: 240px;
+  /* 兜底底色。图片没到时这里显示的是它自己的主色调（LQIP，见 utils/lqip.ts），
+     所以渐变要铺满整块，不能 repeat */
+  background-size: cover;
+  background-position: center;
+  border-radius: 0.25rem;
+}
+.index-img a {
+  display: block;
+  overflow: hidden;
+  border-radius: 0.25rem;
+}
+.index-img img {
+  display: block;
+  width: 100%;
+  height: 10rem;
+  object-fit: cover;
+  border-radius: 0.25rem;
+  box-shadow: var(--img-shadow);
+  transition: transform 0.3s ease;
+}
+.index-img a:hover img {
+  transform: scale(1.03);
+}
+
+.index-info {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.index-header {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.index-header a {
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.index-header a:hover {
+  color: var(--link-hover-color);
+}
+
+/* 置顶徽章（原版是 icon-pin） */
+.index-pin {
+  flex: none;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background-color: #ff5252;
+  border-radius: 0.25rem;
+  padding: 0.12rem 0.35rem;
+  transform: translateY(-1px);
+}
+
+/* 摘要固定三行高度：原版用 calc(1.4rem * 3) 撑住，卡片高度才整齐 */
+.index-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: calc(1.4rem * 3);
+  margin: 0.5rem 0;
+  color: var(--sec-text-color);
+  line-height: 1.4rem;
+  font-size: 1rem;
+}
+.index-excerpt:hover {
+  color: var(--sec-text-color);
+}
+
+.index-btm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 1rem;
+  color: var(--sec-text-color);
+  font-size: 0.9rem;
+}
+.index-btm a {
+  color: var(--sec-text-color);
+}
+.index-btm a:hover {
+  color: var(--link-hover-color);
+}
+.post-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--sec-text-color);
+  font-size: 0.9rem;
+}
+.post-meta .icon {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+/* 「本文最后更新于」—— 卡片里的第一行 */
+.post-meta-updated {
+  margin: 0 0 16px;
+}
+

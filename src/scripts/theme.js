@@ -32,11 +32,36 @@ function initNavbar() {
 
 /* ---------- 2. 深色模式 ---------- */
 function initTheme() {
-  const btn = document.getElementById('theme-toggle');
-  if (!btn) return;
-
   const root = document.documentElement;
   const current = () => root.dataset.userColorScheme || 'light';
+
+  /**
+   * 地址栏配色（`<meta name="theme-color">`）。
+   *
+   * 页面里那两条 meta 是靠 `media="(prefers-color-scheme: …)"` 让浏览器自己挑的，
+   * 但「读者手动切过主题」之后，系统偏好就不再等于页面配色了 —— 系统是亮色、
+   * 读者选了暗色时，地址栏会一直停在亮色那条。
+   *
+   * 所以这里在首帧与每次切换时把 media 摘掉，两条都写成本次选中的颜色
+   * （同值重复没有副作用，浏览器取第一条）。脚本没跑起来时 media 仍然有效。
+   */
+  const metas = Array.from(
+    document.querySelectorAll('meta[name="theme-color"][data-light][data-dark]'),
+  );
+  const syncThemeColor = () => {
+    const dark = current() === 'dark';
+    for (const meta of metas) {
+      const color = dark ? meta.dataset.dark : meta.dataset.light;
+      if (color) meta.setAttribute('content', color);
+      meta.removeAttribute('media');
+    }
+  };
+  syncThemeColor();
+
+  const btn = document.getElementById('theme-toggle');
+  /* 关闭深色模式时按钮不渲染：配色已经由首帧脚本锁成亮色，
+     这里把地址栏对齐就结束，不需要再挂监听 */
+  if (!btn) return;
 
   btn.addEventListener('click', () => {
     const next = current() === 'dark' ? 'light' : 'dark';
@@ -46,14 +71,23 @@ function initTheme() {
     } catch {
       /* 隐私模式下 localStorage 可能不可写，忽略 */
     }
+    syncThemeColor();
   });
 
-  /* 系统偏好变化时，只有用户没手动选过才跟随 */
+  /* 系统偏好变化时，只有「默认策略是跟随系统、且用户没手动选过」才切换。
+     固定成 light / dark 时系统怎么变都与本站无关 —— 之前这里漏了这一层，
+     设了 `darkMode.default: 'light'` 的站在系统切暗时会突然变暗。 */
   try {
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', (e) => {
-      if (localStorage.getItem('flux-color-scheme')) return;
+      if (root.dataset.darkDefault !== 'auto') return;
+      try {
+        if (localStorage.getItem('flux-color-scheme')) return;
+      } catch {
+        return;
+      }
       root.dataset.userColorScheme = e.matches ? 'dark' : 'light';
+      syncThemeColor();
     });
   } catch {
     /* 老浏览器没有 addEventListener on mql，忽略 */

@@ -26,6 +26,12 @@ export const T = {
   backTop: '回到顶部',
   toc: '目录',
   pin: '置顶',
+  /* 首页轮播的自动播放开关。两个文案是同一个按钮的两种状态 ——
+     按下去读什么、再按一次读什么，不要写成「自动播放」+ aria-pressed，
+     那种写法读屏用户很难判断当前到底是开着还是关着。 */
+  carouselPause: '暂停自动播放',
+  carouselPlay: '继续自动播放',
+  carouselDots: (i: number) => `第 ${i} 张`,
   words: '字',
   minRead: '分钟阅读',
   updatedPrefix: '本文最后更新于',

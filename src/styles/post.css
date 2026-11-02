@@ -1,0 +1,516 @@
+/* ==========================================================================
+   Flux · 文章页正文、标题、目录、语义块、脚注
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 8. 文章页 ---------- */
+
+/* 系列清单。放在正文之前：读者第一眼要能判断「这是长文里的第几篇、还有几篇」，
+   读完再看这个清单就晚了 —— 他已经在正文里了。
+   视觉上是一张浅色卡片而不是警告框：它是导航，不是提示。 */
+.post-series {
+  margin: 0 0 24px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-color);
+  border-radius: 4px;
+  background-color: var(--button-bg-color);
+}
+.post-series-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--post-heading-color);
+}
+.post-series-head .icon {
+  font-size: 1em;
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+/* 系列名可能很长，占掉剩余宽度，多出来的打点 */
+.post-series-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 「第 3 / 5 篇」紧贴右侧，不参与收缩 */
+.post-series-count {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--sec-text-color);
+  font-variant-numeric: tabular-nums;
+}
+.post-series-list {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  /* 计数器画序号：1. 2. 3. —— 有序清单的语义留在 <ol> 上，
+     但视觉上的序号要跟「第几篇」对得上，而不是 <li> 的默认圆点 */
+  counter-reset: post-series;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.post-series-item {
+  counter-increment: post-series;
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.post-series-item::before {
+  content: counter(post-series);
+  flex-shrink: 0;
+  width: 1.1rem;
+  text-align: right;
+  color: var(--sec-text-color);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+.post-series-item > a,
+.post-series-item > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 当前这篇不可点，用颜色区分而不是加粗 ——
+   加粗会改变文字宽度，切换文章时整块清单看起来会「抖」一下 */
+.post-series-item.is-current > span {
+  color: var(--link-hover-color);
+}
+
+/* 卡片里的 h1 只服务 SEO、无障碍与打印（对应原版 #seo-header）。
+   标题在 banner 上已经出现一次，视觉上不重复；但**不能用 `display:none`** ——
+   那样它会从无障碍树里消失，屏幕阅读器与标题大纲里整页就没有标题了。
+   改用「视觉隐藏」（与 .sr-only 同一套技巧）：看不见、但保留语义，打印时再显示。 */
+#seo-header {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+@media print {
+  #seo-header {
+    /* 打印时还原成常规标题：把上面那套「视觉隐藏」逐条抵消 */
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0 0 0.75em;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+    font-size: 2em;
+    line-height: 1.25;
+    color: var(--post-heading-color);
+    border-bottom: 1px solid var(--line-color);
+    padding-bottom: 0.3em;
+  }
+}
+
+/* 正文排版
+   数值取自原版：font-size / line-height 是 Fluid 对 github-markdown-css 的覆盖
+   （1rem / 1.6），其余 margin、padding、字号是 github-markdown-css 4.0.0 的原值
+   （16px 基准）。标题的 2em / .75em 是相对标题自身字号，所以 h1 的留白比 h2 大。 */
+.markdown-body {
+  color: var(--post-text-color);
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  margin-bottom: 2rem;
+
+  /* 中文排版的三个细节。都是「支持就生效、不支持就退回原样」的属性，
+     没有一条会影响老浏览器的版面，所以不必包 @supports。
+
+     1) text-spacing-trim —— 行首的全宽标点（「、（…）压掉左半边。
+        不压的话，段首一个「会占掉整整一个字宽，视觉上像多缩进了一次；
+        这个主题的段落本来就不缩进（没有 text-indent），所以取 trim-start，
+        每行行首（含第一行）都压。取值说明见 CSS Text 4。
+     2) text-autospace —— 中文与英文 / 数字之间自动让出约 1/8 个字的空隙。
+        以前靠作者手打空格，同一篇里「有空格」「没空格」混着很常见。
+     3) orphans / widows —— 段落在分页或跨栏断开时，不让最后一行、第一行
+        单独留在另一侧。屏幕上基本看不出效果，打印和阅读模式里很明显。 */
+  text-spacing-trim: trim-start;
+  text-autospace: normal;
+  orphans: 2;
+  widows: 2;
+}
+.markdown-body > *:first-child {
+  margin-top: 0;
+}
+.markdown-body p {
+  margin: 0 0 16px;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  position: relative;
+  margin: 2em 0 0.75em;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--post-heading-color);
+  scroll-margin-top: 5rem;
+}
+.markdown-body h1 {
+  font-size: 2em;
+}
+.markdown-body h1,
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--line-color);
+}
+.markdown-body h2 {
+  font-size: 1.5em;
+}
+.markdown-body h3 {
+  font-size: 1.25em;
+}
+.markdown-body h4 {
+  font-size: 1em;
+}
+.markdown-body h5 {
+  font-size: 0.875em;
+}
+.markdown-body h6 {
+  font-size: 0.85em;
+}
+/* 标题里的行内代码不带底色，免得标题被切成一块块灰条 */
+.markdown-body h1 code,
+.markdown-body h2 code,
+.markdown-body h3 code,
+.markdown-body h4 code,
+.markdown-body h5 code,
+.markdown-body h6 code {
+  padding: 0;
+  background: none;
+  font-size: 0.9em;
+}
+.markdown-body a {
+  color: var(--post-text-color);
+  border-bottom: 1px solid color-mix(in srgb, var(--link-hover-color) 50%, transparent);
+}
+.markdown-body a:hover {
+  color: var(--link-hover-color);
+  border-bottom-color: var(--link-hover-color);
+}
+/* 邮箱地址：构建期是 <span>（纯文本，抓邮箱的正则扫不到 @），脚本加载后换成 <a>。
+   虚线下划线把「脚本还原过的可点链接」和「没开 JS 的纯文本」区分开 */
+.markdown-body a.email-link {
+  border-bottom-style: dashed;
+  border-bottom-color: color-mix(in srgb, var(--link-hover-color) 65%, transparent);
+}
+.markdown-body strong {
+  font-weight: 700;
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 16px;
+  padding-left: 2em;
+}
+.markdown-body li {
+  margin: 0;
+}
+.markdown-body li + li {
+  margin-top: 0.25em;
+}
+.markdown-body li > ul,
+.markdown-body li > ol {
+  margin: 0;
+}
+/* 任务列表：复选框顶替掉原来的项目符号 */
+.markdown-body li.task-list-item {
+  list-style: none;
+}
+.markdown-body input[type="checkbox"] {
+  margin: 0 0.4em 0 -1.2em;
+  vertical-align: middle;
+}
+/* 原版引用块只有左边框和灰字，没有底色和圆角 */
+.markdown-body blockquote {
+  margin: 0 0 16px;
+  padding: 0 1em;
+  color: var(--sec-text-color);
+  border-left: 0.25em solid var(--link-hover-color);
+}
+.markdown-body blockquote > :first-child {
+  margin-top: 0;
+}
+.markdown-body blockquote > :last-child {
+  margin-bottom: 0;
+}
+.markdown-body hr {
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--line-color);
+  margin: 2rem 0;
+}
+.markdown-body img {
+  max-width: 100%;
+  object-fit: cover;
+}
+/* 正文里的插图：原版是 90% 宽、居中、上下 1.5rem 留白、4px 圆角。
+   只约束「独占一段 / 独占 figure」的图，行内小图（徽章之类）不受影响。 */
+.markdown-body p > img,
+.markdown-body p > a > img,
+.markdown-body figure > img,
+.markdown-body figure > a > img {
+  display: block;
+  max-width: 90%;
+  margin: 1.5rem auto;
+  border-radius: 4px;
+  box-shadow: var(--img-shadow);
+}
+/* 这类图能被灯箱接管（没有被 <a> 包着），给个放大光标做提示 */
+.markdown-body p > img,
+.markdown-body figure > img {
+  cursor: zoom-in;
+}
+.markdown-body video,
+.markdown-body iframe {
+  display: block;
+  max-width: 100%;
+  margin: 1.5rem auto;
+  border: 0;
+  border-radius: 4px;
+}
+.markdown-body code {
+  font-family: var(--font-family-monospace);
+  font-size: 85%;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  background-color: var(--inlinecode-bg-color);
+}
+/* 等宽内容不吃全局的 letter-spacing：代码要对齐，字距必须回到 0 */
+.markdown-body code,
+.markdown-body pre,
+.markdown-body kbd {
+  letter-spacing: normal;
+}
+/* 原版表格没有表头底色、也没有斑马纹，只有 1px 边框 */
+.markdown-body table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  border-spacing: 0;
+  margin: 0 0 16px;
+}
+.markdown-body th,
+.markdown-body td {
+  padding: 6px 13px;
+  border: 1px solid var(--line-color);
+}
+.markdown-body th {
+  font-weight: 600;
+}
+.markdown-body kbd {
+  font-family: var(--font-family-monospace);
+  font-size: 80%;
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line-color);
+  border-bottom-width: 2px;
+  border-radius: 0.25rem;
+  background-color: var(--button-bg-color);
+}
+
+/* 低频但合法的元素：补齐样式，避免落到浏览器默认值上出戏 */
+.markdown-body del,
+.markdown-body s {
+  color: var(--sec-text-color);
+}
+.markdown-body mark {
+  padding: 0.1em 0.25em;
+  border-radius: 0.2rem;
+  background-color: rgba(48, 169, 222, 0.18);
+  color: var(--post-heading-color);
+}
+.markdown-body sup,
+.markdown-body sub {
+  position: relative;
+  font-size: 75%;
+  line-height: 0;
+  vertical-align: baseline;
+}
+.markdown-body sup {
+  top: -0.5em;
+}
+.markdown-body sub {
+  bottom: -0.25em;
+}
+/* 代码块本身也是 figure.highlight，这里要排除，别把它的间距改掉 */
+.markdown-body figure:not(.highlight) {
+  margin: 1.5rem 0;
+}
+/* 图注：原版 .image-caption 是 0.8rem、opacity .65、贴着图往下 0.75rem */
+.markdown-body figcaption {
+  margin: -0.75rem auto 2rem;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--post-text-color);
+  opacity: 0.65;
+  text-align: center;
+}
+.markdown-body dl {
+  margin: 0 0 16px;
+  padding: 0;
+}
+.markdown-body dt {
+  margin-top: 16px;
+  font-size: 1em;
+  font-weight: 600;
+  font-style: italic;
+}
+.markdown-body dd {
+  margin-bottom: 16px;
+  padding: 0 16px;
+}
+.markdown-body details {
+  margin: 0 0 16px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line-color);
+  border-radius: 0.375rem;
+  background-color: var(--button-bg-color);
+  cursor: pointer;
+}
+.markdown-body summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--post-heading-color);
+  outline: none;
+}
+.markdown-body details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+/* ---------- 语义提示块 ----------
+   对应原版 Hexo 的 {% note %} 标签。Markdown 里直接写
+   <div class="note note-success">…</div> 就行，纯 CSS、无脚本。 */
+.note {
+  margin: 1.5rem 0;
+  padding: 0.75rem;
+  border-left: 0.35rem solid;
+  border-radius: 0.25rem;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+.note a {
+  color: var(--text-color);
+}
+.note > :last-child {
+  margin-bottom: 0;
+}
+.note-default,
+.note-secondary {
+  background-color: rgba(187, 187, 187, 0.25);
+  border-color: #777;
+}
+.note-primary {
+  background-color: rgba(183, 160, 224, 0.25);
+  border-color: #6f42c1;
+}
+.note-success {
+  background-color: rgba(174, 220, 174, 0.25);
+  border-color: #5cb85c;
+}
+.note-danger {
+  background-color: rgba(236, 169, 167, 0.25);
+  border-color: #d9534f;
+}
+.note-warning {
+  background-color: rgba(248, 214, 166, 0.25);
+  border-color: #f0ad4e;
+}
+.note-info {
+  background-color: rgba(160, 197, 228, 0.25);
+  border-color: #428bca;
+}
+.note-light {
+  background-color: rgba(254, 254, 254, 0.25);
+  border-color: #0f0f0f;
+}
+
+/* ---------- 脚注 ----------
+   Markdown 里写 [^1] 即可，处理器会生成 <sup> 角标 + 文末 section.footnotes。
+   原版 .footnote-list 的编号样式是 [1]、[2]，这里用计数器还原。 */
+.markdown-body sup a {
+  padding: 0 0.1em;
+  color: var(--link-hover-color);
+  border-bottom: 0;
+  scroll-margin-top: 5rem;
+}
+.markdown-body .footnotes {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line-color);
+  font-size: 0.95rem;
+  color: var(--sec-text-color);
+}
+/* 生成器附带的英文标题（Footnotes），视觉上不需要 */
+.markdown-body .footnotes > h2 {
+  display: none;
+}
+.markdown-body .footnotes ol {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: footnote;
+}
+.markdown-body .footnotes li {
+  position: relative;
+  counter-increment: footnote;
+  padding-left: 1.7rem;
+  margin: 0;
+  scroll-margin-top: 5rem;
+}
+.markdown-body .footnotes li::before {
+  content: "[" counter(footnote) "]";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--font-family-monospace);
+}
+.markdown-body .footnotes li + li {
+  margin-top: 0.5rem;
+}
+.markdown-body .footnotes li p {
+  margin-bottom: 0;
+}
+.markdown-body .footnote-backref {
+  margin-left: 0.25rem;
+  color: var(--link-hover-color);
+  border-bottom: 0;
+}
+
+/* 标题锚点：悬停才出现的小 # */
+.headerlink {
+  position: absolute;
+  left: -0.9em;
+  top: 0;
+  opacity: 0;
+  color: var(--sec-text-color);
+  font-weight: 400;
+  transition: opacity 0.15s ease;
+}
+.headerlink::before {
+  content: "#";
+}
+.markdown-body h1:hover .headerlink,
+.markdown-body h2:hover .headerlink,
+.markdown-body h3:hover .headerlink,
+.markdown-body h4:hover .headerlink,
+.headerlink:focus {
+  opacity: 0.6;
+}
+

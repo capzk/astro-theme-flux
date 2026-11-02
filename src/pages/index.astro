@@ -5,7 +5,8 @@
  * 选择性参考 hexo-theme-solitude / 知更鸟 Begin 的「杂志布局」，只改首页，
  * 其他页面完全不动。整体分三大块（顺序与密度都在 src/config/user/content.ts
  * 的 SITE.index.portal 里配）：
- *   ① 顶部置顶：左侧纯图片自动轮播 + 右侧「置顶文章」列表（同一批 featured）
+ *   ① 顶部 hero：左侧纯图片自动轮播 + 右侧文章列表（同一批 featured：置顶优先、
+ *      不足用最新补位，容量见 portal.featured）
  *   ② 中间分类列表：显式有序，每分类独立配「卡片」或「列表」
  *      （卡片每行几个 = cardsPerRow；列表几列 = cols），分类名与顺序自由排
  *   ③ 底部最新：不分类别，纯文字列表（cols 控制几列）
@@ -22,20 +23,24 @@ import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import CategorySection from '../components/portal/CategorySection.astro';
 import MobileFeed from '../components/portal/MobileFeed.astro';
+import Icon from '../components/Icon.astro';
 import { Image } from 'astro:assets';
 import { SITE } from '../config';
 import { T } from '../i18n';
 import {
   getPosts,
   stickyFirst,
+  stickyOnly,
   categoryCounts,
   postsWithTerm,
   postUrl,
   termUrl,
 } from '../utils/posts';
 import { isAsset, type ImageSource } from '../utils/image';
+import { formatDate } from '../utils/date';
 import { lqipStyle } from '../utils/lqip';
 import { siteJsonLd } from '../utils/seo';
+import { publicPath, withBase } from '../utils/url';
 /* 门户首页（实验）样式：只在首页引入，避免内联进全站每一页 */
 import '../styles/portal.css';
 
@@ -50,7 +55,23 @@ const portal = SITE.index.portal;
 const mobileFeed = SITE.index.mobileFeed;
 const feedPosts = mobileFeed.enable ? ordered.slice(0, mobileFeed.count) : [];
 
-/* 置顶：前 N 篇同时驱动「左侧图片轮播」与「右侧置顶文章列表」 */
+/* hero 板块（左侧图片轮播 + 右侧文章列表）取 `portal.featured` 篇，取法是
+   「置顶优先，不足用最新补位」—— 不是「必须有这么多置顶」。
+
+   为什么补位：置顶经常只有一两篇，严格只取置顶会让轮播只剩一张图、右侧列表
+   空一半，整块版式直接塌掉。补位进来的文章在视觉上和置顶毫无差别 —— 这一块
+   没有标题文案，「置顶」徽章只出现在下面的卡片流里，所以不存在名不副实。
+   想要纯置顶，把 portal.featured 调成你实际置顶的篇数即可。
+
+   置顶比 hero 位还多时，多出来的那些就进不了 hero 了 —— 不是错，但值得说一句：
+   多半是忘了「featured 是 hero 容量」而不是「置顶开关」。 */
+const pinnedCount = stickyOnly(all).length;
+if (pinnedCount > portal.featured) {
+  console.warn(
+    `[Flux] 有 ${pinnedCount} 篇置顶文章，但首页 hero 只展示前 ${portal.featured} 篇` +
+      '（index.portal.featured）。想让它们都出现在顶部，把这个数调大。',
+  );
+}
 const featured = ordered.slice(0, portal.featured);
 
 /* 中间分类列表：显式有序（portal.categories）；为空则退回按文章数前 8 个、卡片一行 */
@@ -132,7 +153,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
           style={`--portal-cards-per-row:${portal.cardsPerRow}`}
         >
           <div class="portal-main">
-            {/* 置顶：左侧图片轮播 + 右侧置顶文章列表 */}
+            {/* hero：左侧图片轮播 + 右侧文章列表（同一批 featured） */}
             {
               featured.length > 0 && (
                 <section class="pfeature">
@@ -157,7 +178,12 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                               loading={i === 0 ? 'eager' : 'lazy'}
                             />
                           ) : (
-                            <img class="phero-img" src={cover} alt={p.data.title} loading={i === 0 ? 'eager' : 'lazy'} />
+                            <img
+                              class="phero-img"
+                              src={publicPath(cover)}
+                              alt={p.data.title}
+                              loading={i === 0 ? 'eager' : 'lazy'}
+                            />
                           )}
                         </a>
                       );
@@ -169,11 +195,27 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                             type="button"
                             class:list={['phero-dot', { 'is-active': i === 0 }]}
                             data-i={i}
-                            aria-label={`第 ${i + 1} 张`}
+                            aria-label={T.carouselDots(i + 1)}
                             aria-current={i === 0 ? 'true' : undefined}
                           />
                         ))}
                       </div>
+                    )}
+                    {/* WCAG 2.2.2（Pause, Stop, Hide）：自动播放超过 5 秒的动效，
+                        必须有「能停下来」的显式开关。悬停 / 聚焦暂停只是顺手加的，
+                        键盘用户和触屏用户根本抓不住 —— 他们需要一个按钮。
+                        只在真的会自动播放（间隔 > 0 且不止一张）时才出现。 */}
+                    {portal.heroAutoplay > 0 && featured.length > 1 && (
+                      <button
+                        type="button"
+                        class="phero-pause"
+                        aria-label={T.carouselPause}
+                        data-label-play={T.carouselPlay}
+                        data-label-pause={T.carouselPause}
+                      >
+                        <Icon name="pause" class="phero-icon-pause" />
+                        <Icon name="play" class="phero-icon-play" />
+                      </button>
                     )}
                   </div>
 
@@ -185,7 +227,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                           {SITE.index.showDate && (
                             <span class="post-meta">
                               <time datetime={p.data.date.toISOString()}>
-                                {p.data.date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })}
+                                {formatDate(p.data.date, 'day')}
                               </time>
                             </span>
                           )}
@@ -207,7 +249,7 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
               posts={ordered.slice(0, portal.latest.count)}
               layout="list"
               cols={portal.latest.cols}
-              moreUrl="/archives/"
+              moreUrl={withBase('/archives/')}
             />
           </div>
         </div>
@@ -216,9 +258,15 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
   </Board>
 
   <script>
-    /* 置顶图片轮播：纯图片自动切换 + 圆点切换 + 手机上左右滑动切换；
-       鼠标悬停或键盘聚焦时暂停。没有 JS 时只显示第一张（.is-active），页面依旧可读。
-       开了系统「减少动态效果」就不自动播放，读者仍可手动点圆点 / 滑动切换。 */
+    /* 首页 hero 轮播：纯图片自动切换 + 圆点切换 + 右下角「暂停 / 继续」按钮 +
+       手机上左右滑动切换。没有 JS 时只显示第一张（.is-active），页面依旧可读。
+
+       暂停有三层，各管各的：
+         · 悬停 / 聚焦 —— 临时的，挪开就恢复（顺手的礼貌，不是 WCAG 要求的那个）
+         · 点圆点 —— 读者自己选了某一张，自动播放就此停下
+         · 右下角按钮 —— 显式开关，也是 WCAG 2.2.2 真正认可的那个机制
+       开了系统「减少动态效果」就默认不播（按钮显示成「继续」），
+       读者想播仍可自己按 —— 显式选择优先于系统偏好。 */
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const carousels = document.querySelectorAll<HTMLElement>('.phero-carousel');
     for (const el of carousels) {
@@ -229,10 +277,24 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
       /* 手机端整块门户是 display:none（首页显示的是卡片流），看不见的轮播
          没必要跑定时器；offsetParent 为 null 就是「当前不可见」。
          圆点和滑动仍照常绑定 —— 断点只由宽度决定，把窗口拉宽后这些还能用。 */
-      const ms = reducedMotion || !el.offsetParent ? 0 : Number(el.dataset.autoplay) || 0;
+      const visible = !!el.offsetParent;
+      const autoplayMs = Number(el.dataset.autoplay) || 0;
       let timer = 0;
       let hovering = false;
       let focused = false;
+      /* 读者的显式意愿：按过「暂停」就是 true，与「悬停临时暂停」是两回事。
+         系统开了减少动态效果、或这一块当前不可见时，初始就当作已暂停 ——
+         按钮会显示成「继续」，读者想播可以自己按，那属于显式选择。 */
+      let userPaused = reducedMotion || !visible;
+      const pauseBtn = el.querySelector<HTMLButtonElement>('.phero-pause');
+      const syncPause = () => {
+        if (!pauseBtn) return;
+        pauseBtn.classList.toggle('is-paused', userPaused);
+        pauseBtn.setAttribute(
+          'aria-label',
+          userPaused ? pauseBtn.dataset.labelPlay! : pauseBtn.dataset.labelPause!,
+        );
+      };
       const go = (n: number) => {
         idx = (n + slides.length) % slides.length;
         slides.forEach((s, i) => {
@@ -254,16 +316,33 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
       };
       const start = () => {
         stop();
-        if (ms > 0) timer = window.setInterval(() => go(idx + 1), ms);
+        if (autoplayMs > 0 && visible && !userPaused) {
+          timer = window.setInterval(() => go(idx + 1), autoplayMs);
+        }
+        syncPause();
       };
       /* 悬停或键盘焦点任一还在轮播里，就不恢复自动播放 */
       const resume = () => {
         if (!hovering && !focused) start();
       };
+      /* 手动点圆点 = 明确表达了「我自己选」—— 顺手把自动播放停掉，
+         并且让暂停按钮同步成「继续」。以前这里只 stop() 不标记，
+         结果按钮显示「暂停」但实际早就停了，状态对不上。 */
       dots.forEach((d, i) => d.addEventListener('click', () => {
         go(i);
+        userPaused = true;
         stop();
+        syncPause();
       }));
+      pauseBtn?.addEventListener('click', () => {
+        userPaused = !userPaused;
+        if (userPaused) {
+          stop();
+          syncPause();
+        } else {
+          start();
+        }
+      });
       el.addEventListener('mouseenter', () => {
         hovering = true;
         stop();

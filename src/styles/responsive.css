@@ -1,0 +1,139 @@
+/* ==========================================================================
+   Flux · 全站响应式与打印
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 21. 响应式 ---------- */
+/* 三栏要装得下 1088 的卡片，视口不够就退回单栏 */
+@media (max-width: 1199.98px) {
+  /* 原版用 Bootstrap 的 .container，宽度是分档的：1140 / 960 / 720 / 540 */
+  .container {
+    max-width: 960px;
+  }
+  /* 1200 以下放不下「卡片 + 目录栏」，退回单栏：卡片铺满、目录收起。
+     断点对齐原版 Bootstrap 的 lg（col-lg-2 的 d-none d-lg-block 就在 1200 生效）。 */
+  .board-shell.has-rails {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 单栏时卡片别贴着屏幕边，留一点留白（原版窄屏也是 container 的 15px 内边距） */
+  .container:has(> .board-shell.has-rails) {
+    padding: 0 1rem;
+  }
+  .board-shell.has-rails > #board {
+    grid-column: 1;
+  }
+  .board-shell.has-rails > .sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 991.98px) {
+  /* Bootstrap 在 992 以下容器收到 720 */
+  .container {
+    max-width: 720px;
+  }
+  .nav-links {
+    display: none;
+  }
+  .nav-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Bootstrap 在 768 以下容器收到 540 */
+  .container {
+    max-width: 540px;
+  }
+  html {
+    font-size: 15px;
+  }
+  #board {
+    padding: 2rem 0;
+    border-radius: 0;
+  }
+  .board-wrap {
+    margin-top: -1rem;
+  }
+  .banner-subtitle {
+    font-size: 1rem;
+  }
+
+  /* 首页卡片改为上下结构：图在上、信息在下 */
+  .index-card {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .index-img {
+    flex: none;
+    width: 100%;
+  }
+  .index-img img {
+    height: 11rem;
+  }
+  .index-info {
+    padding: 0;
+  }
+  .index-header {
+    font-size: 1.25rem;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .post-prevnext {
+    flex-direction: column;
+  }
+  .post-prevnext a {
+    max-width: 100%;
+  }
+  .post-next {
+    margin-left: 0;
+    text-align: left;
+  }
+  .related-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* 打印：去掉导航、banner，只留正文 */
+@media print {
+  /* 打印是连续纸张，没有「视口底部」这回事，flex 撑高只会多出空白页 */
+  body {
+    display: block;
+    min-height: 0;
+  }
+  .navbar,
+  .banner,
+  #scroll-top,
+  .search-modal,
+  .post-prevnext,
+  .related-posts,
+  .comment-section,
+  .footer-inner {
+    display: none !important;
+  }
+  #board {
+    box-shadow: none;
+    padding: 0;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
+

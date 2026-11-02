@@ -12,7 +12,9 @@ import { SITE } from '../../config';
 import { T } from '../../i18n';
 import type { Post } from '../../utils/posts';
 import { postUrl, termUrl } from '../../utils/posts';
+import { formatDate } from '../../utils/date';
 import { isAsset, type ImageSource } from '../../utils/image';
+import { publicPath } from '../../utils/url';
 import { lqipStyle } from '../../utils/lqip';
 import Icon from '../Icon.astro';
 
@@ -24,11 +26,7 @@ const { title, date, categories, sticky, indexImg, cover } = post.data;
 const url = postUrl(post);
 const coverSrc: ImageSource | undefined = cover ?? indexImg ?? SITE.index.defaultImg;
 
-const dateText = date.toLocaleDateString('zh-CN', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-});
+const dateText = formatDate(date, 'card');
 ---
 
 <article class="pcard">
@@ -50,7 +48,7 @@ const dateText = date.toLocaleDateString('zh-CN', {
             loading="lazy"
           />
         ) : (
-          <img src={coverSrc} alt={title} loading="lazy" />
+          <img src={publicPath(coverSrc)} alt="" loading="lazy" />
         ))
     }
   </a>

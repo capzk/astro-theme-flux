@@ -10,6 +10,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Board from '../components/Board.astro';
 import { T } from '../i18n';
 import { SITE } from '../config';
+import { withBase } from '../utils/url';
 ---
 
 <BaseLayout title="404" noindex bannerImg={null}>
@@ -19,7 +20,7 @@ import { SITE } from '../config';
     <div class="empty-state">
       <h1 class="empty-title">{T.notFound}</h1>
       <p class="empty-desc">{T.notFoundDesc}</p>
-      <a class="term-chip" href="/">{T.backHome}</a>
+      <a class="term-chip" href={withBase('/')}>{T.backHome}</a>
     </div>
   </Board>
 </BaseLayout>

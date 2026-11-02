@@ -11,6 +11,11 @@ import { glob } from 'astro/loaders';
  */
 const posts = defineCollection({
   loader: glob({
+    /**
+     * `.mdx` 也收：装了并注册 `@astrojs/mdx` 之后直接可用。
+     * 主题默认**不带**这个集成（保持零额外集成），没装时写 `.mdx` 会在构建期报错 ——
+     * 所以文档里说「想用 MDX 得自己加」，不要把它当成开箱能力。
+     */
     pattern: '**/*.{md,mdx}',
     base: './src/content/posts',
     /**

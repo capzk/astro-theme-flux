@@ -210,7 +210,7 @@ export const LINKS: LinkItem[] = [
 
 主题在构建期会给正文图自动补上 `loading="lazy"` 与 `decoding="async"`（滚到附近才加载），并对知乎 / 微博 / B 站 / 豆瓣等防盗链图床自动加 `referrerpolicy="no-referrer"`，所以直接贴外链也能正常显示。
 
-<div class="note note-warning">Markdown 的 `![]()` 不会走 Astro 的图片优化（没有 `srcset` 和多档宽度）。想要正文图也优化，用 `.mdx` 里的 Astro `<Image>` 组件，而不是 `![]()`。</div>
+<div class="note note-warning">Markdown 的 `![]()` 不会走 Astro 的图片优化（没有 `srcset` 和多档宽度）。想要正文图也优化，可以用 `.mdx` 里的 Astro `<Image>` 组件 —— 但那需要自己安装并注册 <code>@astrojs/mdx</code>（主题默认不带，保持零额外集成）。</div>
 
 ## 十、格式与尺寸速查
 

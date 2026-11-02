@@ -10,15 +10,17 @@
  *   2. 用 Content-Signal 声明内容可以怎么用（见下面那段说明）
  */
 import type { APIRoute } from 'astro';
+import { withBase } from '../utils/url';
 
 export const GET: APIRoute = ({ site }) => {
   const base = (site ?? new URL('https://example.com')).href.replace(/\/$/, '');
+  const sitemap = `${base}${withBase('/sitemap-index.xml')}`;
 
   const body = `User-agent: *
 Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 
-Sitemap: ${base}/sitemap-index.xml
+Sitemap: ${sitemap}
 
 # 内容用途声明（Content Signals），语法与含义见 https://contentsignals.org
 # ---------------------------------------------------------------------------
@@ -59,8 +61,8 @@ Sitemap: ${base}/sitemap-index.xml
 # 连引用都不许（只保留普通搜索收录）就把 Allow 换成 Disallow: / 。
 
 # 给 AI 爬虫的站点索引，约定见 https://llmstxt.org
-# 目录 + 摘要：${base}/llms.txt
-# 全站正文：  ${base}/llms-full.txt
+# 目录 + 摘要：${base}${withBase('/llms.txt')}
+# 全站正文：  ${base}${withBase('/llms-full.txt')}
 `;
 
   return new Response(body, {

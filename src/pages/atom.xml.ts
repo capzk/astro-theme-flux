@@ -17,6 +17,7 @@ import type { APIRoute } from 'astro';
 import { SITE } from '../config';
 import { excerptOf, getPosts, postUrl } from '../utils/posts';
 import { absoluteUrl } from '../utils/seo';
+import { withBase } from '../utils/url';
 
 /** XML 里必须转义的五个字符。标题和摘要都来自用户内容，不转义就是一行坏 XML */
 const esc = (text: string): string =>
@@ -32,8 +33,8 @@ export const GET: APIRoute = async ({ site }) => {
   const url = (path: string) => absoluteUrl(path, origin);
 
   const posts = await getPosts();
-  const home = url('/');
-  const self = url('/atom.xml');
+  const home = url(withBase('/'));
+  const self = url(withBase('/atom.xml'));
 
   /* feed 级的 updated 取「全站最新的一次改动」：文章有 updated 就用它，
      没有就用发布时间。空站退回构建时刻 —— Atom 规定这个字段必须有。 */
@@ -49,8 +50,8 @@ export const GET: APIRoute = async ({ site }) => {
     /* 分类和标签在 Atom 里是同一种东西（category），用 scheme 区分来源，
        聚合器既能按关键词过滤，也不会把两者混成一堆 */
     const terms = [
-      ...categories.map((name) => `    <category term="${esc(name)}" scheme="${esc(url('/categories/'))}"/>`),
-      ...tags.map((name) => `    <category term="${esc(name)}" scheme="${esc(url('/tags/'))}"/>`),
+      ...categories.map((name) => `    <category term="${esc(name)}" scheme="${esc(url(withBase('/categories/')))}"/>`),
+      ...tags.map((name) => `    <category term="${esc(name)}" scheme="${esc(url(withBase('/tags/')))}"/>`),
     ].join('\n');
 
     return [

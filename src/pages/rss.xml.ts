@@ -14,11 +14,12 @@ import type { APIContext } from 'astro';
 import { SITE } from '../config';
 import { excerptOf, getPosts, postUrl } from '../utils/posts';
 import { absoluteUrl } from '../utils/seo';
+import { withBase } from '../utils/url';
 
 export async function GET(context: APIContext) {
   const posts = await getPosts();
   const origin = context.site ?? new URL('https://example.com');
-  const self = absoluteUrl('/rss.xml', origin);
+  const self = absoluteUrl(withBase('/rss.xml'), origin);
 
   /* 全站最新的一次改动：文章有 updated 用它，否则用发布时间 */
   const feedUpdated = posts
@@ -28,7 +29,10 @@ export async function GET(context: APIContext) {
   return rss({
     title: SITE.title,
     description: SITE.description,
-    site: origin,
+    /* 频道的 <link> 用「首页地址」而不是 origin —— 子路径部署时
+       只要 origin 会让读者点进域名根（那里可能根本不是这个站）。
+       item 的 link 已经是带前缀的根相对路径，按 origin 解析即可。 */
+    site: absoluteUrl(withBase('/'), origin),
     /* <rss> 上要多声明一个 atom 命名空间，下面的 atom:link 才有出处 */
     xmlns: { atom: 'http://www.w3.org/2005/Atom' },
     items: posts.map((post) => ({

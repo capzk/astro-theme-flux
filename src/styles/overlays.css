@@ -1,0 +1,256 @@
+/* ==========================================================================
+   Flux · 搜索弹层、回到顶部、图片灯箱、空状态
+   —— 由 main.css 按原节顺序拆分而来，只被 main.css @import，不要单独引用。
+   ========================================================================== */
+
+/* ---------- 17. 搜索弹层 ---------- */
+.search-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: none;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  padding: 6rem 1rem 2rem;
+}
+.search-modal.is-open {
+  display: block;
+}
+.search-box {
+  max-width: 640px;
+  margin: 0 auto;
+  background-color: var(--board-bg-color);
+  border-radius: 0.5rem;
+  box-shadow: var(--board-shadow);
+  overflow: hidden;
+  animation: banner-fade-up 0.2s ease both;
+}
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--line-color);
+}
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-family: inherit;
+}
+.search-field input::placeholder {
+  color: var(--sec-text-color);
+}
+.search-kbd {
+  font-family: var(--font-family-monospace);
+  font-size: 0.7rem;
+  color: var(--sec-text-color);
+  border: 1px solid var(--line-color);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+}
+.search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem;
+  max-height: min(60vh, 26rem);
+  overflow-y: auto;
+}
+.search-item a {
+  display: block;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.375rem;
+  color: var(--text-color);
+}
+.search-item a:hover,
+.search-item.is-active a {
+  background-color: var(--link-hover-bg-color);
+  color: var(--link-hover-color);
+}
+.search-item-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.15rem;
+}
+.search-item-meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--sec-text-color);
+}
+.search-empty {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: var(--sec-text-color);
+  font-size: 0.9rem;
+}
+
+/* ---------- 18. 回到顶部 ----------
+   原版 #scroll-top-button：白卡片色、4px 圆角（不是圆）、40px 见方、
+   32px 灰图标、双层阴影，从底部滑入；悬停时图标上下浮动。 */
+#scroll-top {
+  position: fixed;
+  right: 1.25rem;
+  bottom: -60px;
+  z-index: 99;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background-color: var(--board-bg-color);
+  color: var(--sec-text-color);
+  box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16), 0 2px 10px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  pointer-events: none;
+  transition: background-color 0.2s ease-in-out, bottom 0.3s ease, color 0.2s ease-in-out;
+}
+#scroll-top .icon {
+  font-size: 2rem;
+  margin: auto;
+}
+#scroll-top:hover {
+  color: var(--link-hover-color);
+}
+#scroll-top:hover .icon,
+#scroll-top:focus-visible .icon {
+  animation: scroll-top 1s ease-in-out infinite alternate;
+}
+#scroll-top.is-visible {
+  bottom: 1.25rem;
+  pointer-events: auto;
+}
+@keyframes scroll-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-0.35rem);
+  }
+}
+
+/* ---------- 19. 正文图片灯箱 ----------
+   原版用 fancybox，这里自己写一份等效实现，不引第三方库。
+   点正文插图放大到全屏遮罩，ESC / 点遮罩 / 点按钮都能关。
+   只接管没有被 <a> 包着的图，带链接的图保持原来的跳转行为。 */
+.img-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  background-color: rgba(0, 0, 0, 0.86);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease-in-out, visibility 0.25s ease-in-out;
+}
+.img-zoom.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.img-zoom img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  cursor: zoom-out;
+  /* 打开时轻微放大一下，别硬切 */
+  transform: scale(0.96);
+  transition: transform 0.25s ease;
+}
+.img-zoom.is-open img {
+  transform: scale(1);
+}
+.img-zoom-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease-in-out;
+}
+.img-zoom-close svg {
+  width: 20px;
+  height: 20px;
+}
+.img-zoom-close:hover,
+.img-zoom-close:focus-visible {
+  background-color: rgba(255, 255, 255, 0.26);
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-zoom,
+  .img-zoom img {
+    transition: none;
+  }
+}
+
+/* ---------- 20. 404 / 空状态 ---------- */
+.empty-state {
+  text-align: center;
+  padding: 1rem 0;
+}
+.empty-title {
+  font-size: 4rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--link-hover-color);
+  letter-spacing: 0.05em;
+}
+.empty-desc {
+  color: var(--sec-text-color);
+  margin: 0.5rem 0 1.5rem;
+}
+
+/* 关于页：头像 + 署名一行居中，下面的正文回到左对齐。
+   这三段在原版里是 about 页的头部区，之前只有 class 没有样式，等于没生效。 */
+.about {
+  text-align: center;
+  padding-top: 1rem;
+}
+.about-avatar {
+  display: block;
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  box-shadow: var(--img-shadow);
+}
+.about-name {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--post-heading-color);
+}
+.about-bio {
+  margin: 0 0 2.5rem;
+  color: var(--sec-text-color);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.about .markdown-body {
+  text-align: left;
+}
+
