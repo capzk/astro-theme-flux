@@ -677,7 +677,8 @@ src/
 │                        # rss.xml / searchindex.json / robots.txt 六个端点）
 ├── plugins/markdown.js  # 标题锚点 / 代码块工具栏 / 外链 / 邮箱混淆 / 防盗链 / base 前缀
 ├── plugins/shiki.js     # 围栏 meta：行高亮 {1,3-5}、nolinenos
-├── scripts/theme.js     # 顶栏、深色模式、目录高亮、复制、回顶、邮箱还原
+├── scripts/theme.js     # 顶栏、深色模式、回顶、邮箱还原、页脚站龄（全站）
+├── scripts/article.js   # 目录高亮、代码复制、正文灯箱（仅正文页按需 import）
 ├── scripts/search.js    # 站内搜索
 ├── scripts/comments.js  # 评论区加载器（懒加载 / 失败重试，不认具体哪一家）
 ├── scripts/recent.js    # 最新评论挂件（滚到附近才拉，只用 textContent）
@@ -698,9 +699,10 @@ src/
 ├── utils/list-pages.ts  # 哪些路径算「列表页」（sitemap 与 noindex 共用，零依赖）
 ├── utils/pages.ts       # 页面开关 → 路径 / 导航项
 ├── utils/seo.ts         # 分享封面挑选与 JSON-LD 生成
-├── styles/main.css      # 样式入口：只做 @import，规则分在下面这些分片里
-│   └── tokens / base / layout / cards / post / code / post-footer /
-│       comments / terms / footer / overlays / responsive
+├── styles/main.css      # 全站样式入口：只做 @import，规则分在下面这些分片里
+│   └── tokens / base / layout / cards / terms / footer / overlays / responsive
+├── styles/article.css   # 正文层入口（文章页 + 关于页 import）
+│   └── post / code / post-footer / comments
 └── styles/portal.css    # 门户首页专用样式（只在首页引入）
 
 tests/                   # vitest：只测纯函数（排序 / 分页 / base 前缀 / 配置体检）
@@ -785,8 +787,9 @@ const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
 - **文章页预连接评论服务端**，握手（跨境约 100~300ms）不算在「滚到评论区」那一刻里。
 - **评论是懒加载的**：从 CDN / 自托管取，`lazy` 控制提前多少像素开始。
 - **搜索索引不参与首屏**：鼠标移到搜索按钮或弹层打开时才开始取，敲字时索引通常已经就位。
-- **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML gzip 后 16KB，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页 HTML 多 8KB（gzip 后）—— 但 HTML 设的是 `max-age=0, must-revalidate`，回访时 304 不带正文，内联的 CSS 也不会真的重传。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
-- **首屏大图的 preload 覆盖所有页面**，不只是首页。banner 写成字符串路径（`/img/x.webp`）时图是 CSS 背景加载的，浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍，所以 head 里补一条 `<link rel="preload" as="image">`；用 `import` 引入的图由 `<Image>` 输出 `<img fetchpriority="high">`，不走这条。文章页会把自己的封面传进来，否则会 preload 一张这页根本不用的图，白占首屏带宽。
+- **CSS 内联进 HTML**（`build.inlineStylesheets: 'always'`）。样式表是渲染阻塞的，外链意味着首屏要多一个完整往返：文章页 HTML gzip 后 22KB 上下，省下的从来不是带宽，是那一跳。内联后 HTML 到手即可绘制。代价是每页多背一份 CSS，所以样式分了两层——`main.css`（全站）与 `article.css`（只在文章页和关于页 import），列表页实测因此少 3KB（gzip）。**样式表长到几十 KB 时应当改回 `'auto'` 并改做「关键 CSS 内联 + 其余异步」**，这套做法只适合现在这个体量。
+- **HTML 的缓存是「边缘 1 小时 + 浏览器后台更新」**（`public/_headers`）：`s-maxage=3600` 让 Cloudflare 边缘留住 HTML，`stale-while-revalidate=86400` 让回访时浏览器先用手上的副本、后台再取新的。**为什么不用 `max-age=0, must-revalidate`**：Pages 返回的 HTML 既没有 `ETag` 也没有 `Last-Modified`（实测带 `If-None-Match` 仍返回 200），没有校验器就没法「验证一下、没变回 304」，`must-revalidate` 只会变成每次站内跳转都整份重下。这是本项目最容易踩的一个坑。
+- **首屏大图的 preload 覆盖所有页面**，不只是首页，两种写法都有。banner 写成字符串路径（`/img/x.webp`）时图是 CSS 背景加载的，浏览器要等 CSSOM 建好才发现它，比 `<img>` 晚一拍，所以 head 里补一条 `<link rel="preload" as="image">`；用 `import` 引入的图则由 `BaseLayout` 调 `getImage` 算出 srcset，输出带 `imagesrcset` / `imagesizes` 的 preload —— `getImage` 的参数与 `<Banner>` 里的 `<Image>` 完全一致，Astro 命中同一份产物，preload 与实际选的档位不会打架。文章页会把自己的封面传进来，否则会 preload 一张这页根本不用的图，白占首屏带宽。
 - **「下一篇」用 `viewport` 预取**（文章页底部那一条）。手机上不会触发 hover，而「读到底 → 点下一篇」是文章页最确定的下一步：滚到它就取，其余链接仍然只在悬停时取，不会误伤流量。
 - **统计脚本只做 `dns-prefetch`，不做 `preconnect`**。后者要立刻完成一次 TCP + TLS 握手，会占掉一条连接，而统计是 `async` 的非关键资源 —— 那几毫秒更该留给 banner 图。`dns-prefetch` 只花一次域名查询，代价接近零。
 - **没启用 experimental 的 `clientPrerender`**（用 Speculation Rules 把目标页在后台完整渲染）。它确实更快，但会执行目标页的脚本 —— 评论区可能提前发请求、统计也会被多记一次。预取 HTML 已经能消掉大部分等待，不值得为这点差距换来副作用。

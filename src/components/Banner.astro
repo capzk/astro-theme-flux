@@ -14,7 +14,7 @@
  */
 import { Image } from 'astro:assets';
 import Icon from './Icon.astro';
-import { isAsset, type ImageSource } from '../utils/image';
+import { BANNER_SIZES, BANNER_WIDTHS, isAsset, type ImageSource } from '../utils/image';
 import { lqipGradientOf } from '../utils/lqip';
 import { publicPath } from '../utils/url';
 import { SITE, type TypingConfig } from '../config';
@@ -132,14 +132,17 @@ const style = [
   {
     isAsset(img) ? (
       <div class="banner-bg" style={lqip ? `background-image:${lqip}` : undefined}>
+        {/* `priority` 让 Astro 给 <img> 打上 eager / sync / high，真正的「提前发现」
+            由 BaseLayout 在 <head> 里补的 preload 负责（那边用同一组档位常量，
+            见 utils/image.ts 的 BANNER_WIDTHS —— 两边不一致会导致双下载）。
+            alt 留空：这张图是氛围背景，标题在下面单独渲染。 */}
         <Image
           class="banner-img"
           src={img}
           alt=""
-          widths={[720, 1080, 1440, 1920]}
-          sizes="100vw"
-          loading="eager"
-          fetchpriority="high"
+          widths={BANNER_WIDTHS}
+          sizes={BANNER_SIZES}
+          priority
         />
       </div>
     ) : bgImage ? (

@@ -74,9 +74,10 @@ src/
 ├── components/          # Navbar / Banner / Board / PostCard / Toc …
 ├── pages/               # 一个文件一个路由
 ├── plugins/markdown.js  # 标题锚点、代码块工具栏、外链新窗口
-├── scripts/theme.js     # 顶栏、深浅色、目录高亮、复制、回顶、灯箱
+├── scripts/theme.js     # 顶栏、深浅色、回顶、页脚站龄（全站）
+├── scripts/article.js   # 目录高亮、代码复制、正文灯箱（仅文章页按需加载）
 ├── scripts/search.js    # 站内搜索
-└── styles/main.css      # 全部样式（变量分亮暗两套）
+└── styles/main.css      # 全站样式入口（变量分亮暗两套；正文层见 article.css）
 ```
 
 只有两个文件带 ★，因为它们覆盖了绝大部分需求。剩下的文件是**想看再改**，不看也能跑。

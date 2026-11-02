@@ -12,7 +12,8 @@ import { absoluteUrl, imageMimeOf, ogLocale, twitterHandle } from '../utils/seo'
 import { safeJson } from '../utils/json';
 import { isListPage } from '../utils/list-pages';
 import { publicPath, stripBase, withBase } from '../utils/url';
-import type { ImageSource } from '../utils/image';
+import { BANNER_SIZES, BANNER_WIDTHS, isAsset, type ImageSource } from '../utils/image';
+import { getImage } from 'astro:assets';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
@@ -60,8 +61,8 @@ interface Props {
    *
    * 只在它是**字符串路径**时才用它补一条 `<link rel="preload" as="image">`：
    * 字符串图走 CSS `background-image`，浏览器要等 CSSOM 建好才发现它，
-   * 比 `<img>` 晚一拍；`import` 进来的资源由 `<Image>` 渲染成 `<img>`，
-   * 自带 `fetchpriority="high"`，不需要 preload。
+   * 比 `<img>` 晚一拍。`import` 进来的资源走下面 bannerAssetPreload 那条
+   * （带 imagesrcset / imagesizes），两条互斥、不会重复。
    *
    * 不传则按「首页 / 分页首页用 `banner.img`、其余页面用 `postBanner.img`」推断 ——
    * 文章页会传自己的封面，否则会 preload 错一张图，白占首屏带宽。
@@ -175,7 +176,7 @@ const preconnectList = preconnect.filter((item) => item !== origin.origin);
  *
  * 现状：banner 用字符串路径（`/img/x.webp`）时，图是 CSS 背景加载的 ——
  * 浏览器要等 CSSOM 建完才发现它，比 `<img>` 晚一拍。补一条 preload 把 LCP 抢回来。
- * `import` 进来的资源由 `<Image>` 输出 `<img fetchpriority="high">`，不用管。
+ * `import` 进来的资源走下面的 bannerAssetPreload，两条互斥。
  *
  * 页面不必各传一遍：默认按「首页 `banner.img`、其余 `postBanner.img`」推断，
  * 文章页的封面各不相同，由它自己传 `bannerImg` 覆盖 —— 否则会 preload 一张
@@ -187,6 +188,26 @@ const bannerSource =
     : bannerImg ?? (isHome ? (SITE.banner.enable ? SITE.banner.img : undefined) : SITE.postBanner.img);
 const bannerPreload =
   typeof bannerSource === 'string' ? publicPath(bannerSource.trim()) : '';
+
+/**
+ * 本地资源（`import` 进来的图）的 preload。
+ *
+ * 为什么要自己算一遍：`<Image priority>` 在 Astro 7 里只给 `<img>` 打上
+ * `loading=eager / decoding=sync / fetchpriority=high` 三个**属性**，并**不会**
+ * 往 head 里写 preload（查 node_modules/astro/dist/assets/internal.js 可验证）。
+ * 属性只能调整「已发起请求」的优先级，而这张图在 <body> 里 —— 预加载扫描器
+ * 扫不到它，要等主解析器推进到那一行才发请求。LCP 因此晚了一个解析阶段。
+ *
+ * 参数必须和 `<Banner>` 的 `<Image>` 完全一致（同一组 widths / sizes，都不传
+ * format），Astro 才会命中同一份产物 —— preload 与 <img> 指向同一个 URL。
+ * 否则会「预加载一张、实际又下一张」，比不预加载更糟。常量在 utils/image.ts。
+ *
+ * 只有 banner 真的是本地资源时才排这一趟；字符串路径仍走上面的 CSS 背景分支。
+ */
+const bannerAssetPreload =
+  bannerSource && isAsset(bannerSource)
+    ? await getImage({ src: bannerSource, widths: BANNER_WIDTHS, sizes: BANNER_SIZES })
+    : null;
 
 /* 浏览器地址栏配色全部来自 config 的 color.navbar / color.navbarDark，
    不再在这里写死暗色值 —— 改配色只改一处（见 src/config/user/appearance.ts）。 */
@@ -339,10 +360,22 @@ const verifyOther = SITE.verification.other.filter(
     )}
     <link rel="alternate" type="application/rss+xml" title={SITE.title} href={withBase('/rss.xml')} />
     <link rel="alternate" type="application/atom+xml" title={SITE.title} href={withBase('/atom.xml')} />
-    {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload 的说明 */}
+    {/* 首屏大图的 preload，见 frontmatter 里 bannerPreload / bannerAssetPreload 的说明。
+        两种来源互斥：本地资源带 srcset，字符串路径只有单张。 */}
     {
-      bannerPreload && (
-        <link rel="preload" as="image" href={bannerPreload} fetchpriority="high" />
+      bannerAssetPreload ? (
+        <link
+          rel="preload"
+          as="image"
+          href={bannerAssetPreload.src}
+          imagesrcset={bannerAssetPreload.srcSet.attribute}
+          imagesizes={BANNER_SIZES}
+          fetchpriority="high"
+        />
+      ) : (
+        bannerPreload && (
+          <link rel="preload" as="image" href={bannerPreload} fetchpriority="high" />
+        )
       )
     }
     {/* 放在 </head> 最前面几条里：握手要趁早，评论脚本是懒加载的，

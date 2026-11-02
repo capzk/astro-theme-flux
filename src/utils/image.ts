@@ -27,3 +27,17 @@ export const srcOf = (src: ImageSource | undefined, fallback = ''): string => {
   if (!src) return fallback;
   return isAsset(src) ? src.src : src;
 };
+
+/**
+ * 全屏 banner 的档位与 sizes。
+ * ---------------------------------------------------------------------------
+ * 这两项**必须由 `<Banner>` 与 `BaseLayout` 的 preload 共用**，不能各写一份：
+ * preload 与 `<img>` 的候选集一旦不一致，浏览器会「预加载一张、实际又选另一张」，
+ * 变成两次下载 —— 比不预加载更糟。
+ *
+ * 档位按 CSS 视口宽度给：720 / 1080 / 1440 / 1920，覆盖手机竖屏到 1080p 桌面。
+ * 4K 屏会取最大档再放大，但 banner 是氛围图，肉眼几乎分辨不出，
+ * 为它多备 2560 档会让每张图多编一次、多占一份存储。
+ */
+export const BANNER_WIDTHS = [720, 1080, 1440, 1920];
+export const BANNER_SIZES = '100vw';

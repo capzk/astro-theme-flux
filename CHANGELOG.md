@@ -9,6 +9,46 @@
 
 _（无待发布改动）_
 
+## [5.3.0] - 2026-11-02
+
+这一版只做性能，视觉与交互完全不变。三件事：把回访最贵的那条缓存策略修对、
+给本地 banner 补上真正的 LCP 预加载、把文章页专属的样式与脚本从列表页挪走。
+审查过程与数据见 `docs/性能审查-2026-11-02.md`。
+
+### Changed
+
+- **HTML 缓存改为「边缘 1 小时 + 浏览器后台更新」**（`public/_headers`）：
+  `max-age=0, must-revalidate` → `max-age=0, s-maxage=3600, stale-while-revalidate=86400`。
+  原来的写法在 Cloudflare Pages 上恰好是回访最贵的一种：Pages 的 HTML 既没有
+  `ETag` 也没有 `Last-Modified`（实测带 `If-None-Match` 仍返回 200），
+  `must-revalidate` 没法「验证一下、没变就回 304」，只能整份重下；同时
+  `cf-cache-status` 恒为 `DYNAMIC`，边缘不留副本，每跳一次都要回源。
+  改完回访由边缘命中，浏览器侧先用手上副本、后台再更新。
+  **升级后请用 `curl -I` 连续两次确认 `cf-cache-status` 变成 `HIT`** ——
+  若线上仍是 `DYNAMIC`，说明 CF 后台有 Transform Rule / Cache Rule 盖掉了
+  这个文件（对照看 `referrer-policy` 是不是也还是 CF 设置的值）。
+
+### Added
+
+- **`src/styles/article.css`：正文层样式入口**。`post` / `code` / `post-footer` /
+  `comments` 四片从 `main.css` 移到这一层，由文章页与关于页 import。
+  列表页（首页 / 归档 / 标签 / 分类 / 404）不再为它们买单：首页 HTML gzip
+  20.2KB → 17.1KB（-15%），归档 14.1KB → 11.0KB，404 13.2KB → 10.2KB；
+  文章页持平（它本来就要全部样式）。
+  ⚠️ 引入顺序有讲究：页面里那条 `import` 要在 `import BaseLayout` 之前，
+  否则 `responsive.css` 里针对正文的断点会被基础规则反过来压住。
+- **`src/scripts/article.js`：正文页交互按需加载**。目录高亮、代码复制、正文图片放大
+  三块从 `theme.js` 拆出；`theme.js` 先看页面里有没有 `.toc-link` / `.code-copy` /
+  `.markdown-body img`，有才 `import()`。首屏脚本 8.6KB → 5.7KB（-33%），
+  列表页完全不下载这一个 chunk。
+- **本地 banner 的 LCP 预加载**。`<Image priority>` 在 Astro 7 里只给 `<img>` 打上
+  `loading=eager` / `decoding=sync` / `fetchpriority=high`，并**不会**写 preload
+  （见 `node_modules/astro/dist/assets/internal.js`）；本地 banner 因此一直要等主解析器
+  推进到 `<body>` 才发请求。现在 `BaseLayout` 用 `getImage` 按同一组档位算出 srcset，
+  在 head 里输出带 `imagesrcset` / `imagesizes` 的 preload，LCP 提前一个解析阶段。
+  档位与 sizes 提到 `utils/image.ts` 的 `BANNER_WIDTHS` / `BANNER_SIZES` 两处共用 ——
+  参数不一致会让浏览器「预加载一张、实际又下一张」，比不预加载更糟。
+
 ## [5.2.0] - 2026-11-02
 
 这一版有两批改动：一批是对照 Astro 官方文档做架构体检后的工程化收敛（`base` 支持、

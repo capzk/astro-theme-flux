@@ -9,6 +9,12 @@
  * 保留阅读本身需要的部分：元信息、目录、标签、版权、上一篇/下一篇、相关文章，
  * 以及可选的评论区（评论系统可插拔，见 src/config 的 comment 段）。
  */
+/* 正文层样式（正文排版 / 代码块 / 文末 / 评论）。
+   列表页用不到这三十多 KB，所以从 main.css 里拆出来按页加载。
+   顺序说明见 src/styles/article.css 顶部 —— 这条 import 必须在 BaseLayout 之前，
+   responsive.css 的断点覆盖才能压在最后。 */
+import '../../styles/article.css';
+
 import { render } from 'astro:content';
 import { getImage } from 'astro:assets';
 import BaseLayout from '../../layouts/BaseLayout.astro';

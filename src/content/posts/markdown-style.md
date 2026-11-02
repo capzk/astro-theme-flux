@@ -92,7 +92,7 @@ const e = 5;
 src/
 ├── config/          # 配置
 ├── components/      # 组件
-└── styles/main.css  # 全部样式
+└── styles/main.css  # 全站样式入口（正文排版在 article.css）
 ```
 
 两个可以一起写：<code>```js {1} nolinenos</code>。

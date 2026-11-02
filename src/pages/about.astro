@@ -4,6 +4,11 @@
  *
  * 原版 about 页有个头像浮在白卡片上方。这里保留「头像 + 简介 + 正文」三段。
  */
+/* 关于页有 `.markdown-body` 正文，需要正文层样式；不需要评论那几片，
+   但多带十几 KB 源码比再拆一层入口划算（这页只有一屏）。
+   顺序说明见 src/styles/article.css 顶部。 */
+import '../styles/article.css';
+
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
