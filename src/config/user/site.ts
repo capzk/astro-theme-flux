@@ -2,7 +2,11 @@
  * 站点基础信息 + 导航
  * ---------------------------------------------------------------------------
  * 这是最可能需要改的文件：站名、描述、作者、导航菜单。
- * 没写的字段沿用 `src/config/defaults.ts` 里的默认值 —— 只写你要改的那几行。
+ * **只写和默认值不同的字段**，其余自动继承 `src/config/defaults.ts` 的出厂值 ——
+ * 升级主题时 `user/` 原样保留，主题的 defaults 被整块替换，两者不会互相干扰。
+ *
+ * ⚠️ `nav` 是**数组整体替换**，不是逐项合并。删掉这里的 nav 就继承默认导航；
+ *    自己写一份就代表全权接管导航 —— 主题后续新增的页面入口不会自动出现。
  */
 import { defineConfig } from '../merge';
 
@@ -36,16 +40,21 @@ export default defineConfig({
   since: 2026,
 
   /**
-   * 导航菜单。`labelKey` 指向 `src/i18n.ts` 里的文案键（推荐，换语言时自动跟着走）；
+   * 导航菜单（可选，不写则继承 defaults.ts 的出厂导航）。
+   *
+   * ⚠️ 数组是**整体覆盖**：写了这里就代表你全权接管，主题后续新增的页面入口
+   * 不会自动出现。若只想调整个别项（如改图标或加外链），需要把整份都列进来。
+   *
+   * `labelKey` 指向 `src/i18n.ts` 里的文案键（推荐，换语言时自动跟着走）；
    * 想给某一项单独起名，直接写 `label`，它会盖过 `labelKey`。
    * `icon` 的可选值见 `src/components/Icon.astro`。
    */
-  nav: [
-    { labelKey: 'home', href: '/', icon: 'home' },
-    { labelKey: 'archive', href: '/archives/', icon: 'archive' },
-    { labelKey: 'categories', href: '/categories/', icon: 'category' },
-    { labelKey: 'tags', href: '/tags/', icon: 'tag' },
-    { labelKey: 'friends', href: '/links/', icon: 'link' },
-    { labelKey: 'about', href: '/about/', icon: 'user' },
-  ],
+  // nav: [
+  //   { labelKey: 'home',       href: '/',            icon: 'home'    },
+  //   { labelKey: 'archive',    href: '/archives/',   icon: 'archive' },
+  //   { labelKey: 'categories', href: '/categories/', icon: 'category'},
+  //   { labelKey: 'tags',       href: '/tags/',        icon: 'tag'     },
+  //   { labelKey: 'friends',    href: '/links/',       icon: 'link'    },
+  //   { labelKey: 'about',      href: '/about/',       icon: 'user'    },
+  // ],
 });

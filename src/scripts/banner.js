@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Flux · Banner 的两个动效：打字机、视差
  * ---------------------------------------------------------------------------
@@ -9,9 +10,15 @@
  * 完整文案、不接管滚动。这不是可选项，前庭功能障碍的用户会因视差眩晕。
  */
 
+/** @type {(ms: number) => Promise<void>} */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** 逐字打出 */
+/**
+ * 逐字打出
+ * @param {HTMLElement} el
+ * @param {string} text
+ * @param {number} speed
+ */
 async function typeText(el, text, speed) {
   for (let i = 1; i <= text.length; i += 1) {
     el.textContent = text.slice(0, i);
@@ -19,7 +26,12 @@ async function typeText(el, text, speed) {
   }
 }
 
-/** 逐字删掉 */
+/**
+ * 逐字删掉
+ * @param {HTMLElement} el
+ * @param {string} text
+ * @param {number} speed
+ */
 async function eraseText(el, text, speed) {
   for (let i = text.length; i >= 0; i -= 1) {
     el.textContent = text.slice(0, i);
@@ -32,6 +44,8 @@ async function eraseText(el, text, speed) {
  *
  * 轮播的条件是「有多句」或「显式 loop」。只有一句且没开 loop 时打一遍就停 ——
  * 那是绝大多数人的用法（一句站内签名），不该无休止地闪。
+ *
+ * @param {HTMLElement} el
  */
 async function startTyping(el) {
   let config;
@@ -83,9 +97,11 @@ async function startTyping(el) {
  *
  * 用 rAF 节流：scroll 事件在高刷屏上一秒能来上百次，每次都写 style 会掉帧。
  * banner 滚出视野后不再计算，省掉无用功。
+ *
+ * @param {HTMLElement} banner
  */
 function startParallax(banner) {
-  const bg = banner.querySelector('.banner-bg');
+  const bg = /** @type {HTMLElement | null} */ (banner.querySelector('.banner-bg'));
   if (!bg) return;
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -112,8 +128,12 @@ function startParallax(banner) {
   update();
 }
 
-const typingEl = document.querySelector('.banner-subtitle[data-banner-typing]');
+const typingEl = /** @type {HTMLElement | null} */ (
+  document.querySelector('.banner-subtitle[data-banner-typing]')
+);
 if (typingEl) void startTyping(typingEl);
 
-const parallaxBanner = document.querySelector('.banner[data-parallax]');
+const parallaxBanner = /** @type {HTMLElement | null} */ (
+  document.querySelector('.banner[data-parallax]')
+);
 if (parallaxBanner) startParallax(parallaxBanner);

@@ -14,11 +14,16 @@
  * 失败不影响构建：算不出来就打一行警告，虚拟模块返回空表，页面照旧只是没有占位色。
  * 「少一点精致」不该升级成「构建挂了」。
  *
- * 没有中间产物：颜色直接内联进构建结果，仓库里不再有一份要提交的 JSON，
+ * 磁盘持久化缓存：把「文件相对路径 → 颜色」序列化到 `.astro/lqip-cache.json`。
+ * 缓存命中条件：文件相对路径存在 **且** 文件的 mtime（秒级）没有变化。
+ * 这样不触碰图片时冷启动构建跳过 sharp 操作；修改或新增图片时仅重算变动的那张。
+ * 图片数量多时构建时间显著缩短；`.astro/` 目录通常在 .gitignore 里，不污染仓库。
+ *
+ * 没有中间产物进产物目录：颜色直接内联进构建结果，仓库里不再有一份要提交的 JSON，
  * 也就不存在「忘了重新生成」这种状态。
  */
-import { readdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
+import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,6 +73,30 @@ async function placeholderOf(sharp, file) {
 }
 
 /**
+ * 磁盘持久化缓存：{ relPath → { mtime, color } }。
+ * mtime 精确到秒（Math.floor(mtimeMs/1000)），粒度足够检测图片替换。
+ */
+async function loadDiskCache(cacheFile) {
+  try {
+    const raw = await readFile(cacheFile, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+async function saveDiskCache(cacheFile, cache) {
+  try {
+    /* `astro:config:setup` 时 `.astro/` 可能还不存在（干净克隆的第一次构建），
+       不先建目录的话 writeFile 会 ENOENT，缓存等于没写 —— 冷启动永远存不下来 */
+    await mkdir(path.dirname(cacheFile), { recursive: true });
+    await writeFile(cacheFile, JSON.stringify(cache), 'utf8');
+  } catch {
+    /* 写失败（如权限问题）静默跳过，下次构建重算一遍即可 */
+  }
+}
+
+/**
  * 扫 `src/assets`（参与优化的资源图）与 `public`（原样输出的图），
  * 键是「相对项目根目录的正斜杠路径」，与 `lqip.ts` 里拼出来的键一一对应。
  */
@@ -75,6 +104,9 @@ async function buildTable(config) {
   const sharp = (await import('sharp')).default;
 
   const root = fileURLToPath(config.root);
+  const astroDir = path.join(root, '.astro');
+  const cacheFile = path.join(astroDir, 'lqip-cache.json');
+
   const dirs = [
     path.join(fileURLToPath(config.srcDir), 'assets'),
     fileURLToPath(config.publicDir),
@@ -82,15 +114,48 @@ async function buildTable(config) {
 
   const files = (await Promise.all(dirs.map((dir) => collect(dir)))).flat().sort();
 
+  /* 从磁盘加载上一次的缓存 */
+  const diskCache = await loadDiskCache(cacheFile);
   const table = {};
+  const newCache = {};
+  let computed = 0;
+  let hits = 0;
+
   for (const file of files) {
+    const relPath = path.relative(root, file).split(path.sep).join('/');
+    let mtime;
     try {
-      table[path.relative(root, file).split(path.sep).join('/')] = await placeholderOf(sharp, file);
+      mtime = Math.floor(statSync(file).mtimeMs / 1000);
+    } catch {
+      continue;
+    }
+
+    const cached = diskCache[relPath];
+    if (cached && cached.mtime === mtime) {
+      /* 命中缓存：直接复用 */
+      table[relPath] = cached.color;
+      newCache[relPath] = cached;
+      hits += 1;
+      continue;
+    }
+
+    /* 未命中：用 sharp 重算 */
+    try {
+      const color = await placeholderOf(sharp, file);
+      table[relPath] = color;
+      newCache[relPath] = { mtime, color };
+      computed += 1;
     } catch {
       /* 单张图读不了（损坏 / 格式怪）就跳过它，不影响别的图 */
     }
   }
-  return table;
+
+  /* 只在有新计算时才写磁盘，避免空跑一次 IO */
+  if (computed > 0) {
+    await saveDiskCache(cacheFile, newCache);
+  }
+
+  return { table, computed, hits };
 }
 
 /** 把表挂成一个虚拟模块，`import colors from 'virtual:flux-lqip'` 就能拿到 */
@@ -113,9 +178,15 @@ export default function lqip() {
       'astro:config:setup': async ({ config, updateConfig, logger }) => {
         let table = {};
         try {
-          table = await buildTable(config);
-          const count = Object.keys(table).length;
-          if (count > 0) logger.info(`${count} 张图算好了占位色`);
+          const result = await buildTable(config);
+          table = result.table;
+          const total = result.computed + result.hits;
+          if (total > 0) {
+            const detail = result.hits > 0
+              ? `${total} 张图算好了占位色（${result.hits} 命中缓存，${result.computed} 重新计算）`
+              : `${total} 张图算好了占位色`;
+            logger.info(detail);
+          }
         } catch (error) {
           logger.warn(`占位色已跳过（页面照常，只是图没到时没有底色）：${error.message}`);
         }

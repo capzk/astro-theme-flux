@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Turnstile 生命周期补丁（浏览器）
  * ---------------------------------------------------------------------------
@@ -50,17 +51,32 @@ function language() {
 }
 
 /**
+ * Turnstile 官方 api.js 暴露到 window 上的那个对象。只声明我们用到的部分：
+ * 其余方法（getResponse / reset / ready）原样透传，不在补丁里经过。
+ *
+ * @typedef {object} TurnstileApi
+ * @property {(container: string | HTMLElement, params?: Record<string, any>) => string} render
+ * @property {(widgetId?: string) => void} [remove]
+ * @property {boolean} [fluxWrapped] 本补丁的幂等标记
+ */
+
+/**
  * 包一层 render。不新建对象 —— 直接改 api 上的方法，这样上游自己的
  * `window.turnstile` 引用、`getResponse` / `reset` / `ready` 全都原样可用。
+ *
+ * @param {TurnstileApi} api
+ * @returns {TurnstileApi}
  */
 function wrap(api) {
   if (!api || typeof api.render !== 'function' || api.fluxWrapped) return api;
 
   const render = api.render.bind(api);
   const remove = typeof api.remove === 'function' ? api.remove.bind(api) : null;
-  /** 上一次渲染出来的 widgetId，下一次 render 之前要先把它拆掉 */
+  /** 上一次渲染出来的 widgetId，下一次 render 之前要先把它拆掉
+   * @type {string | null} */
   let last = null;
 
+  /** @param {string | null} id */
   const drop = (id) => {
     if (!remove || id == null) return;
     try {
@@ -71,7 +87,9 @@ function wrap(api) {
   };
 
   api.render = (container, params = {}) => {
-    const el = typeof container === 'string' ? document.querySelector(container) : container;
+    const el = /** @type {HTMLElement | null} */ (
+      typeof container === 'string' ? document.querySelector(container) : container
+    );
 
     /* 顺序不能反：先让 Cloudflare 忘掉上一个 widget，再清 DOM。
        只清 DOM 不够 —— 重复检测查的是它自己的 widgetMap，不看元素里还剩什么 */
@@ -80,6 +98,7 @@ function wrap(api) {
     if (el) el.replaceChildren();
 
     const done = params.callback;
+    /** @type {string | null} */
     let id = null;
 
     id = render(el || container, {
@@ -88,6 +107,7 @@ function wrap(api) {
       appearance: 'interaction-only',
       theme: scheme(),
       language: language(),
+      /** @param {string} token */
       callback: (token) => {
         /* token 是一次性的，拿到就把 widget 收掉：验证框不再赖在页面上，
            下一次 render 也省得再拆一遍。放到下一个任务里做，别在 Cloudflare
@@ -110,17 +130,23 @@ function wrap(api) {
   return api;
 }
 
+/** window 上那两个由本补丁 / Cloudflare 挂上去的字段，lib.dom 里没有
+ * @typedef {Window & { fluxTurnstile?: boolean, turnstile?: TurnstileApi }} FluxWindow */
+
 /**
  * 装钩子。必须在 Turnstile 的 api.js **加载之前**就把监听器挂上 —— 它是 Waline
  * 在第一次提交评论时才注入的，评论挂载发生在页面加载后不久，时间来得及。
  */
 export function hookTurnstile() {
-  if (typeof window === 'undefined' || window.fluxTurnstile) return;
-  window.fluxTurnstile = true;
+  if (typeof window === 'undefined') return;
+  /** @type {FluxWindow} */
+  const win = window;
+  if (win.fluxTurnstile) return;
+  win.fluxTurnstile = true;
 
   /* 已经有实例（别的插件先引了 api.js）：直接包 */
-  if (window.turnstile) {
-    wrap(window.turnstile);
+  if (win.turnstile) {
+    wrap(win.turnstile);
     return;
   }
 
@@ -137,14 +163,15 @@ export function hookTurnstile() {
   const watch = new MutationObserver((records) => {
     for (const record of records) {
       for (const node of record.addedNodes) {
-        if (node.nodeType !== 1 || node.tagName !== 'SCRIPT' || seen.has(node)) continue;
+        /* addedNodes 是 Node：先收窄成 <script>，后面的 .src / load 才成立 */
+        if (!(node instanceof HTMLScriptElement) || seen.has(node)) continue;
         seen.add(node);
-        if (!String(node.src).includes('challenges.cloudflare.com/turnstile')) continue;
+        if (!node.src.includes('challenges.cloudflare.com/turnstile')) continue;
 
         node.addEventListener(
           'load',
           () => {
-            if (window.turnstile) wrap(window.turnstile);
+            if (win.turnstile) wrap(win.turnstile);
           },
           { once: true },
         );

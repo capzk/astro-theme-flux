@@ -95,6 +95,7 @@ export function postsBySlug(posts: Post[]): Map<string, Post> {
 export function plainText(body: string): string {
   return body
     .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^:{3,}[^\n]*$/gm, ' ')          // 自定义容器的 ::: 开关行（remark-directive）
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/^---[\s\S]*?---/m, ' ')

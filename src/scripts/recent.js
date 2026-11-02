@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Flux · 本站最新评论
  * ---------------------------------------------------------------------------
@@ -17,6 +18,16 @@
 
 const DEFAULT_LAZY = 400;
 
+/**
+ * 「本站最新评论」的一条，各家响应经 normalize 之后统一成这个形状
+ * @typedef {object} RecentItem
+ * @property {string} nick 昵称
+ * @property {string} text 截断后的正文（纯文本）
+ * @property {string} url  原文链接，空串表示不可点
+ * @property {string} time 时间（原样字符串，只用于排序前的展示）
+ */
+
+/** @param {HTMLElement} section */
 function readConfig(section) {
   const node = section.querySelector('.recent-config');
   if (!node) return null;
@@ -31,8 +42,13 @@ function readConfig(section) {
  * 把各家的响应整理成同一种形状：{ nick, text, url, time }。
  * 认不出来就返回空数组 —— 上层不区分「接口挂了」和「格式变了」，
  * 两种情况的处理都是「这块不显示」。
+ *
+ * @param {string} _type 数据源标识；目前只有 waline 一家，留着给将来加一家时分支
+ * @param {unknown} data
+ * @param {number} length
+ * @returns {RecentItem[]}
  */
-function normalize(type, data, length) {
+function normalize(_type, data, length) {
   if (!Array.isArray(data)) return [];
 
   return data
@@ -57,11 +73,15 @@ function normalize(type, data, length) {
         time: String(item.insertedAt ?? item.createdAt ?? item.created ?? ''),
       };
     })
-    .filter(Boolean)
+    .filter((item) => item !== null)
     /* 有些服务端会把待审的也算进来，取够条数就停，不要多渲染 */
     .slice(0, 20);
 }
 
+/**
+ * @param {Element} list
+ * @param {RecentItem[]} items
+ */
 function render(list, items) {
   const frag = document.createDocumentFragment();
 
@@ -71,7 +91,7 @@ function render(list, items) {
 
     /* 整条可点：读者想看上下文就跳过去，不必先瞄准那一行小字 */
     const link = document.createElement(item.url ? 'a' : 'span');
-    if (item.url) link.href = item.url;
+    if (item.url && link instanceof HTMLAnchorElement) link.href = item.url;
 
     const head = document.createElement('span');
     head.className = 'recent-comments-nick';
@@ -89,6 +109,7 @@ function render(list, items) {
   list.append(frag);
 }
 
+/** @param {HTMLElement} section */
 function start(section) {
   const config = readConfig(section);
   const list = section.querySelector('.recent-comments-list');
@@ -153,5 +174,5 @@ function start(section) {
   observer.observe(section);
 }
 
-const section = document.querySelector('.recent-comments');
+const section = /** @type {HTMLElement | null} */ (document.querySelector('.recent-comments'));
 if (section) start(section);

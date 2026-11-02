@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Waline 挂载（浏览器）
  * ---------------------------------------------------------------------------
@@ -16,8 +17,9 @@ import { hookTurnstile } from './turnstile.js';
 /**
  * @param {object} ctx
  * @param {HTMLElement} ctx.el      挂载点
- * @param {object} ctx.section      构建期下发的配置（type / js / css / init / lazy）
+ * @param {import('./types.js').CommentSection} ctx.section 构建期下发的配置
  * @param {(src: string) => Promise<any>} ctx.loadModule 动态 import（带重试去缓存）
+ * @returns {Promise<void>}
  */
 export default async function mountWaline({ el, section, loadModule }) {
   /* 补丁要在 Turnstile 的 api.js 被注入之前就位 —— 它由 Waline 在第一次

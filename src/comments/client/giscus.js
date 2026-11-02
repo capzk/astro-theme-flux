@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Giscus 挂载（浏览器）
  * ---------------------------------------------------------------------------
@@ -8,13 +9,23 @@
  * —— iframe 里的东西我们改不到，只能走它的接口。
  */
 
-/** repoId → repo-id。giscus 的属性全是 kebab-case */
+/** repoId → repo-id。giscus 的属性全是 kebab-case
+ * @param {string} key
+ * @returns {string}
+ */
 function kebab(key) {
   return key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }
 
 const ORIGIN = 'https://giscus.app';
 
+/**
+ * @param {object} ctx
+ * @param {HTMLElement} ctx.el      挂载点
+ * @param {import('./types.js').CommentSection} ctx.section 构建期下发的配置
+ * @param {number} ctx.attempt      第几次尝试（重试时换个查询参数绕缓存）
+ * @returns {Promise<void>}
+ */
 export default function mountGiscus({ el, section, attempt }) {
   /* themeLight / themeDark 是主题自己留着切换用的，不能当 data 属性发出去 */
   const { themeLight, themeDark, ...attrs } = section.init;
@@ -41,7 +52,9 @@ export default function mountGiscus({ el, section, attempt }) {
   /* 切主题：找到 giscus 的 iframe 发消息。iframe 还没建好时发出去会被丢掉，
      所以监听这一次就够了 —— 首次配色由 data-theme 决定 */
   new MutationObserver(() => {
-    const frame = el.querySelector('iframe.giscus-frame');
+    const frame = /** @type {HTMLIFrameElement | null} */ (
+      el.querySelector('iframe.giscus-frame')
+    );
     if (!frame || !frame.contentWindow) return;
     frame.contentWindow.postMessage(
       { giscus: { setConfig: { theme: isDark() ? themeDark : themeLight } } },

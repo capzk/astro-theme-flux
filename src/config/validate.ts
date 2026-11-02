@@ -80,11 +80,28 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
     }
   }
 
-  if (comment.enable && comment.type === 'giscus' && !comment.giscus?.repo?.trim()) {
-    issues.push(
-      'comment.type 是 giscus 且 enable 为 true，但 giscus.repo 是空的 —— 评论区不会出现。' +
-        '去 https://giscus.app 填仓库信息，把生成的 repo / repoId 抄到 user/comment.ts。',
-    );
+  if (comment.enable && comment.type === 'giscus') {
+    const g = comment.giscus;
+    if (!g?.repo?.trim()) {
+      issues.push(
+        'comment.type 是 giscus 且 enable 为 true，但 giscus.repo 是空的 —— 评论区不会出现。' +
+          '去 https://giscus.app 填仓库信息，把生成的 repo / repoId 抄到 user/comment.ts。',
+      );
+    } else if (!g?.repoId?.trim()) {
+      issues.push(
+        'giscus.repo 填了，但 giscus.repoId 是空的 —— 评论区会白屏（iframe 载入失败）。' +
+          '在 https://giscus.app 生成完整配置后把 repoId（R_kgDO… 开头）也抄过来。',
+      );
+    }
+    /* category 与 categoryId 需要同时填；只填其一时 Giscus 会忽略分类并退回仓库默认，
+       但容易让人以为配置生效了，所以提示一句 */
+    if (g?.category?.trim() && !g?.categoryId?.trim()) {
+      issues.push(
+        `giscus.category 填了「${g.category}」但 giscus.categoryId 是空的 ——` +
+          ' Giscus 会忽略分类设置，退回仓库的默认分类。' +
+          '在 https://giscus.app 生成配置时 categoryId（DIC_kwDO… 开头）和 category 是一对，一起复制。',
+      );
+    }
   }
 
   if (comment.enable && comment.type === 'waline') {

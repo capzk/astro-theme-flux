@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Artalk 挂载（浏览器）
  * ---------------------------------------------------------------------------
@@ -23,8 +24,9 @@ const isDark = () => document.documentElement.dataset.userColorScheme === 'dark'
 /**
  * @param {object} ctx
  * @param {HTMLElement} ctx.el      挂载点
- * @param {object} ctx.section      构建期下发的配置（type / js / css / init / lazy）
+ * @param {import('./types.js').CommentSection} ctx.section 构建期下发的配置
  * @param {(src: string) => Promise<any>} ctx.loadModule 动态 import（带重试去缓存）
+ * @returns {Promise<void>}
  */
 export default async function mountArtalk({ el, section, loadModule }) {
   const mod = await loadModule(section.js);

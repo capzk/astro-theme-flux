@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Flux · 交互脚本
  * ---------------------------------------------------------------------------
@@ -45,8 +46,8 @@ function initTheme() {
    * 所以这里在首帧与每次切换时把 media 摘掉，两条都写成本次选中的颜色
    * （同值重复没有副作用，浏览器取第一条）。脚本没跑起来时 media 仍然有效。
    */
-  const metas = Array.from(
-    document.querySelectorAll('meta[name="theme-color"][data-light][data-dark]'),
+  const metas = /** @type {HTMLMetaElement[]} */ (
+    Array.from(document.querySelectorAll('meta[name="theme-color"][data-light][data-dark]'))
   );
   const syncThemeColor = () => {
     const dark = current() === 'dark';
@@ -104,6 +105,7 @@ function initMobileMenu() {
   const labelOpen = btn.dataset.labelOpen || '打开菜单';
   const labelClose = btn.dataset.labelClose || '关闭菜单';
 
+  /** @param {boolean} open */
   const setOpen = (open) => {
     menu.hidden = !open;
     menu.classList.toggle('is-open', open);
@@ -112,10 +114,10 @@ function initMobileMenu() {
     document.body.classList.toggle('is-locked', open);
   };
 
-  btn.addEventListener('click', () => setOpen(menu.hidden));
+  btn.addEventListener('click', () => setOpen(Boolean(menu.hidden)));
   /* 点菜单里的链接后自动收起 */
   menu.addEventListener('click', (e) => {
-    if (e.target.closest('a')) setOpen(false);
+    if (e.target instanceof Element && e.target.closest('a')) setOpen(false);
   });
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !menu.hidden) setOpen(false);
@@ -128,10 +130,13 @@ function initMobileMenu() {
 
 /* ---------- 4. 目录滚动高亮 ---------- */
 function initToc() {
-  const links = Array.from(document.querySelectorAll('.toc-link'));
+  const links = /** @type {HTMLAnchorElement[]} */ (
+    Array.from(document.querySelectorAll('.toc-link'))
+  );
   if (!links.length) return;
 
   /* 只保留能在正文里找到目标的链接，找不到的（锚点被插件改过）不参与高亮 */
+  /** @type {{ link: HTMLAnchorElement, target: HTMLElement }[]} */
   const items = [];
   for (const link of links) {
     let id = link.hash.slice(1);
@@ -148,9 +153,11 @@ function initToc() {
   /* 判定线：标题越过视口顶部这条线就算「当前章节」。
      与 .markdown-body 标题的 scroll-margin-top(5rem) 呼应，略低一点。 */
   const LINE = 100;
+  /** @type {HTMLAnchorElement | null} */
   let active = null;
   let ticking = false;
 
+  /** @param {HTMLAnchorElement} link */
   const setActive = (link) => {
     if (link === active) return;
     if (active) {
@@ -193,9 +200,15 @@ function initToc() {
 
 /* ---------- 5. 代码复制 ---------- */
 function initCodeCopy() {
-  const buttons = document.querySelectorAll('.code-copy');
+  const buttons = /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.code-copy'));
   if (!buttons.length) return;
 
+  /**
+   * @param {HTMLElement} btn
+   * @param {string} key
+   * @param {string} fallback
+   * @returns {string}
+   */
   const labelOf = (btn, key, fallback) => btn.getAttribute(key) || fallback;
 
   for (const btn of buttons) {
@@ -226,7 +239,10 @@ function initCodeCopy() {
         document.body.appendChild(ta);
         ta.select();
         try {
-          document.execCommand('copy');
+          /* execCommand('copy') 在 lib.dom 里标了 @deprecated，但眼下没有能同步
+             复制选区的替代品（异步的 clipboard API 就是上面失败的那条）。
+             经 any 转一手，免得每次 `astro check` 都刷一条废弃提示。 */
+          /** @type {any} */ (document).execCommand('copy');
           done();
         } catch {
           /* 真复制不了就什么都不做，别假装成功 */
@@ -255,62 +271,90 @@ function initImageZoom() {
   const body = document.querySelector('.markdown-body');
   if (!body) return;
 
-  /* 只接管「没有被链接包着」的图片；带链接的图保持原来的跳转行为 */
+  /** 只接管「没有被链接包着」的图片；带链接的图保持原来的跳转行为
+   * @param {HTMLImageElement} img */
   const isZoomable = (img) => !img.closest('a');
 
-  let overlay = null;
-  let closeBtn = null;
-  let bigImg = null;
+  /* 与搜索弹层保持一致：打开时对背景设 inert，屏幕阅读器与 Tab 不会穿透遮罩 */
+  const INERT_TARGETS = ['header', 'main', 'footer', '#scroll-top'];
+  /** @param {boolean} inert */
+  const setBackgroundInert = (inert) => {
+    for (const sel of INERT_TARGETS) {
+      const node = document.querySelector(sel);
+      if (!node) continue;
+      if (inert) node.setAttribute('inert', '');
+      else node.removeAttribute('inert');
+    }
+  };
+
+  /**
+   * 遮罩的三块 DOM。整体存在一个对象里而不是三个并列变量：它们要么一起存在、
+   * 要么一起为 null，分开写只会让类型检查到处怀疑「这个是不是还没建」。
+   * @type {{ box: HTMLElement, close: HTMLButtonElement, img: HTMLImageElement } | null}
+   */
+  let ui = null;
+  /** @type {HTMLImageElement | null} */
   let opener = null;
 
   const close = () => {
-    if (!overlay) return;
-    overlay.classList.remove('is-open');
-    overlay.setAttribute('aria-hidden', 'true');
+    if (!ui) return;
+    ui.box.classList.remove('is-open');
+    ui.box.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('is-locked');
-    if (opener && typeof opener.focus === 'function') {
-      opener.focus({ preventScroll: true });
-    }
+    setBackgroundInert(false);
+    if (opener) opener.focus({ preventScroll: true });
   };
 
+  /** 第一次用到时才建，避免每个页面都背一份无用的 DOM */
+  const ensureUi = () => {
+    if (ui) return ui;
+
+    const box = document.createElement('div');
+    box.className = 'img-zoom';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-hidden', 'true');
+    box.innerHTML =
+      '<button type="button" class="img-zoom-close" aria-label="关闭">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+      '</button><img alt="">';
+    document.body.appendChild(box);
+
+    const closeBtn = /** @type {HTMLButtonElement} */ (box.querySelector('.img-zoom-close'));
+    const zoomImg = /** @type {HTMLImageElement} */ (box.querySelector('img'));
+    ui = { box, close: closeBtn, img: zoomImg };
+
+    closeBtn.addEventListener('click', close);
+    box.addEventListener('click', (e) => {
+      if (e.target === box) close();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && box.classList.contains('is-open')) close();
+    });
+
+    return ui;
+  };
+
+  /** @param {HTMLImageElement} img */
   const open = (img) => {
-    /* 遮罩第一次用到时才建，避免每个页面都背一份无用的 DOM */
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.className = 'img-zoom';
-      overlay.setAttribute('role', 'dialog');
-      overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-hidden', 'true');
-      overlay.innerHTML =
-        '<button type="button" class="img-zoom-close" aria-label="关闭">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-        'stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
-        '</button><img alt="">';
-      document.body.appendChild(overlay);
-
-      closeBtn = overlay.querySelector('.img-zoom-close');
-      bigImg = overlay.querySelector('img');
-      closeBtn.addEventListener('click', close);
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) close();
-      });
-      window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && overlay.classList.contains('is-open')) close();
-      });
-    }
-
-    bigImg.src = img.currentSrc || img.src;
-    bigImg.alt = img.alt || '';
+    const zoom = ensureUi();
+    zoom.img.src = img.currentSrc || img.src;
+    zoom.img.alt = img.alt || '';
     opener = img;
-    overlay.classList.add('is-open');
-    overlay.setAttribute('aria-hidden', 'false');
+    zoom.box.classList.add('is-open');
+    zoom.box.setAttribute('aria-hidden', 'false');
     document.body.classList.add('is-locked');
-    closeBtn.focus({ preventScroll: true });
+    /* 背景设 inert 后，Tab 和读屏都被限制在遮罩内 */
+    setBackgroundInert(true);
+    zoom.close.focus({ preventScroll: true });
   };
 
   body.addEventListener('click', (e) => {
-    const img = e.target.closest('img');
-    if (!img || !body.contains(img) || !isZoomable(img)) return;
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    const img = target.closest('img');
+    if (!(img instanceof HTMLImageElement) || !body.contains(img) || !isZoomable(img)) return;
     e.preventDefault();
     open(img);
   });
@@ -318,13 +362,15 @@ function initImageZoom() {
 
 /* ---------- 8. 邮箱地址还原 ---------- */
 function initEmailLinks() {
-  const nodes = document.querySelectorAll('span.email-link[data-mail]');
+  const nodes = /** @type {NodeListOf<HTMLSpanElement>} */ (
+    document.querySelectorAll('span.email-link[data-mail]')
+  );
   if (!nodes.length) return;
 
   for (const node of nodes) {
     let address;
     try {
-      address = atob(node.dataset.mail);
+      address = atob(node.dataset.mail || '');
     } catch {
       continue; /* base64 坏了就保持纯文本，总比显示一串乱码强 */
     }
@@ -351,7 +397,7 @@ function initEmailLinks() {
  * 而「运行了多少天」本来就没有秒级的信息量。
  */
 function initRuntime() {
-  const node = document.querySelector('.footer-runtime');
+  const node = /** @type {HTMLElement | null} */ (document.querySelector('.footer-runtime'));
   if (!node) return;
 
   const start = Date.parse(node.dataset.since || '');

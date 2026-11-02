@@ -7,11 +7,19 @@
 
 ## [Unreleased]
 
-这一轮是「对照 Astro 官方文档做一次架构体检」的产物：不改变视觉版式，只补工程化和
-几个静默失效的缺陷。详细的逐项分析见仓库根目录的 `待修复项.md`。
+_（无待发布改动）_
+
+## [5.2.0] - 2026-11-02
+
+这一版有两批改动：一批是对照 Astro 官方文档做架构体检后的工程化收敛（`base` 支持、
+单元测试、模块拆分），另一批是「全面审查报告」的修复（无障碍、配置体验、搜索体验）。
+视觉版式不变。
 
 ### Added
 
+- **搜索结果展示摘要**：`searchindex.json` 新增 `s`（summary）字段，优先取 front matter
+  的 `description`，否则截取正文前 150 字；`search.js` 对应渲染 `.search-item-summary`
+  一行，读者无需点进去就能判断文章是否相关。
 - **子路径部署（`base`）支持**。`astro.config.mjs` 顶部一个 `const BASE`，改成
   `'/blog'` 即可部署到 `example.com/blog/`。新增 `src/utils/url.ts`
   （`withBase` / `stripBase` / `publicPath` / `prefixMarkdownLinks`，全部幂等）与
@@ -48,6 +56,18 @@
   不空跑定时器。
 - `isListPage(pathname, base)` 新增第二个参数，`pageKeyOf()` 先 `stripBase` ——
   子路径部署时 sitemap 给的是含前缀的 pathname，不剥前缀会永远匹配不上。
+- **客户端脚本纳入类型检查**：`tsconfig.json` 的 `include` 扩展到 `**/*.js`，
+  `src/scripts/*.js` 与 `src/comments/client/*.js` 全部补 `// @ts-check` 与必要的
+  JSDoc 标注（新增 `src/comments/client/types.js` 集中定义配置与上下文，
+  类型只在编译期存在，不进产物）。`astro check` 的覆盖面从 82 个文件扩到 96 个、
+  0 error，`recent.js` 那类变量遮蔽以后会在 CI 就暴露，而不是等线上挂件消失。
+- **`user/` 全面贯彻「只写差异」**：`user/site.ts` 删掉与 `defaults.ts` 完全重复的
+  `nav`（数组是整体覆盖，留着只会在升级时产生全量冲突），改为注释示例；
+  `user/index.ts` 把这条规矩写清楚 —— 只写要改的、删掉即恢复默认、数组整体替换。
+- **LQIP 占位色加磁盘缓存**（`F-1`）：`src/integrations/lqip.mjs` 把「图片相对路径 →
+  mtime + 颜色」写到 `.astro/lqip-cache.json`，命中就跳过 sharp 解码。本地改一篇文章
+  再构建，图片那部分从全量重算变成 0 次；`.astro/` 在 `.gitignore` 里，不进产物也不
+  污染仓库。
 
 ### Fixed
 
@@ -62,6 +82,18 @@
 - 卡片封面（`PostCard` / `PortalCard` 的字符串路径分支）走 `publicPath`，`alt` 留空
   （外层 `<a>` 已是 `aria-hidden` 的装饰容器）。
 - RSS 频道的 `<link>` 缺 base 前缀，子路径部署时会指回域名根。
+- **图片放大遮罩（`initImageZoom`）没有对背景设 `inert`**（`E-2`）：打开遮罩时对
+  `header` / `main` / `footer` / `#scroll-top` 设 `inert`，与搜索弹层一致，屏幕阅读器
+  与 Tab 不再能穿透到底层正文。
+- **skip-link 的焦点跳不过去**（`E-3`）：`<main id="main">` 补 `tabindex="-1"`。
+  `<main>` 默认不可聚焦，`href="#main"` 只会滚页面，焦点仍停在 skip-link 上。
+- **Giscus 配置错误没有任何提示**（`D-3`）：`validate.ts` 补两条构建期检查 ——
+  填了 `repo` 但 `repoId` 为空（评论区直接白屏）、填了 `category` 但 `categoryId`
+  为空（Giscus 静默忽略分类）。
+- **`seriesOrder` 允许写 0 或负数**（`H-1`）：schema 加 `.min(1)`，写错在构建期就报
+  ZodError，而不是进入排序逻辑后排出个说不清的顺序。
+- **`plainText` 剥不掉 `:::` 容器标记**（`H-2`）：补一条正则剥除 `remark-directive`
+  的 `:::type` 开关行，搜索索引与卡片摘要不再出现 `:::tip` 这类残留。
 
 ## [5.1.0] - 2026-11-01
 
@@ -1293,8 +1325,8 @@ do through the application is available in the API」），所以它不能进浏
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...HEAD
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.1.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.2.0...HEAD
+[5.2.0]: https://github.com/capzk/astro-theme-flux/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/capzk/astro-theme-flux/compare/v4.4.0...v5.0.0
 [4.4.0]: https://github.com/capzk/astro-theme-flux/compare/v4.3.0...v4.4.0

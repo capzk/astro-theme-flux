@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Flux · 评论区加载器
  * ---------------------------------------------------------------------------
@@ -18,6 +19,9 @@ const DEFAULT_LAZY = 600;
 /**
  * 从组件写在页面里的 JSON 读配置。
  * 用 JSON + textContent 而不是内联脚本，是为了让 CSP 友好。
+ *
+ * @param {HTMLElement} section
+ * @returns {import('../comments/client/types.js').CommentSection | null}
  */
 function readSection(section) {
   const node = section.querySelector('.comment-config');
@@ -30,7 +34,11 @@ function readSection(section) {
   }
 }
 
-/** 样式：失败也放行 —— 评论能用只是不好看，好过整块消失 */
+/**
+ * 样式：失败也放行 —— 评论能用只是不好看，好过整块消失
+ * @param {string} [href]
+ * @returns {Promise<void>}
+ */
 function loadStyles(href) {
   if (!href || document.querySelector(`link[data-comment-style="${href}"]`)) {
     return Promise.resolve();
@@ -51,20 +59,29 @@ function loadStyles(href) {
  * 动态 import，失败可重试。
  * import 失败的结果会被浏览器按 URL 记住，重试时换个查询参数换个 key，
  * 否则第二次点「重试」拿到的还是同一个失败的 Promise。
+ *
+ * @param {string} src
+ * @param {number} attempt
+ * @returns {Promise<any>}
  */
 function importModule(src, attempt) {
   const url = attempt > 0 ? `${src}${src.includes('?') ? '&' : '?'}retry=${attempt}` : src;
   return import(/* @vite-ignore */ url);
 }
 
+/** @param {HTMLElement} section */
 function start(section) {
   const data = readSection(section);
-  const mountEl = section.querySelector('.comment-body');
-  const status = section.querySelector('.comment-status');
+  const mountEl = /** @type {HTMLElement | null} */ (section.querySelector('.comment-body'));
+  const status = /** @type {HTMLElement | null} */ (section.querySelector('.comment-status'));
   /* 这两个都在 .comment-status 里面找，别用 section 查 ——
      <noscript> 里也有一份 .comment-status-text，全局查会拿到错的 */
-  const statusText = status && status.querySelector('.comment-status-text');
-  const retry = status && status.querySelector('.comment-retry');
+  const statusText = /** @type {HTMLElement | null} */ (
+    status?.querySelector('.comment-status-text') ?? null
+  );
+  const retry = /** @type {HTMLElement | null} */ (
+    status?.querySelector('.comment-retry') ?? null
+  );
 
   /* 配置缺失、类型没实现、或者压根没填服务端地址，就别演了：正文里什么都不留 */
   if (!data || !data.type || !MOUNTERS[data.type] || !mountEl || !status || !statusText || !retry) {
@@ -136,5 +153,5 @@ function start(section) {
   observer.observe(section);
 }
 
-const section = document.querySelector('.comment-section');
+const section = /** @type {HTMLElement | null} */ (document.querySelector('.comment-section'));
 if (section) start(section);

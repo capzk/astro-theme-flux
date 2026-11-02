@@ -82,6 +82,17 @@
   font-size: 0.78rem;
   color: var(--sec-text-color);
 }
+/* 搜索结果摘要：缩小字号、限两行截断，让读者不点进去也能判断文章是否相关 */
+.search-item-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--sec-text-color);
+  line-height: 1.5;
+}
 .search-empty {
   padding: 1.5rem 1rem;
   text-align: center;

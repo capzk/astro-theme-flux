@@ -98,7 +98,7 @@ const posts = defineCollection({
        * 在系列里的次序，从 1 开始。不写就按发布时间排在写了序号的后面，
        * 所以「只关心顺序、懒得编号」时全部留空也行。
        */
-      seriesOrder: z.number().int().optional(),
+      seriesOrder: z.number().int().min(1).optional(),
     }),
 });
 

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
 
 /**
  * 单元测试配置
@@ -11,9 +12,16 @@ import { defineConfig } from 'vitest/config';
  * 这类在真实页面上一时看不出、但改一行就可能悄悄坏掉的规则。
  *
  * `astro:content` 在纯函数里只是 `import type`，编译后不留痕迹；
- * 万一哪个测试真的把它拉进来，下面的 alias 会兜住，而不是抛「模块找不到」。
+ * 万一哪个测试真的把它拉进来运行时，下面的 alias 会把它解析成一个空 mock，
+ * 而不是抛「模块找不到」导致整个测试套件崩溃。
  */
 export default defineConfig({
+  resolve: {
+    alias: {
+      /* 防止测试文件不小心 import 到 astro:content 的运行时实现时报错 */
+      'astro:content': fileURLToPath(new URL('./tests/__mocks__/astro-content.ts', import.meta.url)),
+    },
+  },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',

@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Flux · 站内搜索
  * ---------------------------------------------------------------------------
@@ -17,13 +18,48 @@ const MODAL = 'search-modal';
  * `'/blog/'`，永远带尾斜杠）—— 写死 `/searchindex.json` 会让 base 部署下搜索永远空。
  */
 const INDEX_URL = `${import.meta.env.BASE_URL}searchindex.json`;
-let index = null; // 懒加载：只有第一次打开搜索才请求索引
+
+/**
+ * 搜索索引里的一条。字段名是短名压体积的，含义见 src/pages/searchindex.json.ts。
+ * @typedef {object} SearchItem
+ * @property {string} t   标题
+ * @property {string} u   链接
+ * @property {string} [d] 日期
+ * @property {string} [c] 分类
+ * @property {string} [g] 标签
+ * @property {string} [s] 摘要
+ * @property {string} [x] 正文纯文本
+ */
+
+/** 懒加载：只有第一次打开搜索才请求索引
+ * @type {SearchItem[] | null} */
+let index = null;
+/** 正在飞行中的那次请求，避免连按两次 / 发两遍
+ * @type {Promise<SearchItem[]> | null} */
 let loading = null;
 
+/**
+ * `querySelector` 的简写。lib.dom 只能给到 `Element`，要 `value` / `dataset`
+ * 就在调用处标一下具体元素类型 —— 比在这里返回 `any` 安全。
+ *
+ * @param {string} sel
+ * @param {ParentNode} [root]
+ * @returns {Element | null}
+ */
 function qs(sel, root = document) {
   return root.querySelector(sel);
 }
 
+/**
+ * 建元素。泛型跟着标签名走，`el('a')` 得到的就是 HTMLAnchorElement，
+ * 于是 `.href` 这类属性有类型可查。
+ *
+ * @template {keyof HTMLElementTagNameMap} K
+ * @param {K} tag
+ * @param {string} [cls]
+ * @param {string} [text]
+ * @returns {HTMLElementTagNameMap[K]}
+ */
 function el(tag, cls, text) {
   const node = document.createElement(tag);
   if (cls) node.className = cls;
@@ -35,6 +71,7 @@ function el(tag, cls, text) {
    弹层是 <body> 的直接子元素，不在 header/main/footer 里，不会被误伤。
    浏览器不支持 inert 时 setAttribute 只是一个普通属性，没有副作用。 */
 const INERT_TARGETS = ['header', 'main', 'footer', '#scroll-top'];
+/** @param {boolean} inert */
 function setBackgroundInert(inert) {
   for (const sel of INERT_TARGETS) {
     const node = document.querySelector(sel);
@@ -71,7 +108,11 @@ async function loadIndex() {
   return loading;
 }
 
-/** 分档打分：标题命中权重最高 */
+/** 分档打分：标题命中权重最高
+ * @param {SearchItem} item
+ * @param {string[]} terms
+ * @returns {number}
+ */
 function score(item, terms) {
   const title = (item.t || '').toLowerCase();
   const termsText = `${item.c || ''} ${item.g || ''}`.toLowerCase();
@@ -90,6 +131,10 @@ function score(item, terms) {
   return total;
 }
 
+/**
+ * @param {HTMLElement} modal
+ * @param {HTMLInputElement} input
+ */
 function openModal(modal, input) {
   modal.classList.add('is-open');
   document.body.classList.add('is-locked');
@@ -104,20 +149,27 @@ function openModal(modal, input) {
   requestAnimationFrame(() => input.focus());
 }
 
+/** @param {HTMLElement} modal */
 function closeModal(modal) {
   modal.classList.remove('is-open');
   document.body.classList.remove('is-locked');
   setBackgroundInert(false);
   /* 关闭后把焦点还给触发按钮，键盘用户不会「掉」在页面某处 */
-  document.querySelector('#search-toggle')?.focus();
+  /** @type {HTMLElement | null} */ (document.querySelector('#search-toggle'))?.focus();
 }
 
+/** @param {string} message */
 function renderEmpty(message) {
-  const list = qs('#search-results');
+  const list = /** @type {HTMLElement | null} */ (qs('#search-results'));
   if (!list) return;
   list.replaceChildren(el('li', 'search-empty', message || TEXT.start));
 }
 
+/**
+ * @param {HTMLElement} list
+ * @param {SearchItem[]} items
+ * @param {number} activeIndex
+ */
 function renderResults(list, items, activeIndex) {
   list.replaceChildren();
   items.forEach((item, i) => {
@@ -127,22 +179,25 @@ function renderResults(list, items, activeIndex) {
     a.append(el('span', 'search-item-title', item.t));
     const meta = [item.d, item.c, item.g].filter(Boolean).join(' · ');
     if (meta) a.append(el('span', 'search-item-meta', meta));
+    /* 摘要：优先 description（s 字段），帮读者在不点开的情况下判断这篇是否是想要的 */
+    if (item.s) a.append(el('span', 'search-item-summary', item.s));
     li.append(a);
     list.append(li);
   });
 }
 
 export function initSearch() {
-  const modal = qs(`#${MODAL}`);
-  const input = qs('#search-input');
-  const list = qs('#search-results');
-  const openBtn = qs('#search-toggle');
+  const modal = /** @type {HTMLElement | null} */ (qs(`#${MODAL}`));
+  const input = /** @type {HTMLInputElement | null} */ (qs('#search-input'));
+  const list = /** @type {HTMLElement | null} */ (qs('#search-results'));
+  const openBtn = /** @type {HTMLElement | null} */ (qs('#search-toggle'));
   if (!modal || !input || !list) return;
 
   /* 文案以构建期注入的 data-* 为准，脚本里不再写死 */
   if (modal.dataset.textStart) TEXT.start = modal.dataset.textStart;
   if (modal.dataset.textEmpty) TEXT.empty = modal.dataset.textEmpty;
 
+  /** @type {SearchItem[]} */
   let results = [];
   let activeIndex = 0;
 
@@ -160,7 +215,7 @@ export function initSearch() {
     results = data
       .map((item) => ({ item, s: score(item, terms) }))
       .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s || (a.item.d < b.item.d ? 1 : -1))
+      .sort((a, b) => b.s - a.s || ((a.item.d ?? '') < (b.item.d ?? '') ? 1 : -1))
       .slice(0, 20)
       .map((x) => x.item);
 
@@ -200,8 +255,8 @@ export function initSearch() {
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     );
     if (focusables.length === 0) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
+    const first = /** @type {HTMLElement} */ (focusables[0]);
+    const last = /** @type {HTMLElement} */ (focusables[focusables.length - 1]);
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();

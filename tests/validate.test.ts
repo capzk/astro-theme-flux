@@ -111,6 +111,50 @@ describe('inspect · 评论', () => {
   });
 });
 
+describe('inspect · Giscus', () => {
+  it('只有 repo、没有 repoId → 评论区白屏', () => {
+    const issues = inspect(
+      config({ comment: { enable: true, type: 'giscus', giscus: { repo: 'capzk/capzk.com' } } }),
+      OK,
+    );
+    expect(joined(issues)).toContain('giscus.repoId 是空的');
+  });
+
+  it('repo 本身就空时只报一条，不叠 repoId', () => {
+    const issues = inspect(config({ comment: { enable: true, type: 'giscus' } }), OK);
+    expect(joined(issues)).toContain('giscus.repo 是空的');
+    expect(joined(issues)).not.toContain('giscus.repoId 是空的');
+  });
+
+  it('category 填了但 categoryId 空 → 分类设置会被静默忽略', () => {
+    const issues = inspect(
+      config({
+        comment: {
+          enable: true,
+          type: 'giscus',
+          giscus: { repo: 'capzk/capzk.com', repoId: 'R_kgDOx', category: 'Announcements' },
+        },
+      }),
+      OK,
+    );
+    expect(joined(issues)).toContain('categoryId 是空的');
+  });
+
+  it('repo / repoId 齐全且不写 category → 一条都不报', () => {
+    const issues = inspect(
+      config({
+        comment: {
+          enable: true,
+          type: 'giscus',
+          giscus: { repo: 'capzk/capzk.com', repoId: 'R_kgDOx' },
+        },
+      }),
+      OK,
+    );
+    expect(joined(issues)).not.toContain('giscus');
+  });
+});
+
 describe('inspect · 数值区间', () => {
   it('pageSize 小于 1', () => {
     expect(joined(inspect(config({ pageSize: 0 }), OK))).toContain('pageSize');
