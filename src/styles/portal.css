@@ -160,48 +160,6 @@ body.home-no-banner .board-wrap {
   background-color: #fff;
 }
 
-/* ---------- 自动播放开关 ----------
-   WCAG 2.2.2 要求的那个「能停下来」的机制。放在右下角，和居中的圆点拉开距离，
-   免得两个热区叠在一起；大小取 28px —— 2.5.8 要求 24px 见方，直接做到位。
-   底衬用半透明黑而不是白：压在亮图上时白底白字等于没有，
-   而这颗按钮本来就只在图上有，暗底 + 白图标在明暗图上都成立。 */
-.phero-pause {
-  position: absolute;
-  right: 0.7rem;
-  bottom: 0.7rem;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  font-size: 13px;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.42);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-.phero-pause:hover {
-  background-color: rgba(0, 0, 0, 0.68);
-}
-.phero-pause:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.35);
-}
-/* 暂停中显示「播放」三角，播放中显示两根竖线。用 CSS 切换而不是换 DOM：
-   两个 svg 一直都在，读屏只认 button 上的 aria-label。 */
-.phero-icon-play,
-.phero-pause.is-paused .phero-icon-pause {
-  display: none;
-}
-.phero-pause.is-paused .phero-icon-play {
-  display: block;
-}
-
 /* ---------- 分类分区 ---------- */
 .psec-head {
   display: flex;
@@ -475,8 +433,7 @@ body.home-no-banner .board-wrap {
 @media (prefers-reduced-motion: reduce) {
   .pcard,
   .phero-slide,
-  .phero-dot,
-  .phero-pause {
+  .phero-dot {
     transition: none;
   }
 }

@@ -23,7 +23,6 @@ import Banner from '../components/Banner.astro';
 import Board from '../components/Board.astro';
 import CategorySection from '../components/portal/CategorySection.astro';
 import MobileFeed from '../components/portal/MobileFeed.astro';
-import Icon from '../components/Icon.astro';
 import { Image } from 'astro:assets';
 import { SITE } from '../config';
 import { T } from '../i18n';
@@ -201,22 +200,6 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
                         ))}
                       </div>
                     )}
-                    {/* WCAG 2.2.2（Pause, Stop, Hide）：自动播放超过 5 秒的动效，
-                        必须有「能停下来」的显式开关。悬停 / 聚焦暂停只是顺手加的，
-                        键盘用户和触屏用户根本抓不住 —— 他们需要一个按钮。
-                        只在真的会自动播放（间隔 > 0 且不止一张）时才出现。 */}
-                    {portal.heroAutoplay > 0 && featured.length > 1 && (
-                      <button
-                        type="button"
-                        class="phero-pause"
-                        aria-label={T.carouselPause}
-                        data-label-play={T.carouselPlay}
-                        data-label-pause={T.carouselPause}
-                      >
-                        <Icon name="pause" class="phero-icon-pause" />
-                        <Icon name="play" class="phero-icon-play" />
-                      </button>
-                    )}
                   </div>
 
                   <div class="pfeature-side">
@@ -258,15 +241,23 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
   </Board>
 
   <script>
-    /* 首页 hero 轮播：纯图片自动切换 + 圆点切换 + 右下角「暂停 / 继续」按钮 +
-       手机上左右滑动切换。没有 JS 时只显示第一张（.is-active），页面依旧可读。
+    /* 首页 hero 轮播：纯图片自动切换 + 圆点切换 + 手机上左右滑动切换。
+       没有 JS 时只显示第一张（.is-active），页面依旧可读。
 
-       暂停有三层，各管各的：
-         · 悬停 / 聚焦 —— 临时的，挪开就恢复（顺手的礼貌，不是 WCAG 要求的那个）
-         · 点圆点 —— 读者自己选了某一张，自动播放就此停下
-         · 右下角按钮 —— 显式开关，也是 WCAG 2.2.2 真正认可的那个机制
-       开了系统「减少动态效果」就默认不播（按钮显示成「继续」），
-       读者想播仍可自己按 —— 显式选择优先于系统偏好。 */
+       **图上不放任何控件。** 轮播图这块的观感就是「一张图和几根细白棒」，
+       多一个圆按钮立刻变成「贴上去的控件」—— 顶栏已经有搜索、主题切换两个按钮，
+       再来一个同形状的会读成第三个工具按钮。
+
+       自动播放的刹车都做在「读者已经在操作」这件事上：
+         · 鼠标悬停 / 键盘焦点进入 —— 停，离开就恢复
+         · 点圆点、左右滑动 —— 读者自己选了，这一趟就不再自动播
+         · 系统「减少动态效果」 —— 一开始就不播
+         · 这一块当前不可见（手机端门户是 display:none） —— 不跑定时器
+       也就是说：人在看、在动手的时候它从不抢戏；无人值守时才匀速前进。
+
+       （WCAG 2.2.2 要求自播放动效可暂停。真要过严格审计，做法也不是往图上
+       贴按钮，而是在图外放一条细小的控制行，或给全站一个「减少动效」开关 ——
+       那属于站点级设置，不该由每张轮播图各背一个。） */
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const carousels = document.querySelectorAll<HTMLElement>('.phero-carousel');
     for (const el of carousels) {
@@ -282,19 +273,9 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
       let timer = 0;
       let hovering = false;
       let focused = false;
-      /* 读者的显式意愿：按过「暂停」就是 true，与「悬停临时暂停」是两回事。
-         系统开了减少动态效果、或这一块当前不可见时，初始就当作已暂停 ——
-         按钮会显示成「继续」，读者想播可以自己按，那属于显式选择。 */
-      let userPaused = reducedMotion || !visible;
-      const pauseBtn = el.querySelector<HTMLButtonElement>('.phero-pause');
-      const syncPause = () => {
-        if (!pauseBtn) return;
-        pauseBtn.classList.toggle('is-paused', userPaused);
-        pauseBtn.setAttribute(
-          'aria-label',
-          userPaused ? pauseBtn.dataset.labelPlay! : pauseBtn.dataset.labelPause!,
-        );
-      };
+      /* 读者自己动过手（点圆点 / 滑过）就不再自动播；系统要减少动态效果、
+         或这一块当前不可见（手机端门户整块 display:none）也不播。 */
+      let stopped = reducedMotion || !visible;
       const go = (n: number) => {
         idx = (n + slides.length) % slides.length;
         slides.forEach((s, i) => {
@@ -316,33 +297,20 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
       };
       const start = () => {
         stop();
-        if (autoplayMs > 0 && visible && !userPaused) {
+        if (autoplayMs > 0 && visible && !stopped) {
           timer = window.setInterval(() => go(idx + 1), autoplayMs);
         }
-        syncPause();
       };
       /* 悬停或键盘焦点任一还在轮播里，就不恢复自动播放 */
       const resume = () => {
         if (!hovering && !focused) start();
       };
-      /* 手动点圆点 = 明确表达了「我自己选」—— 顺手把自动播放停掉，
-         并且让暂停按钮同步成「继续」。以前这里只 stop() 不标记，
-         结果按钮显示「暂停」但实际早就停了，状态对不上。 */
+      /* 手动点圆点 = 明确表达了「我自己选」，这一趟就别再自动翻了 */
       dots.forEach((d, i) => d.addEventListener('click', () => {
         go(i);
-        userPaused = true;
+        stopped = true;
         stop();
-        syncPause();
       }));
-      pauseBtn?.addEventListener('click', () => {
-        userPaused = !userPaused;
-        if (userPaused) {
-          stop();
-          syncPause();
-        } else {
-          start();
-        }
-      });
       el.addEventListener('mouseenter', () => {
         hovering = true;
         stop();
@@ -385,6 +353,8 @@ const jsonLd = siteJsonLd(Astro.site ?? Astro.url.origin);
         const dy = event.clientY - downY;
         if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
           swiped = true;
+          /* 滑动也是「我自己选」，与点圆点同一档：这一趟不再自动翻 */
+          stopped = true;
           go(dx < 0 ? idx + 1 : idx - 1);
           return;
         }
