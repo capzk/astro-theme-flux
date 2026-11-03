@@ -5,19 +5,22 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [5.4.0] - 2026-11-03
 
-开源健康与细节补齐：仓库级基线文件（dependabot / CONTRIBUTING / issue 模板 /
-编辑器与格式化配置）、Feed 与 llms.txt 对齐规范、评论与 Markdown 插件补上回归网。
-来源是 2026-11-03 的增量审查，逐项落地；过程记录见 `待修复项.md` 文末。
+这一版把「仓库对外可见的部分」补齐：开源基线与贡献流程、Feed 与 llms.txt 对齐规范、
+评论与 Markdown 插件补回归网；顺手把格式化的闭环做完（全量格式化一次，再把
+`format:check` 挂进 CI），并把散落的过程文档收进 `docs/`。来源是 2026-11-03 的
+增量审查，逐项落地；过程记录见 `docs/待修复项.md`。
 
 ### Added
 
 - **仓库基线文件**：`.github/dependabot.yml`（npm 每周 + GitHub Actions，上限 5 分支分组）、
   Issue 模板（bug / 功能请求）与 PR 模板、`CONTRIBUTING.md`（五分钟上手 / 目录纪律 /
   零框架规矩 / CHANGELOG 要求）、`.editorconfig`、`.prettierrc.json` + `.prettierignore`
-  与 `format` / `format:check` 脚本（不挂 CI，理由写在 CONTRIBUTING）。
-  `package.json` 补 `packageManager`，本地环境由 corepack 对齐。
+  与 `format` / `format:check` 脚本 —— 后者已挂进 CI（见 Changed：全量格式化过了，
+  它从第一天就是绿的）。
+- **`docs/` 目录**：`docs/README.md` 是索引（每份文档是什么、什么时候写的、结论还成不成立），
+  审查报告与《待修复项》都收在这里，根目录不再散落过程文档。
 - **`public/_headers` 安全头模板**：HSTS / X-Frame-Options / Permissions-Policy / COOP
   与 CSP 指引，整段注释随仓库分发 —— 默认不生效，每项写清开启前提（如 HSTS 要先在
   CF 后台开 Force HTTPS），避免新人一键粘贴把自己锁在站外。
@@ -42,6 +45,16 @@
   Pages 免费域名的站从此安静。localhost 不分情境，照旧总是报。
 - **`color.accent` 的对比度说明**（types.ts / appearance.ts 注释，默认值不变）：
   它全站 25+ 处直接当文字色用，对白底约 2.7:1 不达 WCAG AA；改色前拿对比度工具验。
+- **RSS 的 `<category>` 去重**：分类与标签并排给时，同一篇文章常把「使用」既当分类
+  又当标签，原来会输出两遍；现在先合并再去重。Atom 不受影响 —— 它用 `scheme`
+  区分来源，同名标签与分类本来就该各占一条。
+- **全量 Prettier 格式化一次**（独立提交，纯格式、行为零变化）：此前仓库有配置但代码
+  从未格式化过，`format:check` 一跑就是 49 个文件红，等于这个脚本不可用。格式化后
+  把它挂进 CI，从今往后「格式不一致」在 PR 阶段就被拦住，不用人肉提醒。
+- **去掉 `packageManager: npm@11.17.0`**：它只对开了 corepack 的机器生效，而 corepack
+  会拿它去下一份指定版本的 npm —— 版本与本地 10.9.7 对不上时 `npm install` 直接失败，
+  收益却只是「锁包管理器版本」。CI 用 node 24 自带 npm，也不需要它。
+- **依赖跟进**：`astro` ^7.4.5、`vitest` ^5.1.0（patch / minor，无破坏性变更）。
 
 ## [5.3.0] - 2026-11-02
 

@@ -73,9 +73,11 @@ npm run dev      # http://localhost:4321
 npm run build    # 产物在 dist/
 npm run check    # 类型检查（含 .astro 模板），0 error 才算干净
 npm test         # 纯函数的单元测试（排序 / 分页 / base 前缀 / 配置体检…）
+npm run format   # 可选：prettier 全量格式化（.astro 不在范围内，见 CONTRIBUTING）
 ```
 
-要求 **Node ≥ 22.23.4**（Astro 7 的要求）。
+要求 **Node ≥ 22.23.4**（Astro 7 的要求）。CI 在 push 与 PR 上跑
+`check → test → format:check → build` 四步，提交前本地跑一遍最省事。
 
 也可以用 GitHub 的 **Use this template** 直接开一个新仓库，或 `npx degit capzk/astro-theme-flux my-blog` 拉一份不含 git 历史的副本。
 
@@ -707,6 +709,9 @@ src/
 
 tests/                   # vitest：只测纯函数（排序 / 分页 / base 前缀 / 配置体检）
 vitest.config.ts         # 测试配置（不加载 Astro，直接跑 TS）
+docs/                    # 过程文档：审查报告 + 待修复项（索引见 docs/README.md）
+CONTRIBUTING.md          # 参与方式：目录纪律、零框架规矩、提交与格式约定
+.github/                 # CI、dependabot、issue 与 PR 模板
 ```
 
 ## 部署到子路径（`base`）
@@ -815,6 +820,15 @@ const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
 ## 更新日志
 
 版本历史与每版的详细改动见 [CHANGELOG.md](./CHANGELOG.md)。主题遵循语义化版本，每个版本打一个 `v*` 标签。
+
+## 参与
+
+- 改代码前先读 [CONTRIBUTING.md](./CONTRIBUTING.md)：目录纪律、零运行时依赖的边界、
+  什么时候该加测试，都在那里。
+- 提 bug 用 [Issue 表单](https://github.com/capzk/astro-theme-flux/issues/new/choose)，
+  请带上「哪个配置 + 哪个页面 + `base` 是什么 + 最小复现」；功能建议先写「做不到什么」。
+- 审查报告与历史问题清单在 [docs/](./docs/README.md)，写新报告前先看一眼那里的维护约定。
+- 本项目由 AI 编写、作者自用，**不承诺维护节奏** —— 急着要的功能 fork 自己改更实际。
 
 ## 致谢
 

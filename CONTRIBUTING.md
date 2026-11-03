@@ -10,10 +10,11 @@ npm ci          # 严格按 lock 安装（Node >= 22.23.4，见 package.json eng
 npm run dev     # 本地开发
 npm run check   # 类型检查（astro check，覆盖 .ts / .astro / 带 @ts-check 的 .js）
 npm test        # 单元测试（vitest，只测纯函数）
+npm run format:check  # 格式检查（prettier，CI 会跑）
 npm run build   # 完整构建 —— 它也是集成测试：配置体检、sitemap、Feed 都在这一步跑
 ```
 
-提 PR 之前三条命令必须全绿，CI 跑的就是这三条。
+提 PR 之前四条命令必须全绿，CI 跑的就是这四条。
 
 ## 目录纪律：哪些文件能改
 
@@ -40,7 +41,7 @@ npm run build   # 完整构建 —— 它也是集成测试：配置体检、sit
   新增根路径字面量（`'/xxx'`）之前先想想 `base: '/blog'` 下它还成立吗。
 - **纯逻辑放纯函数**：能进 `src/utils/` 且不碰 `astro:content` / DOM 的函数，
   顺手在 `tests/` 里补一条用例。分页边界、合并规则这类问题在页面上看不出来，
-  历史上都翻过车（见 `待修复项.md` #15）。
+  历史上都翻过车（见 `docs/待修复项.md` #15）。
 - **注释解释「为什么」**：这个仓库的注释密度是特性的一部分。改行为时同步改注释，
   注释与实现不符按缺陷处理。
 
@@ -50,11 +51,17 @@ npm run build   # 完整构建 —— 它也是集成测试：配置体检、sit
 - commit 前缀参考现有历史：`fix:` / `feat:` / `perf:` / `docs:` / `deps:` / `chore:`。
 - 只改注释措辞、拼写这类不占 CHANGELOG。
 
-## 格式化工具
+## 格式化
 
-仓库提供 `.editorconfig` 与 Prettier 配置（`npm run format`），但**没有**把
-`format:check` 挂进 CI：现有代码的注释排版是逐行手调的，全量重排会产出一个
-几万行的 diff。想调整格式请单独开 PR、只动格式不动行为，并且只在相关目录跑。
+`.editorconfig` 管编辑器、Prettier 管提交物，两者规则一致（LF、单引号、100 列）。
+`npm run format` 全量格式化，`npm run format:check` 在 CI 里跑 —— 所以**格式不一致
+进不了主线**，不用等 review 提醒。
+
+三个例外写在 `.prettierignore` 里，别去改它们：
+
+- `src/content/posts/`：文章是内容不是代码，硬换行、front matter 缩进都有意义；
+- `*.astro`：Astro 模板需要额外的 `prettier-plugin-astro`，主题不想为格式化多一个依赖；
+- `package-lock.json`：机器生成。
 
 ## 提 issue
 

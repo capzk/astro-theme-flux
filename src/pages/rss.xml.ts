@@ -41,8 +41,9 @@ export async function GET(context: APIContext) {
       description: excerptOf(post, SITE.rss.excerptLength),
       link: postUrl(post),
       /* RSS 2.0 的 <category> 没有 scheme，分类和标签只能并排给（分类在前）：
-         Feedly / Inoreader 这类阅读器靠它做订阅内过滤，不给就白白丢掉一层语义 */
-      categories: [...post.data.categories, ...post.data.tags],
+         Feedly / Inoreader 这类阅读器靠它做订阅内过滤，不给就白白丢掉一层语义。
+         去重是必要的：同一篇文章常把「使用」既当分类又当标签，不去重就会输出两遍 */
+      categories: [...new Set([...post.data.categories, ...post.data.tags])],
       /* 稳定的永久标识：用绝对文章地址（isPermaLink 默认 true，阅读器可直接当链接去重）。
          不用时间戳 —— 改标题、改摘要都不该让阅读器把它当一篇新文章重推 */
       guid: absoluteUrl(postUrl(post), origin),

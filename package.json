@@ -1,6 +1,6 @@
 {
   "name": "astro-theme-flux",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "description": "A Material Design blog theme for Astro — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk) and analytics (GA4 / Umami / Clarity).",
   "type": "module",
   "license": "GPL-3.0-only",
@@ -51,7 +51,7 @@
     "@astrojs/markdown-satteri": "^0.4.6",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
-    "astro": "^7.4.4",
+    "astro": "^7.4.5",
     "github-slugger": "^2.0.0",
     "pinyin-pro": "^3.29.5",
     "sharp": "^0.35.5"
@@ -59,11 +59,10 @@
   "engines": {
     "node": ">=22.23.4"
   },
-  "packageManager": "npm@11.17.0",
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.5"
+    "vitest": "^5.1.0"
   }
 }

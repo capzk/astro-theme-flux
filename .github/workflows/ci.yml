@@ -43,5 +43,10 @@ jobs:
       - name: 单元测试
         run: npm test
 
+      # 格式检查放这里：它最便宜，也最容易暴露「顺手改了无关文件」。
+      # .astro 与文章目录不在 prettier 范围内（见 .prettierignore）
+      - name: 格式检查
+        run: npm run format:check
+
       - name: 构建
         run: npm run build
