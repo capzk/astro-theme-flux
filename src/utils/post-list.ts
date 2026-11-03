@@ -97,7 +97,10 @@ export function countOf(names: string[]) {
 export function neighbours(posts: Post[], current: Post) {
   const asc = [...posts].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
   const i = asc.findIndex((p) => p.id === current.id);
-  return { prev: i > 0 ? asc[i - 1] : undefined, next: i < asc.length - 1 ? asc[i + 1] : undefined };
+  return {
+    prev: i > 0 ? asc[i - 1] : undefined,
+    next: i < asc.length - 1 ? asc[i + 1] : undefined,
+  };
 }
 
 /**

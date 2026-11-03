@@ -80,8 +80,7 @@ describe('waline · build 选项', () => {
   });
 
   it('语言映射：ja → jp、zh-TW 保留大小写、认不出的给 en', () => {
-    const lang = (site: string) =>
-      waline.build(asWaline({}), { ...ctx, lang: site }).init.lang;
+    const lang = (site: string) => waline.build(asWaline({}), { ...ctx, lang: site }).init.lang;
     expect(lang('ja-JP')).toBe('jp');
     expect(lang('zh-TW')).toBe('zh-TW');
     expect(lang('zh-Hant-HK')).toBe('zh-TW');
@@ -143,11 +142,15 @@ describe('giscus', () => {
   });
 
   it('mapping: specific 时才下发 term', () => {
-    const init = giscus.build(cfg({ mapping: 'specific', term: 'hello' }), ctx)
-      .init as Record<string, unknown>;
+    const init = giscus.build(cfg({ mapping: 'specific', term: 'hello' }), ctx).init as Record<
+      string,
+      unknown
+    >;
     expect(init.term).toBe('hello');
-    const other = giscus.build(cfg({ mapping: 'title', term: 'hello' }), ctx)
-      .init as Record<string, unknown>;
+    const other = giscus.build(cfg({ mapping: 'title', term: 'hello' }), ctx).init as Record<
+      string,
+      unknown
+    >;
     expect(other.term).toBeUndefined();
   });
 
@@ -210,7 +213,10 @@ describe('注册表（index.ts）', () => {
   });
 
   it('recent 挂件只有 Waline 提供；空配置时是 null 而不是空壳', () => {
-    const withRecent = asComment({ ...walineReady, recent: { enable: true, count: 5, length: 60 } });
+    const withRecent = asComment({
+      ...walineReady,
+      recent: { enable: true, count: 5, length: 60 },
+    });
     expect(resolveComments(withRecent, ctx).recent?.type).toBe('waline');
     const giscusEmpty = asComment({ enable: true, type: 'giscus', giscus: {} as GiscusConfig });
     vi.spyOn(console, 'warn').mockImplementation(() => {});

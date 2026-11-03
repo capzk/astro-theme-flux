@@ -181,14 +181,15 @@
   font: inherit;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 .comment-retry:hover {
   background-color: var(--link-hover-color);
   color: #fff;
 }
 /* 脚本加载失败时骨架屏没有意义，藏掉，只留提示 */
-.comment-section[data-state="error"] .comment-body {
+.comment-section[data-state='error'] .comment-body {
   display: none;
 }
-

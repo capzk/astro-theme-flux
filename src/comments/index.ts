@@ -107,7 +107,10 @@ export function resolveComments(comment: CommentConfig, ctx: CommentContext): Re
 }
 
 /** 只要最新评论挂件。任何一家不支持就是 null，组件据此整块不渲染 */
-export function resolveRecent(comment: CommentConfig, ctx: CommentContext): RecentCommentsSpec | null {
+export function resolveRecent(
+  comment: CommentConfig,
+  ctx: CommentContext,
+): RecentCommentsSpec | null {
   return resolveComments(comment, ctx).recent;
 }
 

@@ -134,7 +134,7 @@ export const waline: CommentProvider<WalineConfig> = {
 
   ready: (config): config is WalineConfig => Boolean(config && config.serverURL),
 
-  diagnose: () => "comment.waline.serverURL 还没填 —— 注释掉也不算数，指向 Waline 服务端才生效",
+  diagnose: () => 'comment.waline.serverURL 还没填 —— 注释掉也不算数，指向 Waline 服务端才生效',
 
   build(config, ctx): CommentPayload {
     return {

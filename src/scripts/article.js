@@ -83,7 +83,6 @@ function initToc() {
   sync();
 }
 
-
 /* ---------- 2. 代码复制 ---------- */
 function initCodeCopy() {
   const buttons = /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.code-copy'));
@@ -138,7 +137,6 @@ function initCodeCopy() {
     });
   }
 }
-
 
 /* ---------- 3. 正文图片放大 ---------- */
 function initImageZoom() {

@@ -19,7 +19,9 @@ export default defineConfig({
   resolve: {
     alias: {
       /* 防止测试文件不小心 import 到 astro:content 的运行时实现时报错 */
-      'astro:content': fileURLToPath(new URL('./tests/__mocks__/astro-content.ts', import.meta.url)),
+      'astro:content': fileURLToPath(
+        new URL('./tests/__mocks__/astro-content.ts', import.meta.url),
+      ),
     },
   },
   test: {

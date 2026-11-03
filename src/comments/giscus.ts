@@ -26,7 +26,8 @@ export const giscus: CommentProvider<GiscusConfig> = {
 
   ready: (config): config is GiscusConfig => Boolean(config && config.repo && config.repoId),
 
-  diagnose: () => 'comment.giscus.repo / repoId 还没填 —— 这两项在 https://giscus.app 填完仓库后生成',
+  diagnose: () =>
+    'comment.giscus.repo / repoId 还没填 —— 这两项在 https://giscus.app 填完仓库后生成',
 
   /** 脚本和 iframe 都在 giscus.app，握手一次两条连接都能复用 */
   origins: () => [ORIGIN],

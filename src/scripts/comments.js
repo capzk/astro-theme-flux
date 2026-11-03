@@ -79,9 +79,7 @@ function start(section) {
   const statusText = /** @type {HTMLElement | null} */ (
     status?.querySelector('.comment-status-text') ?? null
   );
-  const retry = /** @type {HTMLElement | null} */ (
-    status?.querySelector('.comment-retry') ?? null
-  );
+  const retry = /** @type {HTMLElement | null} */ (status?.querySelector('.comment-retry') ?? null);
 
   /* 配置缺失、类型没实现、或者压根没填服务端地址，就别演了：正文里什么都不留 */
   if (!data || !data.type || !MOUNTERS[data.type] || !mountEl || !status || !statusText || !retry) {

@@ -165,7 +165,10 @@ describe('inspect · 数值区间', () => {
   });
 
   it('门户的 cardsPerRow / latest.cols 为 0 会让网格失效', () => {
-    const issues = inspect(config({ index: { portal: { cardsPerRow: 0, latest: { cols: 0 } } } }), OK);
+    const issues = inspect(
+      config({ index: { portal: { cardsPerRow: 0, latest: { cols: 0 } } } }),
+      OK,
+    );
     expect(joined(issues)).toContain('cardsPerRow');
     expect(joined(issues)).toContain('latest.cols');
   });
@@ -191,36 +194,37 @@ describe('inspect · 统计与验证', () => {
   });
 
   it('验证码里粘了整段 <meta> 要报', () => {
-    const issues = inspect(
-      config({ verification: { google: '<meta name="x" content="y">' } }),
-      OK,
-    );
+    const issues = inspect(config({ verification: { google: '<meta name="x" content="y">' } }), OK);
     expect(joined(issues)).toContain('带着 HTML 标签');
   });
 });
 
 describe('inspect · 还是示例值', () => {
   it('site 还是模板示例域名（标题/作者未改）要报', () => {
-    expect(joined(inspect(config(), { site: 'https://demo.pages.dev', fileExists: () => true })))
-      .toContain('还是示例地址');
+    expect(
+      joined(inspect(config(), { site: 'https://demo.pages.dev', fileExists: () => true })),
+    ).toContain('还是示例地址');
   });
 
   it('地址直接是示例站域名时，改了标题作者也要报', () => {
     const mine = config({ title: '我的博客', author: '张三' });
-    expect(joined(inspect(mine, { site: 'https://astro-theme-flux.pages.dev', fileExists: () => true })))
-      .toContain('还是示例地址');
+    expect(
+      joined(inspect(mine, { site: 'https://astro-theme-flux.pages.dev', fileExists: () => true })),
+    ).toContain('还是示例地址');
   });
 
   it('真部署在 pages.dev 且标题作者都改成自己的 → 不打扰', () => {
     const mine = config({ title: '我的博客', author: '张三' });
-    expect(joined(inspect(mine, { site: 'https://my-blog.pages.dev', fileExists: () => true })))
-      .not.toContain('还是示例地址');
+    expect(
+      joined(inspect(mine, { site: 'https://my-blog.pages.dev', fileExists: () => true })),
+    ).not.toContain('还是示例地址');
   });
 
   it('localhost 不分情境，总是报', () => {
     const mine = config({ title: '我的博客', author: '张三' });
-    expect(joined(inspect(mine, { site: 'http://localhost:4321', fileExists: () => true })))
-      .toContain('还是示例地址');
+    expect(
+      joined(inspect(mine, { site: 'http://localhost:4321', fileExists: () => true })),
+    ).toContain('还是示例地址');
   });
 
   it('自建域名不报', () => {

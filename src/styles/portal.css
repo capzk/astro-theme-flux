@@ -135,7 +135,9 @@ body.home-no-banner .board-wrap {
   /* 阴影跟着棒子走，而不是铺一块底 —— 白色压在亮图上仍分得清 */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   cursor: pointer;
-  transition: width 0.35s ease, background-color 0.25s ease;
+  transition:
+    width 0.35s ease,
+    background-color 0.25s ease;
 }
 /* 视觉上只有 3px 高，命中区靠伪元素撑到 24×25 —— WCAG 2.2 的 2.5.8 要求
    可点区域不小于 24px。相邻中心距 22px、热区宽 20px，两两不重叠。 */
@@ -179,7 +181,7 @@ body.home-no-banner .board-wrap {
   color: var(--text-color);
 }
 .psec-title::before {
-  content: "";
+  content: '';
   width: 0.3rem;
   height: 1.1rem;
   border-radius: 2px;
@@ -273,7 +275,9 @@ body.home-no-banner .board-wrap {
   border: 1px solid var(--line-color);
   border-radius: var(--board-radius);
   overflow: hidden;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .pcard:hover {
   box-shadow: var(--board-shadow);
@@ -371,7 +375,9 @@ body.home-no-banner .board-wrap {
   border-radius: 999px;
   color: var(--sec-text-color);
   font-size: 0.92rem;
-  transition: color 0.2s ease, border-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 .home-feed-more a:hover {
   color: var(--link-hover-color);
@@ -396,7 +402,6 @@ body.home-no-banner .board-wrap {
     padding: 0 1rem;
   }
 }
-
 
 /* 桌面端卡片每行几个（--portal-cards-per-row）、列表几列（--list-cols）都按配置走；
    窄屏（≤720px，与置顶区同一断点）做两件事，免得手机上挤成一团：

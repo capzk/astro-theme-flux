@@ -31,7 +31,9 @@
   background-color: var(--button-bg-color);
   color: var(--sec-text-color);
   font-size: 0.8rem;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 .tag-chip:hover {
   color: #fff;
@@ -86,7 +88,7 @@
   left: 100%;
 }
 .license-box .license-icon::after {
-  content: "©";
+  content: '©';
   position: relative;
   left: -0.85em;
   bottom: 0.5em;
@@ -95,7 +97,7 @@
   opacity: 0.1;
   z-index: -1;
 }
-[data-user-color-scheme="dark"] .license-box {
+[data-user-color-scheme='dark'] .license-box {
   background-color: rgba(62, 75, 94, 0.35);
 }
 @media (max-width: 424px) {
@@ -130,7 +132,9 @@
   background-color: var(--button-bg-color);
   color: var(--text-color);
   max-width: 48%;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
 }
 .post-prevnext a:hover {
   color: var(--link-hover-color);
@@ -288,4 +292,3 @@
   font-size: 0.9rem;
   color: var(--sec-text-color);
 }
-

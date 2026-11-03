@@ -222,7 +222,11 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
         '填上备案号原文（如 "京ICP备12345678号-1"），或者把 enable 改回 false。',
     );
   }
-  if (footer.runtime.enable && footer.runtime.since && Number.isNaN(Date.parse(footer.runtime.since))) {
+  if (
+    footer.runtime.enable &&
+    footer.runtime.since &&
+    Number.isNaN(Date.parse(footer.runtime.since))
+  ) {
     issues.push(
       `footer.runtime.since 是 "${footer.runtime.since}"，解析不出日期 —— 应该写成 2024-03-15 这样。` +
         '现在的效果是页脚不显示站龄（不会报错，只是那一行没了）。',
@@ -333,7 +337,8 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
 
      `site` 不在 SITE 里：它是 astro.config 的顶层字段（绝对 URL 的来源），
      构建期由调用方从 `import.meta.env.SITE` 取出来传进 options.site。 */
-  const EXAMPLE_SITE = /(^https?:\/\/)?(localhost|127\.0\.0\.1|example\.(com|org|net)|.*\.pages\.dev)/i;
+  const EXAMPLE_SITE =
+    /(^https?:\/\/)?(localhost|127\.0\.0\.1|example\.(com|org|net)|.*\.pages\.dev)/i;
   /* pages.dev 既是模板占位，也是 Cloudflare Pages 的正规免费域名 ——
      真部署在那上的站不该每次构建都被念一句。所以对 pages.dev 多要求一步：
      地址或身份还带着模板指纹（示例站域名、没改过的标题/作者）才报；
@@ -342,14 +347,21 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
     /astro-theme-flux\.pages\.dev/i.test(siteUrl) ||
     config.title === DEFAULT_CONFIG.title ||
     config.author === DEFAULT_CONFIG.author;
-  if (siteUrl && EXAMPLE_SITE.test(siteUrl) && (!/\.pages\.dev/i.test(siteUrl) || TEMPLATE_FINGERPRINT)) {
+  if (
+    siteUrl &&
+    EXAMPLE_SITE.test(siteUrl) &&
+    (!/\.pages\.dev/i.test(siteUrl) || TEMPLATE_FINGERPRINT)
+  ) {
     issues.push(
       `site 还是示例地址（${siteUrl}）—— RSS、canonical、og:url 里的绝对链接都会指向它。` +
         '在 astro.config.mjs 里换成你自己的域名，形如 https://你的域名（结尾不要带斜杠）。',
     );
   }
 
-  if (/example\.(com|org|net)/i.test(config.author) || /example\.(com|org|net)/i.test(config.title)) {
+  if (
+    /example\.(com|org|net)/i.test(config.author) ||
+    /example\.(com|org|net)/i.test(config.title)
+  ) {
     issues.push(
       `site 的标题 / 作者还是示例值（${config.title} / ${config.author}）—— 改 src/config/user/site.ts。`,
     );
@@ -357,7 +369,10 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
 
   /* 评论服务端填了但没改过：Waline 的默认示例就是 comment.example.com，
      留着它不会报错，只是评论永远发不出去（域名解析不到） */
-  if (config.comment.waline?.serverURL && /example\.(com|org|net)/i.test(config.comment.waline.serverURL)) {
+  if (
+    config.comment.waline?.serverURL &&
+    /example\.(com|org|net)/i.test(config.comment.waline.serverURL)
+  ) {
     issues.push(
       `waline.serverURL 里还带着 example.com（${config.comment.waline.serverURL}）—— ` +
         '这是模板里的占位地址，评论会静默提交失败。',
@@ -366,7 +381,10 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
 
   /* Artalk 同理：server 必须指向真的部署，且 site 名要和后台建站时填的一致，
      否则评论会落到「默认站点」里，后台看不见 */
-  if (config.comment.artalk?.server && /example\.(com|org|net)/i.test(config.comment.artalk.server)) {
+  if (
+    config.comment.artalk?.server &&
+    /example\.(com|org|net)/i.test(config.comment.artalk.server)
+  ) {
     issues.push(
       `artalk.server 里还带着 example.com（${config.comment.artalk.server}）—— ` +
         '这是模板里的占位地址，评论会静默提交失败。',

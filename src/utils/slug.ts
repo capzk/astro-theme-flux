@@ -29,15 +29,17 @@ export function slugify(input: string): string {
 
   /* nonZh: 'consecutive' 让连续的英文/数字保持原样，只有汉字才转拼音。
      否则 `Rust 2026` 会被拆成一堆碎片再拼回去。 */
-  return pinyin(normalized, { toneType: 'none', type: 'array', nonZh: 'consecutive' })
-    .map((part) => part.replace(/[^a-z0-9]+/g, '-'))
-    .filter(Boolean)
-    .join('-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, MAX_SEGMENT)
-    /* 截断可能刚好停在 `-` 上，再收一次尾 */
-    .replace(/-+$/g, '');
+  return (
+    pinyin(normalized, { toneType: 'none', type: 'array', nonZh: 'consecutive' })
+      .map((part) => part.replace(/[^a-z0-9]+/g, '-'))
+      .filter(Boolean)
+      .join('-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, MAX_SEGMENT)
+      /* 截断可能刚好停在 `-` 上，再收一次尾 */
+      .replace(/-+$/g, '')
+  );
 }
 
 /**

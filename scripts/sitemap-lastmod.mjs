@@ -88,7 +88,10 @@ export function createLastmodResolver(base = '/') {
     if (!entry.isFile() || !/\.mdx?$/.test(entry.name)) continue;
 
     const full = join(entry.parentPath ?? entry.path, entry.name);
-    const id = relative(POSTS_DIR, full).split(sep).join('/').replace(/\.mdx?$/, '');
+    const id = relative(POSTS_DIR, full)
+      .split(sep)
+      .join('/')
+      .replace(/\.mdx?$/, '');
 
     let raw;
     try {

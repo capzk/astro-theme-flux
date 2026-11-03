@@ -28,7 +28,7 @@
   font-size: 0.95rem;
 }
 .archive-item::before {
-  content: "";
+  content: '';
   position: absolute;
   left: -4px;
   top: 1rem;
@@ -69,7 +69,10 @@
   background-color: var(--button-bg-color);
   color: var(--text-color);
   font-size: 0.9rem;
-  transition: color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.15s ease;
 }
 .term-chip:hover {
   color: #fff;
@@ -129,7 +132,10 @@
   padding: 1rem;
   border-radius: 0.5rem;
   background-color: var(--button-bg-color);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
 }
 .link-card:hover {
   transform: translateY(-3px);
@@ -182,7 +188,9 @@
   padding: 0 0.6rem;
   border-radius: 0.125rem;
   color: var(--text-color);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 .page-link:hover {
   background-color: var(--link-hover-bg-color);
@@ -201,4 +209,3 @@
   color: var(--sec-text-color);
   padding: 0 0.25rem;
 }
-

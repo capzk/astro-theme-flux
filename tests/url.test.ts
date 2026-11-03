@@ -91,9 +91,7 @@ describe('prefixMarkdownLinks', () => {
   it('改 ](...) 链接与 src/href 属性', async () => {
     const { prefixMarkdownLinks } = await loadUrlModule('/blog/');
     const md = '[上一篇](/posts/x/)\n\n<img src="/img/a.png">';
-    expect(prefixMarkdownLinks(md)).toBe(
-      '[上一篇](/blog/posts/x/)\n\n<img src="/blog/img/a.png">',
-    );
+    expect(prefixMarkdownLinks(md)).toBe('[上一篇](/blog/posts/x/)\n\n<img src="/blog/img/a.png">');
   });
 
   it('围栏代码块整段跳过 —— 那里面是给人看的示例', async () => {

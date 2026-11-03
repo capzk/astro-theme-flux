@@ -51,7 +51,9 @@ body {
   color: var(--text-color);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  transition:
+    color 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
 }
 
 body.is-locked {
@@ -62,7 +64,9 @@ a {
   color: var(--text-color);
   text-decoration: none;
   cursor: pointer;
-  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  transition:
+    color 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
 }
 
 a:hover {
@@ -149,4 +153,3 @@ table {
   white-space: nowrap;
   border: 0;
 }
-

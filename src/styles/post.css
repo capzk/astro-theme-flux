@@ -233,7 +233,7 @@
 .markdown-body li.task-list-item {
   list-style: none;
 }
-.markdown-body input[type="checkbox"] {
+.markdown-body input[type='checkbox'] {
   margin: 0 0.4em 0 -1.2em;
   vertical-align: middle;
 }
@@ -475,7 +475,7 @@
   scroll-margin-top: 5rem;
 }
 .markdown-body .footnotes li::before {
-  content: "[" counter(footnote) "]";
+  content: '[' counter(footnote) ']';
   position: absolute;
   left: 0;
   top: 0;
@@ -504,7 +504,7 @@
   transition: opacity 0.15s ease;
 }
 .headerlink::before {
-  content: "#";
+  content: '#';
 }
 .markdown-body h1:hover .headerlink,
 .markdown-body h2:hover .headerlink,
@@ -513,4 +513,3 @@
 .headerlink:focus {
   opacity: 0.6;
 }
-

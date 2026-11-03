@@ -97,4 +97,3 @@ function mergeObject(
 export function deepMerge<T>(base: T, patch: DeepPartial<NoInfer<T>> | undefined): T {
   return mergeValue(base, patch) as T;
 }
-

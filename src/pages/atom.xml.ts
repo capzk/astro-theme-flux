@@ -53,8 +53,13 @@ export const GET: APIRoute = async ({ site }) => {
     /* 分类和标签在 Atom 里是同一种东西（category），用 scheme 区分来源，
        聚合器既能按关键词过滤，也不会把两者混成一堆 */
     const terms = [
-      ...categories.map((name) => `    <category term="${esc(name)}" scheme="${esc(url(withBase('/categories/')))}"/>`),
-      ...tags.map((name) => `    <category term="${esc(name)}" scheme="${esc(url(withBase('/tags/')))}"/>`),
+      ...categories.map(
+        (name) =>
+          `    <category term="${esc(name)}" scheme="${esc(url(withBase('/categories/')))}"/>`,
+      ),
+      ...tags.map(
+        (name) => `    <category term="${esc(name)}" scheme="${esc(url(withBase('/tags/')))}"/>`,
+      ),
     ].join('\n');
 
     return [

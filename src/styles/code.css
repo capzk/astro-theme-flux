@@ -108,7 +108,10 @@
   padding: 0.2rem 0.5rem;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 .highlight:hover .code-copy,
 .code-copy:focus-visible {
@@ -129,12 +132,11 @@
 .astro-code span {
   color: var(--shiki-light);
 }
-[data-user-color-scheme="dark"] .astro-code,
-[data-user-color-scheme="dark"] .astro-code span {
+[data-user-color-scheme='dark'] .astro-code,
+[data-user-color-scheme='dark'] .astro-code span {
   color: var(--shiki-dark);
 }
-[data-user-color-scheme="light"] .astro-code,
-[data-user-color-scheme="light"] .astro-code span {
+[data-user-color-scheme='light'] .astro-code,
+[data-user-color-scheme='light'] .astro-code span {
   color: var(--shiki-light);
 }
-

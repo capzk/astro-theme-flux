@@ -47,9 +47,14 @@ import { deepMerge, type UserConfig } from '../merge';
  * 因为 `astro.config.mjs` 还要直接 import 它来过滤 sitemap，那边不能有资源导入。
  * 包一层 `{ pages }` 之后，对合并逻辑来说它和别的部分没有区别。
  */
-const USER_CONFIG: UserConfig = [site, appearance, content, comment, analytics, footer, { pages }].reduce(
-  (acc, part) => deepMerge(acc, part),
-  {} as UserConfig,
-);
+const USER_CONFIG: UserConfig = [
+  site,
+  appearance,
+  content,
+  comment,
+  analytics,
+  footer,
+  { pages },
+].reduce((acc, part) => deepMerge(acc, part), {} as UserConfig);
 
 export default USER_CONFIG;

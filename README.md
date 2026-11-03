@@ -14,7 +14,7 @@
 > 作者**不承诺按需求做功能开发，也不承诺长期维护** —— issue 未必及时回复，PR 视情况合并。
 > 如果你有特定功能需求或想调整行为，最可靠的做法是 fork 一份自己改，或者直接让 AI 帮你改。
 >
-> *Built entirely by AI for personal use. No feature requests, no maintenance guarantee — please fork if you need changes.*
+> _Built entirely by AI for personal use. No feature requests, no maintenance guarantee — please fork if you need changes._
 
 **Flux** 是一套 Material Design 风格的 Astro 博客主题。设计概念与视觉语言迁移自 [hexo-theme-fluid](https://github.com/fluid-dev/hexo-theme-fluid)：卡片与阴影、全屏 banner、大留白的阅读区、跟随滚动的目录、深浅色主题 —— 观感对齐原版，而运行时依赖归零。
 
@@ -31,37 +31,37 @@
 
 **功能**
 
-| 功能 | 实现 |
-| --- | --- |
-| 深色模式 | 3 行内联脚本 + 一套 CSS 变量，首帧不闪白；优先级 `localStorage > 站点默认 > 系统` |
-| 目录跟随高亮 | 原生滚动监听 + `requestAnimationFrame`（原版是 tocbot + jQuery） |
-| 图片灯箱 | 自己写的 60 行，替代 fancybox：ESC / 点遮罩 / 点按钮关闭，焦点归还 |
-| 站内搜索 | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起 |
-| 代码块 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 + 行号；围栏 meta 写 `{1,3-5}` 高亮指定行、写 `nolinenos` 关掉行号 |
-| 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成 |
-| 分页 | 归档 `/archives/page/2/`、分类与标签同理；首页是门户固定区块，不分页（全量浏览走 `/archives/`） |
-| 图片优化 | 封面与 banner 走 `astro:assets`：按屏宽生成多档 webp + `srcset`，首屏图 `fetchpriority="high"` |
-| 图片占位色 | 构建期把每张图缩成 2×2 取出主色调（一张图 18 个字符），垫在图片下面 —— 图没到时不会先白一块 |
-| 配色 | 四个字面颜色，或者一个 `hue` 让 oklch 派生整套（构建期定好，不带运行时） |
-| 页面开关 | 关于 / 友链可关，导航、sitemap、页面本身三处一起变（生成带 `noindex` 的跳转页回首页） |
-| 上下篇 | 默认按时间相邻；文章写了 `series` 就改成系列内前后，文章页顶部再列一份系列清单 |
-| 反抓取小件 | `mailto:` 降级成 `me [at] example.com`（脚本还原成链接）；防盗链图床的图自动补 `referrerpolicy` |
-| 相关文章 | 按标签（3 分）/ 分类（2 分）的重合度取前 3 篇，没有相关的一篇就不显示 |
-| 索引卫生 | 分页 / 单个标签页 / 单个分类页输出 `noindex, follow` 且不进 sitemap —— 它们的内容是文章清单，进索引只是重复 |
-| 中文排版 | `text-spacing-trim` 压行首标点、`text-autospace` 在中西文之间留气口、`orphans`/`widows` 防孤行。都是渐进增强，老浏览器无副作用 |
-| 页脚 | 两端渐隐的分割线；版权与站龄一行（天数按访问当天算），RSS / Atom / Sitemap 三个入口，ICP 备案默认关、开了才带链接 |
-| 文章 URL | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错 |
-| 返回顶部、标题锚点、外链新窗口 | 零依赖脚本 / Markdown 插件 |
-| 分享卡片与结构化数据 | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套 |
-| 评论 | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题 |
-| 访客统计 | 三家各自开关、可并存：GA4 / Umami（访问统计）、Clarity（热图与会话回放）；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
-| 最新评论 | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML |
-| RSS 与 sitemap | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate` |
-| Atom 与 llms.txt | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文 |
-| AI 爬虫策略 | `robots.txt` 里一行 `Content-Signal`（允许引用、不允许训练）+ 一段注释掉的分机器人模板，想单独拒绝某一家就取消注释 |
-| 配置 | 三层：类型 / 出厂默认值 / 你的值。`defineConfig` 保类型检查，构建期体检静默失效的配置，升级主题不覆盖你的配置 |
-| 子路径部署 | `astro.config.mjs` 顶部改一个 `BASE`：页面链接、正文里手写的站内链接、public 图片、canonical、RSS、sitemap、搜索索引全都跟着走 |
-| CI | push 与 PR 都跑 `astro check` + `vitest` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡 |
+| 功能                                   | 实现                                                                                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 深色模式                               | 3 行内联脚本 + 一套 CSS 变量，首帧不闪白；优先级 `localStorage > 站点默认 > 系统`                                                                                              |
+| 目录跟随高亮                           | 原生滚动监听 + `requestAnimationFrame`（原版是 tocbot + jQuery）                                                                                                               |
+| 图片灯箱                               | 自己写的 60 行，替代 fancybox：ESC / 点遮罩 / 点按钮关闭，焦点归还                                                                                                             |
+| 站内搜索                               | 构建期生成 `/searchindex.json`，前端分档打分；`/` 或 `Ctrl/⌘+K` 唤起                                                                                                           |
+| 代码块                                 | Shiki 双主题（亮 `github-light` / 暗 `github-dark`）+ 语言标签 + 复制按钮 + 行号；围栏 meta 写 `{1,3-5}` 高亮指定行、写 `nolinenos` 关掉行号                                   |
+| 归档 / 分类 / 标签 / 友链 / 关于 / 404 | 全部静态生成                                                                                                                                                                   |
+| 分页                                   | 归档 `/archives/page/2/`、分类与标签同理；首页是门户固定区块，不分页（全量浏览走 `/archives/`）                                                                                |
+| 图片优化                               | 封面与 banner 走 `astro:assets`：按屏宽生成多档 webp + `srcset`，首屏图 `fetchpriority="high"`                                                                                 |
+| 图片占位色                             | 构建期把每张图缩成 2×2 取出主色调（一张图 18 个字符），垫在图片下面 —— 图没到时不会先白一块                                                                                    |
+| 配色                                   | 四个字面颜色，或者一个 `hue` 让 oklch 派生整套（构建期定好，不带运行时）                                                                                                       |
+| 页面开关                               | 关于 / 友链可关，导航、sitemap、页面本身三处一起变（生成带 `noindex` 的跳转页回首页）                                                                                          |
+| 上下篇                                 | 默认按时间相邻；文章写了 `series` 就改成系列内前后，文章页顶部再列一份系列清单                                                                                                 |
+| 反抓取小件                             | `mailto:` 降级成 `me [at] example.com`（脚本还原成链接）；防盗链图床的图自动补 `referrerpolicy`                                                                                |
+| 相关文章                               | 按标签（3 分）/ 分类（2 分）的重合度取前 3 篇，没有相关的一篇就不显示                                                                                                          |
+| 索引卫生                               | 分页 / 单个标签页 / 单个分类页输出 `noindex, follow` 且不进 sitemap —— 它们的内容是文章清单，进索引只是重复                                                                    |
+| 中文排版                               | `text-spacing-trim` 压行首标点、`text-autospace` 在中西文之间留气口、`orphans`/`widows` 防孤行。都是渐进增强，老浏览器无副作用                                                 |
+| 页脚                                   | 两端渐隐的分割线；版权与站龄一行（天数按访问当天算），RSS / Atom / Sitemap 三个入口，ICP 备案默认关、开了才带链接                                                              |
+| 文章 URL                               | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错                                                                                          |
+| 返回顶部、标题锚点、外链新窗口         | 零依赖脚本 / Markdown 插件                                                                                                                                                     |
+| 分享卡片与结构化数据                   | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套               |
+| 评论                                   | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题                                                         |
+| 访客统计                               | 三家各自开关、可并存：GA4 / Umami（访问统计）、Clarity（热图与会话回放）；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
+| 最新评论                               | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML                                                              |
+| RSS 与 sitemap                         | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate`             |
+| Atom 与 llms.txt                       | `/atom.xml` 补 RSS 没有的 `<updated>` 与 `<id>`；`/llms.txt` 给 AI 爬虫一份带摘要的目录，`/llms-full.txt` 再给一份全站正文                                                     |
+| AI 爬虫策略                            | `robots.txt` 里一行 `Content-Signal`（允许引用、不允许训练）+ 一段注释掉的分机器人模板，想单独拒绝某一家就取消注释                                                             |
+| 配置                                   | 三层：类型 / 出厂默认值 / 你的值。`defineConfig` 保类型检查，构建期体检静默失效的配置，升级主题不覆盖你的配置                                                                  |
+| 子路径部署                             | `astro.config.mjs` 顶部改一个 `BASE`：页面链接、正文里手写的站内链接、public 图片、canonical、RSS、sitemap、搜索索引全都跟着走                                                 |
+| CI                                     | push 与 PR 都跑 `astro check` + `vitest` + `astro build` —— `astro build` 自己不查类型，这条是唯一的关卡                                                                       |
 
 ## 开始使用
 
@@ -85,17 +85,17 @@ npm run format   # 可选：prettier 全量格式化（.astro 不在范围内，
 
 `src/content/posts/` 自带 18 篇示例，其中「指南」分类的 9 篇就是这份主题的使用文档，同时也充当排版样例：
 
-| 文章 | 讲什么 |
-| --- | --- |
-| 快速开始 | 环境要求、三步启动、目录结构 |
-| 站点配置详解 | `src/config/` 的结构、每一项的取值与效果 |
-| 写一篇文章 | front matter、分类与标签、正文可用语法 |
-| 门户首页 | 首页三大块、每分类版式与密度配置 |
-| 评论系统 | Waline / Giscus / Artalk 怎么搭起来、配置填哪几行、配完怎么验证 |
-| URL 与 slug | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救 |
-| 换成你自己的样子 | 配色、字体、版心与字号 |
-| 部署上线 | GitHub Pages / Vercel / nginx，以及常见坑 |
-| 改造与扩展 | 加页面、加图标、加语言、换评论、换搜索 |
+| 文章             | 讲什么                                                          |
+| ---------------- | --------------------------------------------------------------- |
+| 快速开始         | 环境要求、三步启动、目录结构                                    |
+| 站点配置详解     | `src/config/` 的结构、每一项的取值与效果                        |
+| 写一篇文章       | front matter、分类与标签、正文可用语法                          |
+| 门户首页         | 首页三大块、每分类版式与密度配置                                |
+| 评论系统         | Waline / Giscus / Artalk 怎么搭起来、配置填哪几行、配完怎么验证 |
+| URL 与 slug      | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救              |
+| 换成你自己的样子 | 配色、字体、版心与字号                                          |
+| 部署上线         | GitHub Pages / Vercel / nginx，以及常见坑                       |
+| 改造与扩展       | 加页面、加图标、加语言、换评论、换搜索                          |
 
 fork 之后整批删掉即可，不影响任何功能。
 
@@ -103,11 +103,11 @@ fork 之后整批删掉即可，不影响任何功能。
 
 配置分三层，各管各的：
 
-| 位置 | 是什么 | 你要动吗 |
-| --- | --- | --- |
-| `src/config/user/` | **你的配置**，只写和默认值不一样的部分 | ✓ 就改这里 |
-| `src/config/defaults.ts` | 主题的出厂默认值，每一项都有注释 | 读，但别改（升级时被替换） |
-| `src/config/types.ts` | 字段的类型契约与详细说明 | 查某个字段什么意思时读 |
+| 位置                     | 是什么                                 | 你要动吗                   |
+| ------------------------ | -------------------------------------- | -------------------------- |
+| `src/config/user/`       | **你的配置**，只写和默认值不一样的部分 | ✓ 就改这里                 |
+| `src/config/defaults.ts` | 主题的出厂默认值，每一项都有注释       | 读，但别改（升级时被替换） |
+| `src/config/types.ts`    | 字段的类型契约与详细说明               | 查某个字段什么意思时读     |
 
 **为什么拆成三层。** 配置和主题代码混在一个文件里，升级主题时就得分清「哪几行是我改的」——
 以前的流程是：把定制复制出来、整目录覆盖、再贴回去，每次升级都要重来一遍，忘一处就丢配置。
@@ -118,16 +118,16 @@ fork 之后整批删掉即可，不影响任何功能。
 
 `user/` 里八个文件，按「你要解决的问题」分，而不是按配置树的层级分：
 
-| 文件 | 管什么 |
-| --- | --- |
-| `site.ts` | 站名、副标题、描述、作者、头像、分享封面、X 账号、导航菜单 |
-| `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式 |
-| `content.ts` | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
-| `comment.ts` | 评论系统（Waline / Giscus / Artalk） |
-| `analytics.ts` | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 其他） |
-| `footer.ts` | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案（默认关） |
-| `links.ts` | 友链 |
-| `pages.ts` | 页面开关：关于 / 友链。关掉后导航、sitemap 与页面本身一起变 |
+| 文件            | 管什么                                                                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `site.ts`       | 站名、副标题、描述、作者、头像、分享封面、X 账号、导航菜单                                                                          |
+| `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式                                        |
+| `content.ts`    | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
+| `comment.ts`    | 评论系统（Waline / Giscus / Artalk）                                                                                                |
+| `analytics.ts`  | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 其他）                                                                   |
+| `footer.ts`     | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案（默认关）                                                                           |
+| `links.ts`      | 友链                                                                                                                                |
+| `pages.ts`      | 页面开关：关于 / 友链。关掉后导航、sitemap 与页面本身一起变                                                                         |
 
 写法就是普通 TS 对象，外面包一层 `defineConfig`：
 
@@ -204,12 +204,12 @@ CI 里写 `npx astro build`，走的都是同一条路。算不出来时（比�
 
 这两件事经常被混为一谈，其实完全不同，所以配置里也分成两段（都在 `src/config/user/analytics.ts`）：
 
-| 你想要的 | 配哪 | 填什么 |
-| --- | --- | --- |
-| 多少人看了哪篇文章 | `analytics` | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
-| 读者怎么点、滚到哪、卡在哪 | `analytics.clarity` | Clarity 的项目 ID |
-| 搜索里哪些词带来流量 | `verification.google` | Search Console 的验证串 |
-| Bing 的收录与抓取情况 | `verification.bing` | `msvalidate.01` 的验证串 |
+| 你想要的                   | 配哪                  | 填什么                                    |
+| -------------------------- | --------------------- | ----------------------------------------- |
+| 多少人看了哪篇文章         | `analytics`           | GA4 的 `G-XXXXXXXXXX`，或 Umami 的站点 ID |
+| 读者怎么点、滚到哪、卡在哪 | `analytics.clarity`   | Clarity 的项目 ID                         |
+| 搜索里哪些词带来流量       | `verification.google` | Search Console 的验证串                   |
+| Bing 的收录与抓取情况      | `verification.bing`   | `msvalidate.01` 的验证串                  |
 
 `analytics` 是**脚本**（每页下载、会上报数据），`verification` 是**一行 meta**（认领所有权，不发任何请求）。
 
@@ -224,11 +224,11 @@ analytics: {
 },
 ```
 
-| | 定位 | 脚本 | Cookie | 境内可达 |
-| --- | --- | --- | --- | --- |
-| Google Analytics 4 | 访问统计 | gtag.js 约 100KB | 有 | 基本不通 |
-| Umami | 访问统计 | 约 2KB | **无** | 自托管即可 |
-| Microsoft Clarity | 热图 / 会话回放 | 自注入约 30KB | 有（`_clck` / `_clsk`） | 一般可用 |
+|                    | 定位            | 脚本             | Cookie                  | 境内可达   |
+| ------------------ | --------------- | ---------------- | ----------------------- | ---------- |
+| Google Analytics 4 | 访问统计        | gtag.js 约 100KB | 有                      | 基本不通   |
+| Umami              | 访问统计        | 约 2KB           | **无**                  | 自托管即可 |
+| Microsoft Clarity  | 热图 / 会话回放 | 自注入约 30KB    | 有（`_clck` / `_clsk`） | 一般可用   |
 
 **为什么是三个开关而不是一个「用哪家」的单选框。** GA 与 Umami 确实同类，同时开会把同一份流量记两次 —— 但 Clarity 不是同类东西，它录的是行为，不是访问量。「Umami 看流量 + Clarity 看热图」是正常组合，单选表达不了。所以结构上允许并存，而把「别重复统计」变成构建期的一句提醒：GA 和 Umami 同时开着时会告诉你「两边报表永远对不上，对比完记得关一个」。
 
@@ -236,12 +236,12 @@ analytics: {
 
 **Umami 的几个附加项**（都不用，默认关）：
 
-| 字段 | 对应属性 | 作用 |
-| --- | --- | --- |
-| `performance: true` | `data-performance` | 收集真实用户的 Core Web Vitals（LCP / CLS / INP）。Lighthouse 跑在模拟环境，这个是读者真实的网络与设备 |
-| `errors: true` | `data-errors` + `data-release` | 上报访客浏览器的 JS 异常。博客脚本少，一般不会报错，但这是唯一能看到「读者那边挂了」的途径 |
-| `hostUrl` | `data-host-url` | 脚本走公共 CDN、数据要进自己实例时才填 |
-| `excludeSearch` / `excludeHash` | 同名 | 查询参数 / hash 算不算进页面路径 |
+| 字段                            | 对应属性                       | 作用                                                                                                   |
+| ------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `performance: true`             | `data-performance`             | 收集真实用户的 Core Web Vitals（LCP / CLS / INP）。Lighthouse 跑在模拟环境，这个是读者真实的网络与设备 |
+| `errors: true`                  | `data-errors` + `data-release` | 上报访客浏览器的 JS 异常。博客脚本少，一般不会报错，但这是唯一能看到「读者那边挂了」的途径             |
+| `hostUrl`                       | `data-host-url`                | 脚本走公共 CDN、数据要进自己实例时才填                                                                 |
+| `excludeSearch` / `excludeHash` | 同名                           | 查询参数 / hash 算不算进页面路径                                                                       |
 
 **Bing 没有访问统计脚本。** 它不像 GA 那样给你一段 `gtag.js` —— Bing 的访问数据并进了 Microsoft Clarity（要的就是上面 `clarity` 那一段，只是得去 Clarity 后台单独申请）。所以 `verification.bing` 那一项是站点认领，用来看搜索关键词与抓取情况，不是统计。
 
@@ -268,11 +268,11 @@ verification: {
 
 索引策略只写在 `src/layouts/BaseLayout.astro` 一处：
 
-| 页面 | `robots` 内容 | 为什么 |
-| --- | --- | --- |
-| 分页 / 单个标签页 / 单个分类页 | `noindex, follow` | 内容是一份文章清单，进索引只是重复；链接照跟，权重才能流向文章 |
-| 其余页面 | `max-image-preview:large` | 不写就只有默认的标准缩略图；它只是摘要指令，不带 index/noindex |
-| 404 | `noindex, follow` | 正常返回 404 码本来就进不去；万一被谁改成 200，也不至于变成软 404 |
+| 页面                           | `robots` 内容             | 为什么                                                            |
+| ------------------------------ | ------------------------- | ----------------------------------------------------------------- |
+| 分页 / 单个标签页 / 单个分类页 | `noindex, follow`         | 内容是一份文章清单，进索引只是重复；链接照跟，权重才能流向文章    |
+| 其余页面                       | `max-image-preview:large` | 不写就只有默认的标准缩略图；它只是摘要指令，不带 index/noindex    |
+| 404                            | `noindex, follow`         | 正常返回 404 码本来就进不去；万一被谁改成 200，也不至于变成软 404 |
 
 **刻意不写 `nosnippet` / `max-snippet:0`**：这两项会让页面失去被 AI 摘要引用的资格，而 AI Overviews 只引用「能出摘要」的页面。
 
@@ -313,9 +313,9 @@ Allow: /
 
 **二、一个色相，整套派生**（`color.hue`，0~360）—— 写了它，顶栏与强调色就交给 oklch 现算：
 
-| | 亮色 | 暗色 |
-| --- | --- | --- |
-| 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)` |
+|        | 亮色                 | 暗色                  |
+| ------ | -------------------- | --------------------- |
+| 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)`  |
 | 顶栏色 | `oklch(0.35 0.04 H)` | `oklch(0.29 0.035 H)` |
 
 明度和彩度是定值，变的只有色相 —— 所以整套配色永远保持同一种「深浅关系」，
@@ -331,11 +331,11 @@ Allow: /
 
 评论是**可插拔**的：主题内置三个实现，改 `type` 一行就换，页面模板、样式、加载逻辑都不用动。
 
-| `type` | 服务端 | 适合 | 最新评论 |
-| --- | --- | --- | --- |
-| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker） | 面向中文读者，功能最全 | ✓ |
-| `'artalk'` | 要自己部署（Go 单二进制，Docker / 二进制 / 包管理器） | 机器小、想少一个 Node 运行时 | ✕ |
-| `'giscus'` | 不要，评论存在 GitHub Discussions | 开源项目、读者都用 GitHub | ✕ |
+| `type`     | 服务端                                                | 适合                         | 最新评论 |
+| ---------- | ----------------------------------------------------- | ---------------------------- | -------- |
+| `'waline'` | 要自己部署（Vercel / Cloudflare Workers / Docker）    | 面向中文读者，功能最全       | ✓        |
+| `'artalk'` | 要自己部署（Go 单二进制，Docker / 二进制 / 包管理器） | 机器小、想少一个 Node 运行时 | ✕        |
+| `'giscus'` | 不要，评论存在 GitHub Discussions                     | 开源项目、读者都用 GitHub    | ✕        |
 
 三段配置都在 `src/config/user/comment.ts` 里，用不到的留着不影响构建 —— 所以「三套都填好、随时切」是常态，切的时候只改 `type`。
 
@@ -370,16 +370,16 @@ comment: {
 
 **Waline 的功能都能开**，配置名和[官方客户端选项](https://waline.js.org/reference/client/props.html)一一对应，常用几个：
 
-| 想要 | 配什么 |
-| --- | --- |
-| 表情包 | `emoji: ['https://unpkg.com/@waline/emojis@1.4.0/weibo', '…/bmoji']`，官方预设地址见[文档](https://waline.js.org/guide/features/emoji.html)；也可以给 `WalineEmojiInfo` 对象用自己的一套 |
-| 文末「反应」 | `reaction: true`（或给一组图片地址，最多 8 个） |
-| 评论排序 | `commentSorting: 'latest' \| 'oldest' \| 'hottest'` |
-| 字数限制 | `wordLimit: 500`；也可以 `[10, 500]` 同时限制下限 |
-| 只允许登录后评论 | `login: 'force'` |
-| 匿名不许留邮箱 / 网址 | `meta: ['nick']`、`requiredMeta: ['nick']` |
-| 人机验证 | `turnstileKey` 或 `recaptchaV3Key` —— **客户端和服务端要配对配**，见下面「反垃圾与人机验证」 |
-| 评论里传图 | `imageUpload: true` —— 默认**关**：服务端没配存储时会退回把图片转成 Base64 塞进评论体，一条评论几十 KB 进库 |
+| 想要                  | 配什么                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 表情包                | `emoji: ['https://unpkg.com/@waline/emojis@1.4.0/weibo', '…/bmoji']`，官方预设地址见[文档](https://waline.js.org/guide/features/emoji.html)；也可以给 `WalineEmojiInfo` 对象用自己的一套 |
+| 文末「反应」          | `reaction: true`（或给一组图片地址，最多 8 个）                                                                                                                                          |
+| 评论排序              | `commentSorting: 'latest' \| 'oldest' \| 'hottest'`                                                                                                                                      |
+| 字数限制              | `wordLimit: 500`；也可以 `[10, 500]` 同时限制下限                                                                                                                                        |
+| 只允许登录后评论      | `login: 'force'`                                                                                                                                                                         |
+| 匿名不许留邮箱 / 网址 | `meta: ['nick']`、`requiredMeta: ['nick']`                                                                                                                                               |
+| 人机验证              | `turnstileKey` 或 `recaptchaV3Key` —— **客户端和服务端要配对配**，见下面「反垃圾与人机验证」                                                                                             |
+| 评论里传图            | `imageUpload: true` —— 默认**关**：服务端没配存储时会退回把图片转成 Base64 塞进评论体，一条评论几十 KB 进库                                                                              |
 
 函数型选项（`imageUploader` / `texRenderer` / `search`）过不了 JSON，要用就得在 `src/comments/client/waline.js` 里自己传 —— 这是刻意的：配置只承载数据，代码留在代码里。
 
@@ -389,20 +389,20 @@ comment: {
 
 评论一上线，垃圾广告是分钟级的。这几件事全在**服务端**，主题这边只负责客户端那一半：
 
-| 事项 | 环境变量 | 说明 |
-| --- | --- | --- |
-| 先审后发 | `COMMENT_AUDIT=true` | 评论经管理员审核后才显示 |
-| 频率限制 | `IPQPS=60` | 同一 IP 60 秒一条（默认值），`0` 不限制 |
-| 反垃圾服务 | `AKISMET_KEY` | 默认自带一个公共 key，建议换成自己的；不想要设 `false` |
-| 限制来源域 | `SECURE_DOMAINS` | 博客域名和评论服务端域名都写，**不带 `https://`** |
+| 事项       | 环境变量             | 说明                                                   |
+| ---------- | -------------------- | ------------------------------------------------------ |
+| 先审后发   | `COMMENT_AUDIT=true` | 评论经管理员审核后才显示                               |
+| 频率限制   | `IPQPS=60`           | 同一 IP 60 秒一条（默认值），`0` 不限制                |
+| 反垃圾服务 | `AKISMET_KEY`        | 默认自带一个公共 key，建议换成自己的；不想要设 `false` |
+| 限制来源域 | `SECURE_DOMAINS`     | 博客域名和评论服务端域名都写，**不带 `https://`**      |
 
 **人机验证是三处配对，少一处就打不通**：
 
-| 在哪 | Turnstile | reCAPTCHA v3 |
-| --- | --- | --- |
+| 在哪     | Turnstile                               | reCAPTCHA v3                              |
+| -------- | --------------------------------------- | ----------------------------------------- |
 | 主题配置 | `waline.turnstileKey`（Site Key，公开） | `waline.recaptchaV3Key`（网站密钥，公开） |
-| 服务端 | `TURNSTILE_KEY`（同一个 Site Key） | `RECAPTCHA_V3_KEY`（同一个网站密钥） |
-| 服务端 | `TURNSTILE_SECRET`（Secret，保密） | `RECAPTCHA_V3_SECRET`（私钥，保密） |
+| 服务端   | `TURNSTILE_KEY`（同一个 Site Key）      | `RECAPTCHA_V3_KEY`（同一个网站密钥）      |
+| 服务端   | `TURNSTILE_SECRET`（Secret，保密）      | `RECAPTCHA_V3_SECRET`（私钥，保密）       |
 
 三种配错的后果，症状完全不同：
 
@@ -414,10 +414,10 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 
 配了验证码之后，如果站点有 CSP，还要额外放行：
 
-| 验证码 | 需要放行 |
-| --- | --- |
-| Turnstile | `challenges.cloudflare.com`（`script-src` / `frame-src` / `connect-src`） |
-| reCAPTCHA v3 | `www.google.com` 与 `www.gstatic.com` |
+| 验证码       | 需要放行                                                                  |
+| ------------ | ------------------------------------------------------------------------- |
+| Turnstile    | `challenges.cloudflare.com`（`script-src` / `frame-src` / `connect-src`） |
+| reCAPTCHA v3 | `www.google.com` 与 `www.gstatic.com`                                     |
 
 主题会自动给这些域名加 `<link rel="preconnect">`（`CommentProvider.origins()`），但 CSP 得你自己写在托管平台那侧。
 
@@ -441,21 +441,21 @@ Turnstile 国内可直连、不用翻墙，推荐它。Site Key / Secret 在 Clo
 
 `comment.waline.cdn` 一行决定脚本和样式从哪儿取，默认 `'jsdelivr'`：
 
-| `cdn` | 展开成（以 `waline.js` 为例） |
-| --- | --- |
-| `'jsdelivr'` | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js` |
-| `'unpkg'` | `https://unpkg.com/@waline/client@3/dist/waline.js` |
+| `cdn`         | 展开成（以 `waline.js` 为例）                                               |
+| ------------- | --------------------------------------------------------------------------- |
+| `'jsdelivr'`  | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js`              |
+| `'unpkg'`     | `https://unpkg.com/@waline/client@3/dist/waline.js`                         |
 | `'npmmirror'` | `https://registry.npmmirror.com/@waline/client/3.16.1/files/dist/waline.js` |
 
 `version` 默认 `'3'`（跟着 3.x 最新版走），锁死就写 `'3.16.1'`。npmmirror 的 `/files/` 只认确定版本，写 `'3'` 这种范围会在构建期收到一条警告 —— 别的 CDN 支持范围，所以只在指向 npmmirror 时才拦。
 
 想换到自己托管的目录或别的 CDN，把 `cdn` 写成模板。占位符：`{name}`（`@waline/client`）、`{version}`、`{file}`（包内路径 `dist/waline.js`）、`{basename}`（`waline`）、`{ext}`（`js`）：
 
-| 场景 | 配置 | 展开成 |
-| --- | --- | --- |
-| 自托管，文件平铺、名字带版本 | `cdn: '/waline/{basename}-{version}.{ext}'`<br>`version: '3.16.1'` | `/waline/waline-3.16.1.js`<br>`/waline/waline-3.16.1.css` |
-| 自托管，按 npm 的目录结构 | `cdn: '/vendor/waline/{file}'` | `/vendor/waline/dist/waline.js` |
-| 自己的对象存储 | `cdn: 'https://cdn.example.com/npm/{name}@{version}/{file}'` | `https://cdn.example.com/npm/@waline/client@3.16.1/dist/waline.js` |
+| 场景                         | 配置                                                               | 展开成                                                             |
+| ---------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| 自托管，文件平铺、名字带版本 | `cdn: '/waline/{basename}-{version}.{ext}'`<br>`version: '3.16.1'` | `/waline/waline-3.16.1.js`<br>`/waline/waline-3.16.1.css`          |
+| 自托管，按 npm 的目录结构    | `cdn: '/vendor/waline/{file}'`                                     | `/vendor/waline/dist/waline.js`                                    |
+| 自己的对象存储               | `cdn: 'https://cdn.example.com/npm/{name}@{version}/{file}'`       | `https://cdn.example.com/npm/@waline/client@3.16.1/dist/waline.js` |
 
 自托管就两步：`waline.js`、`waline.css` 丢进 `public/waline/`（文件名带版本号，`_headers` 里给这段路径 `immutable`），然后写 `cdn` + `version`。不用改组件。换回公共 CDN 同样是改这一行。
 
@@ -554,11 +554,11 @@ Giscus 没有公开的评论读接口，所以选它时最新评论挂件自动�
 
 Waline 服务端那边至少做三件事：
 
-| 事项 | 怎么做 | 为什么 |
-| --- | --- | --- |
-| 限制来源域 | `SECURE_DOMAINS=你的域名`（**不带协议**，博客和服务端两个地址都写） | 不设的话，别人可以拿你的服务端当免费评论 API |
+| 事项       | 怎么做                                                                        | 为什么                                             |
+| ---------- | ----------------------------------------------------------------------------- | -------------------------------------------------- |
+| 限制来源域 | `SECURE_DOMAINS=你的域名`（**不带协议**，博客和服务端两个地址都写）           | 不设的话，别人可以拿你的服务端当免费评论 API       |
 | 抢占管理员 | 部署完立刻访问 `<serverURL>/ui/register` 注册第一个账号，之后在后台开两步验证 | 第一个注册的人就是管理员，拖着不注册等于把后台敞开 |
-| 先审后发 | `COMMENT_AUDIT=true`；频率限制用 `IPQPS`（默认 60 秒一条） | 评论一旦上线，垃圾广告是分钟级的 |
+| 先审后发   | `COMMENT_AUDIT=true`；频率限制用 `IPQPS`（默认 60 秒一条）                    | 评论一旦上线，垃圾广告是分钟级的                   |
 
 评论的内容、昵称邮箱、IP、UA 都存进**你自己部署的服务端**，不经过第三方 SaaS —— 这是自建方案的好处。不想记录 UA 和归属地，服务端设 `DISABLE_USERAGENT=true` / `DISABLE_REGION=true`。如果给站点加了 CSP，记得放行当前 `cdn` 指向的域名（script / style，默认 `cdn.jsdelivr.net`）与 `serverURL`（connect）；用 Giscus 则要放行 `giscus.app`（script / frame）。
 
@@ -570,20 +570,20 @@ Waline 服务端那边至少做三件事：
 ---
 title: 文章标题
 date: 2026-10-20 10:00:00
-slug: my-post-url              # 可选，自定义 URL；不写则按文件路径生成
-updated: 2026-10-22 09:00:00   # 可选，有值时正文顶部显示「最后更新于」
+slug: my-post-url # 可选，自定义 URL；不写则按文件路径生成
+updated: 2026-10-22 09:00:00 # 可选，有值时正文顶部显示「最后更新于」
 description: 摘要（列表与 SEO 用）
 tags: [Astro, 主题]
 categories: [公告]
-cover: ../../assets/covers/cover-1.webp   # 卡片封面（会优化；兼容写法 indexImg: /img/x.png）
-sticky: true                   # 置顶
-toc: false                     # 单篇关掉右侧目录；不写则跟随站点配置
-comment: false                 # 单篇关掉评论；不写则跟随站点配置
-draft: false                   # true 则不进列表 / 搜索 / RSS
-banner: ../../assets/banner.webp  # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
-bannerMaskAlpha: 0.5           # 单篇 banner 蒙版（可选，0~1）
-series: 从零建站              # 可选，系列名；同名的文章会连成一个系列
-seriesOrder: 3                 # 系列里的次序（从 1 开始）；不写就按发布时间排
+cover: ../../assets/covers/cover-1.webp # 卡片封面（会优化；兼容写法 indexImg: /img/x.png）
+sticky: true # 置顶
+toc: false # 单篇关掉右侧目录；不写则跟随站点配置
+comment: false # 单篇关掉评论；不写则跟随站点配置
+draft: false # true 则不进列表 / 搜索 / RSS
+banner: ../../assets/banner.webp # 单篇 banner 图（会优化；兼容写法 bannerImg: /img/x.svg）
+bannerMaskAlpha: 0.5 # 单篇 banner 蒙版（可选，0~1）
+series: 从零建站 # 可选，系列名；同名的文章会连成一个系列
+seriesOrder: 3 # 系列里的次序（从 1 开始）；不写就按发布时间排
 ---
 ```
 
@@ -604,13 +604,13 @@ seriesOrder: 3                 # 系列里的次序（从 1 开始）；不写�
 
 地址里只会出现小写字母、数字和 `-`：中文转拼音，空格转 `-`，标点与 emoji 丢掉。
 
-| 文件 | front matter | URL |
-| --- | --- | --- |
-| `posts/hello-flux.md` | — | `/posts/hello-flux/` |
-| `posts/2026/年度总结.md` | — | `/posts/2026/nian-du-zong-jie/` |
-| `posts/hello-flux.md` | `slug: hi` | `/posts/hi/` |
-| `posts/2026/年度总结.md` | `slug: year-review` | `/posts/2026/year-review/` |
-| `posts/2026/年度总结.md` | `slug: life/year-review` | `/posts/life/year-review/` |
+| 文件                     | front matter             | URL                             |
+| ------------------------ | ------------------------ | ------------------------------- |
+| `posts/hello-flux.md`    | —                        | `/posts/hello-flux/`            |
+| `posts/2026/年度总结.md` | —                        | `/posts/2026/nian-du-zong-jie/` |
+| `posts/hello-flux.md`    | `slug: hi`               | `/posts/hi/`                    |
+| `posts/2026/年度总结.md` | `slug: year-review`      | `/posts/2026/year-review/`      |
+| `posts/2026/年度总结.md` | `slug: life/year-review` | `/posts/life/year-review/`      |
 
 - **不写 `slug`**：照抄文件路径（含子目录），逐段规范化。
 - **写一段**：只替换文件名那一段，子目录保留。
@@ -623,14 +623,14 @@ seriesOrder: 3                 # 系列里的次序（从 1 开始）；不写�
 
 ## 从 Hexo / Fluid 迁移
 
-| Hexo | Flux |
-| --- | --- |
-| `source/_posts/*.md` | `src/content/posts/*.md` |
-| `_config.yml` | `src/config/user/*.ts` |
-| `_data/links.yml` | `src/config/user/links.ts` |
-| `layout/*.ejs` | `src/pages/*.astro` + `src/components/*.astro` |
-| `languages/*.yml` | `src/i18n.ts` |
-| `hexo-generator-searchdb` | `src/pages/searchindex.json.ts` |
+| Hexo                      | Flux                                           |
+| ------------------------- | ---------------------------------------------- |
+| `source/_posts/*.md`      | `src/content/posts/*.md`                       |
+| `_config.yml`             | `src/config/user/*.ts`                         |
+| `_data/links.yml`         | `src/config/user/links.ts`                     |
+| `layout/*.ejs`            | `src/pages/*.astro` + `src/components/*.astro` |
+| `languages/*.yml`         | `src/i18n.ts`                                  |
+| `hexo-generator-searchdb` | `src/pages/searchindex.json.ts`                |
 
 URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/archives/page/2/`），旧链接不会 404。首页已改成门户固定区块，不再生成 `/page/N/`。
 
@@ -639,16 +639,16 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/archives/
 
 ## 取舍：原版有哪些，这里为什么没有
 
-| 原版功能 | Flux | 原因 |
-| --- | --- | --- |
-| 评论（13 种第三方服务） | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄 |
-| 文章加密、数学公式、Mermaid | ✕ | 各需一个运行时库，属于插件而非主题核心 |
-| 打字机副标题、视差 banner | ✓ | 原生 JS，默认开；只改 `appearance.ts` 就能关，且尊重「减少动态效果」 |
-| fancybox 图片缩放 | 自写灯箱 | 只要「点开放大」，不需要一个 40KB 的库 |
-| Bootstrap 栅格（CDN） | 自己写 flex/grid | 只用到栅格，为它引 200KB 不划算 |
-| iconfont（CDN） | 内联 SVG | 零请求、随 `currentColor` |
-| Stylus | 手写 CSS | 改色只动 CSS 变量，构建不依赖预处理器 |
-| 9 套语言包 | 中文一份（`src/i18n.ts`） | 结构已就位，加语言只需扩一个对象 |
+| 原版功能                    | Flux                                          | 原因                                                                 |
+| --------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| 评论（13 种第三方服务）     | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄   |
+| 文章加密、数学公式、Mermaid | ✕                                             | 各需一个运行时库，属于插件而非主题核心                               |
+| 打字机副标题、视差 banner   | ✓                                             | 原生 JS，默认开；只改 `appearance.ts` 就能关，且尊重「减少动态效果」 |
+| fancybox 图片缩放           | 自写灯箱                                      | 只要「点开放大」，不需要一个 40KB 的库                               |
+| Bootstrap 栅格（CDN）       | 自己写 flex/grid                              | 只用到栅格，为它引 200KB 不划算                                      |
+| iconfont（CDN）             | 内联 SVG                                      | 零请求、随 `currentColor`                                            |
+| Stylus                      | 手写 CSS                                      | 改色只动 CSS 变量，构建不依赖预处理器                                |
+| 9 套语言包                  | 中文一份（`src/i18n.ts`）                     | 结构已就位，加语言只需扩一个对象                                     |
 
 原则一句话：**读者从点开一篇文章到读完，这条路径要完整；路径之外的东西可以砍。**
 
@@ -725,12 +725,12 @@ const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
 
 改完之后这些都会跟着走，不需要手工补：
 
-| 位置 | 谁负责 |
-| --- | --- |
-| 页面里的站内链接、`public/` 里的图（`SITE.avatar`、`banner.img`…） | `src/utils/url.ts` 的 `withBase()` / `publicPath()` |
-| `SITE.nav` 里的导航项 | Navbar 渲染时过 `withBase()` |
-| 正文 Markdown 里手写的 `](/posts/x/)`、`<img src="/img/a.png">` | `src/plugins/markdown.js` 的 `baseLinks()` |
-| `/llms-full.txt`（直接吐 Markdown 原文，不经过 HAST） | `prefixMarkdownLinks()` |
+| 位置                                                                                | 谁负责                                                                 |
+| ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 页面里的站内链接、`public/` 里的图（`SITE.avatar`、`banner.img`…）                  | `src/utils/url.ts` 的 `withBase()` / `publicPath()`                    |
+| `SITE.nav` 里的导航项                                                               | Navbar 渲染时过 `withBase()`                                           |
+| 正文 Markdown 里手写的 `](/posts/x/)`、`<img src="/img/a.png">`                     | `src/plugins/markdown.js` 的 `baseLinks()`                             |
+| `/llms-full.txt`（直接吐 Markdown 原文，不经过 HAST）                               | `prefixMarkdownLinks()`                                                |
 | `canonical` / `og:url` / JSON-LD / RSS / Atom / `sitemap` / `robots.txt` / 搜索索引 | 各自走 `withBase()`，`sitemap` 的过滤还要 `stripBase()` 才能和路由对上 |
 
 **唯一不会自动改的是 `public/_headers` 与 `public/_redirects`** —— 这两个是托管平台的
@@ -774,17 +774,17 @@ const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
 
 没有第三方运行时依赖：图标是内联 SVG，字体走 `system-ui` 栈（零字体请求），没有图标字体，也没有内置的分析脚本 —— 访客统计是可选的，默认关（见上文「访客统计与站长验证」）。首屏必须的请求只有 4 个：HTML、banner 图、主题脚本、预取脚本（开启搜索时再多一个搜索 chunk，单独一次请求、不挡渲染）；样式表内联在 HTML 里，卡片封面是 `loading="lazy"`，滚到才取。
 
-| 资源 | 原始 | gzip | 请求数 |
-| --- | --- | --- | --- |
-| 首页 HTML（门户版式 + 手机端 10 张卡片流，含内联 CSS） | 108 KB | 19.9 KB | 1 |
-| 文章页 HTML（含内联 CSS） | 66 KB | 16.3 KB | 1 |
-| 样式表（内联进 HTML；首页另含门户样式） | 39–44 KB | 8.3–9.0 KB | 0 |
-| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱） | 7.8 KB | 3.0 KB | 1 |
-| 搜索脚本（页面里有弹层时才动态加载） | 3.3 KB | 1.6 KB | 1（仅开启搜索时） |
-| 预取脚本 | 2.4 KB | 1.1 KB | 1 |
-| 评论脚本（懒加载，不参与首屏） | 4.7 KB | 2.1 KB | 0 |
-| 搜索索引（悬停才取，不参与首屏） | 70 KB | 32 KB | 0 |
-| banner 默认图（SVG） | 2.5 KB | 0.8 KB | 1 |
+| 资源                                                   | 原始     | gzip       | 请求数            |
+| ------------------------------------------------------ | -------- | ---------- | ----------------- |
+| 首页 HTML（门户版式 + 手机端 10 张卡片流，含内联 CSS） | 108 KB   | 19.9 KB    | 1                 |
+| 文章页 HTML（含内联 CSS）                              | 66 KB    | 16.3 KB    | 1                 |
+| 样式表（内联进 HTML；首页另含门户样式）                | 39–44 KB | 8.3–9.0 KB | 0                 |
+| 主题脚本（顶栏 / 深浅色 / 目录 / 复制 / 灯箱）         | 7.8 KB   | 3.0 KB     | 1                 |
+| 搜索脚本（页面里有弹层时才动态加载）                   | 3.3 KB   | 1.6 KB     | 1（仅开启搜索时） |
+| 预取脚本                                               | 2.4 KB   | 1.1 KB     | 1                 |
+| 评论脚本（懒加载，不参与首屏）                         | 4.7 KB   | 2.1 KB     | 0                 |
+| 搜索索引（悬停才取，不参与首屏）                       | 70 KB    | 32 KB      | 0                 |
+| banner 默认图（SVG）                                   | 2.5 KB   | 0.8 KB     | 1                 |
 
 几个刻意的取舍：
 

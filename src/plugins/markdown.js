@@ -27,7 +27,12 @@ function classes(node) {
   return [];
 }
 
-const el = (tagName, properties = {}, children = []) => ({ type: 'element', tagName, properties, children });
+const el = (tagName, properties = {}, children = []) => ({
+  type: 'element',
+  tagName,
+  properties,
+  children,
+});
 const text = (value) => ({ type: 'text', value });
 
 /** 围栏语言：Shiki 会写成 data-language，兜底从 class="language-xxx" 取。 */
@@ -59,7 +64,11 @@ export function headingAnchors() {
           /* 锚点里不放文字：`#` 由 CSS 的 ::before 提供，悬停才显示（Fluid 的观感） */
           ctx.prependChild(
             node,
-            el('a', { className: ['headerlink'], href: `#${id}`, ariaHidden: 'true', tabIndex: -1 }, []),
+            el(
+              'a',
+              { className: ['headerlink'], href: `#${id}`, ariaHidden: 'true', tabIndex: -1 },
+              [],
+            ),
           );
         },
       },
@@ -201,7 +210,10 @@ export function emailLinks() {
         if (!/^mailto:/i.test(href)) return;
 
         /* mailto 允许带 ?subject=… 之类的参数，取地址部分就够 */
-        const address = href.replace(/^mailto:/i, '').split('?')[0].trim();
+        const address = href
+          .replace(/^mailto:/i, '')
+          .split('?')[0]
+          .trim();
         if (!address) return;
 
         /* 显示形态：`me [at] example.com`。只换 @ 不换点 —— 换掉点之后

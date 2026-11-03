@@ -52,9 +52,7 @@ export default function mountGiscus({ el, section, attempt }) {
   /* 切主题：找到 giscus 的 iframe 发消息。iframe 还没建好时发出去会被丢掉，
      所以监听这一次就够了 —— 首次配色由 data-theme 决定 */
   new MutationObserver(() => {
-    const frame = /** @type {HTMLIFrameElement | null} */ (
-      el.querySelector('iframe.giscus-frame')
-    );
+    const frame = /** @type {HTMLIFrameElement | null} */ (el.querySelector('iframe.giscus-frame'));
     if (!frame || !frame.contentWindow) return;
     frame.contentWindow.postMessage(
       { giscus: { setConfig: { theme: isDark() ? themeDark : themeLight } } },
@@ -67,10 +65,8 @@ export default function mountGiscus({ el, section, attempt }) {
 
   return new Promise((resolve, reject) => {
     script.addEventListener('load', () => resolve(), { once: true });
-    script.addEventListener(
-      'error',
-      () => reject(new Error('giscus.app/client.js 加载失败')),
-      { once: true },
-    );
+    script.addEventListener('error', () => reject(new Error('giscus.app/client.js 加载失败')), {
+      once: true,
+    });
   });
 }

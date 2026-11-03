@@ -33,7 +33,11 @@ interface HNode {
   value?: string;
 }
 
-const el = (tagName: string, properties: Record<string, unknown>, children: HNode[] = []): HNode => ({
+const el = (
+  tagName: string,
+  properties: Record<string, unknown>,
+  children: HNode[] = [],
+): HNode => ({
   type: 'element',
   tagName,
   properties,
@@ -79,8 +83,7 @@ function runPlugin(factory: unknown, tree: HNode): void {
   /* 导出统一是「工厂」（linkTargets() 直接出插件，headingAnchors() 每篇再产一次
      带独立 slugger 的实例），传进来的可能是外层也可能是实例，两种都认。 */
   const made = typeof factory === 'function' ? (factory as () => unknown)() : factory;
-  const plugin: Plugin =
-    typeof made === 'function' ? (made as () => Plugin)() : (made as Plugin);
+  const plugin: Plugin = typeof made === 'function' ? (made as () => Plugin)() : (made as Plugin);
 
   const snapshot: HNode[] = [];
   (function collect(node: HNode) {
@@ -172,9 +175,9 @@ describe('emailLinks', () => {
       el('a', { href: 'https://mail.example.com' }),
     );
     runPlugin(emailLinks(), tree);
-    expect(
-      Buffer.from(tree.children![0].properties!.dataMail as string, 'base64').toString(),
-    ).toBe('me@example.com');
+    expect(Buffer.from(tree.children![0].properties!.dataMail as string, 'base64').toString()).toBe(
+      'me@example.com',
+    );
     expect(tree.children![1].tagName).toBe('a');
   });
 });

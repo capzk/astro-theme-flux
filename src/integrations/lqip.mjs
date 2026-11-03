@@ -107,10 +107,7 @@ async function buildTable(config) {
   const astroDir = path.join(root, '.astro');
   const cacheFile = path.join(astroDir, 'lqip-cache.json');
 
-  const dirs = [
-    path.join(fileURLToPath(config.srcDir), 'assets'),
-    fileURLToPath(config.publicDir),
-  ];
+  const dirs = [path.join(fileURLToPath(config.srcDir), 'assets'), fileURLToPath(config.publicDir)];
 
   const files = (await Promise.all(dirs.map((dir) => collect(dir)))).flat().sort();
 
@@ -182,9 +179,10 @@ export default function lqip() {
           table = result.table;
           const total = result.computed + result.hits;
           if (total > 0) {
-            const detail = result.hits > 0
-              ? `${total} 张图算好了占位色（${result.hits} 命中缓存，${result.computed} 重新计算）`
-              : `${total} 张图算好了占位色`;
+            const detail =
+              result.hits > 0
+                ? `${total} 张图算好了占位色（${result.hits} 命中缓存，${result.computed} 重新计算）`
+                : `${total} 张图算好了占位色`;
             logger.info(detail);
           }
         } catch (error) {

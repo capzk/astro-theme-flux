@@ -283,8 +283,7 @@ export function initSearch() {
     }
     /* Ctrl/⌘+K 或 单个 / —— 但输入框里按 / 不该被拦走 */
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
-    const hitHotkey =
-      (e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing);
+    const hitHotkey = (e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing);
     if (hitHotkey) {
       e.preventDefault();
       if (isOpen) closeModal(modal);

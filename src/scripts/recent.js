@@ -51,31 +51,33 @@ function readConfig(section) {
 function normalize(_type, data, length) {
   if (!Array.isArray(data)) return [];
 
-  return data
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null;
+  return (
+    data
+      .map((item) => {
+        if (!item || typeof item !== 'object') return null;
 
-      /* 目前只有 waline 一家会走到这里 */
-      const nick = String(item.nick ?? '').trim() || '匿名';
-      const raw = String(item.comment ?? item.orig ?? '');
-      /* 正文是 HTML：丢给浏览器解析一次再取 textContent，比手写正则剥标签可靠
+        /* 目前只有 waline 一家会走到这里 */
+        const nick = String(item.nick ?? '').trim() || '匿名';
+        const raw = String(item.comment ?? item.orig ?? '');
+        /* 正文是 HTML：丢给浏览器解析一次再取 textContent，比手写正则剥标签可靠
          （正则剥不干净 `<img onerror>` 这类，而 DOMParser 不执行任何东西） */
-      const text = raw
-        ? new DOMParser().parseFromString(raw, 'text/html').body.textContent || ''
-        : '';
-      const trimmed = text.replace(/\s+/g, ' ').trim();
-      if (!trimmed) return null;
+        const text = raw
+          ? new DOMParser().parseFromString(raw, 'text/html').body.textContent || ''
+          : '';
+        const trimmed = text.replace(/\s+/g, ' ').trim();
+        if (!trimmed) return null;
 
-      return {
-        nick,
-        text: trimmed.length > length ? `${trimmed.slice(0, length)}…` : trimmed,
-        url: typeof item.url === 'string' ? item.url : '',
-        time: String(item.insertedAt ?? item.createdAt ?? item.created ?? ''),
-      };
-    })
-    .filter((item) => item !== null)
-    /* 有些服务端会把待审的也算进来，取够条数就停，不要多渲染 */
-    .slice(0, 20);
+        return {
+          nick,
+          text: trimmed.length > length ? `${trimmed.slice(0, length)}…` : trimmed,
+          url: typeof item.url === 'string' ? item.url : '',
+          time: String(item.insertedAt ?? item.createdAt ?? item.created ?? ''),
+        };
+      })
+      .filter((item) => item !== null)
+      /* 有些服务端会把待审的也算进来，取够条数就停，不要多渲染 */
+      .slice(0, 20)
+  );
 }
 
 /**

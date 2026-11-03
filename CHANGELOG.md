@@ -630,7 +630,7 @@ do through the application is available in the API」），所以它不能进浏
 
   两处副产品：`scripts/generate-lqips.mjs` 与 `src/data/lqips.json` 一并删掉 ——
   没有中间文件，自然也没有「忘了重新生成」这种状态；`package.json` 里的 `lqips` /
-   `prebuild` / `predev` 全部移除。
+  `prebuild` / `predev` 全部移除。
 
   算不出来时（比如 sharp 的原生二进制拉不到）只打一行警告，页面照旧、只是没有那层底色，
   不会让构建失败。README 与《站点配置》里的说法已同步。
@@ -684,9 +684,9 @@ do through the application is available in the API」），所以它不能进浏
   以前换配色只能逐个调 `navbar` / `accent` 两个 hex，而且亮暗两套还得各调一遍。
   现在写一个 0~360 的色相，顶栏与强调色由 oklch 现算，亮暗各一套明度：
 
-  | | 亮色 | 暗色 |
-  | --- | --- | --- |
-  | 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)` |
+  |        | 亮色                 | 暗色                  |
+  | ------ | -------------------- | --------------------- |
+  | 强调色 | `oklch(0.68 0.14 H)` | `oklch(0.76 0.13 H)`  |
   | 顶栏色 | `oklch(0.35 0.04 H)` | `oklch(0.29 0.035 H)` |
 
   明度与彩度定死、只换色相，所以不会出现「某个色相下白字糊在背景里」。
@@ -731,10 +731,10 @@ do through the application is available in the API」），所以它不能进浏
 
 - **代码块：行高亮与行号开关**。围栏 meta 支持 Shiki 生态的写法：
 
-  ````md
-  ```js {1,3-5}      → 这几行加底色 + 左侧竖线
-  ```text nolinenos  → 这一段不显示行号
-  ````
+  | 围栏 info 里加 | 效果                    |
+  | -------------- | ----------------------- |
+  | `{1,3-5}`      | 这几行加底色 + 左侧竖线 |
+  | `nolinenos`    | 这一段不显示行号        |
 
   行号本来就有（CSS 计数器画的，`::before` 不进 `innerText`，复制代码带不上）；
   新增的是「终端输出、目录树这类块可以关掉」。
@@ -983,10 +983,10 @@ do through the application is available in the API」），所以它不能进浏
 
 - **BREAKING：配置从单文件改成目录，分成「类型 / 默认值 / 你的值」三层。**
 
-  | 以前 | 现在 |
-  | --- | --- |
+  | 以前                                             | 现在                                                                 |
+  | ------------------------------------------------ | -------------------------------------------------------------------- |
   | `src/config.ts`（476 行：370 行类型 + 100 行值） | `src/config/types.ts` 类型、`defaults.ts` 默认值、`user/*.ts` 你的值 |
-  | `src/data/links.ts` | `src/config/user/links.ts` |
+  | `src/data/links.ts`                              | `src/config/user/links.ts`                                           |
 
   原来的问题是「一个文件里塞了三件不同的事」：类型定义（主题作者维护）、默认值（出厂设置）、
   实际配置（使用者要改的十几行）。想改站名要滚过 370 行 interface；升级主题时要先把自己的值
@@ -1066,12 +1066,12 @@ do through the application is available in the API」），所以它不能进浏
 - **Waline 的客户端配置补齐到官方 props 表**，对着
   [官方文档](https://waline.js.org/reference/client/props.html)逐项核过：
 
-  | 项 | 之前 | 现在 |
-  | --- | --- | --- |
-  | `wordLimit` | 只接受数字 | `number \| [最小, 最大]` |
-  | `emoji` | 只接受地址字符串 | 也接受 `WalineEmojiInfo` 对象（自己的一套表情，给目录 + 文件名列表即可） |
-  | `search` | 有个布尔开关 | **删掉** —— 它要传的是函数，写 `true` 什么都不会发生 |
-  | `lang` 映射 | 缺西班牙语 | 补 `es` |
+  | 项          | 之前             | 现在                                                                     |
+  | ----------- | ---------------- | ------------------------------------------------------------------------ |
+  | `wordLimit` | 只接受数字       | `number \| [最小, 最大]`                                                 |
+  | `emoji`     | 只接受地址字符串 | 也接受 `WalineEmojiInfo` 对象（自己的一套表情，给目录 + 文件名列表即可） |
+  | `search`    | 有个布尔开关     | **删掉** —— 它要传的是函数，写 `true` 什么都不会发生                     |
+  | `lang` 映射 | 缺西班牙语       | 补 `es`                                                                  |
 
 - **人机验证的域名补齐 preconnect**：配了 Turnstile 时提前连
   `challenges.cloudflare.com`，配了 reCAPTCHA v3 时连 `www.google.com` + `www.gstatic.com`。
@@ -1084,7 +1084,6 @@ do through the application is available in the API」），所以它不能进浏
 - README 补「反垃圾与人机验证」小节：四件服务端防护（审核 / 限速 / Akismet / 来源域）+
   验证码**三处配对**表（主题配置 / 服务端 KEY / 服务端 SECRET）+ CSP 要放行的域名。
 
-
 ## [1.5.0] - 2026-10-26
 
 ### Added
@@ -1092,10 +1091,10 @@ do through the application is available in the API」），所以它不能进浏
 - **评论系统改成可插拔，新增 Giscus 实现**。`config.ts` 的 `comment` 段多了一个 `type`
   字段，改一行就换评论系统，页面模板、样式、加载逻辑一律不动：
 
-  | `type` | 服务端 | 评论数 | 浏览量 |
-  | --- | --- | --- | --- |
-  | `'waline'` | 要自己部署 | ✓ | ✓ |
-  | `'giscus'` | 不要，存在 GitHub Discussions | ✕ | ✕ |
+  | `type`     | 服务端                        | 评论数 | 浏览量 |
+  | ---------- | ----------------------------- | ------ | ------ |
+  | `'waline'` | 要自己部署                    | ✓      | ✓      |
+  | `'giscus'` | 不要，存在 GitHub Discussions | ✕      | ✕      |
 
   做法是把评论拆成两层，中间只过一份 JSON：构建期由 `src/comments/<name>.ts` 把配置翻成
   `{ js, css, init, lazy }` 写进页面，运行期由 `src/scripts/comments.js` 负责懒加载、
@@ -1115,11 +1114,11 @@ do through the application is available in the API」），所以它不能进浏
 - **客户端地址可配置**（`comment.waline.cdn` + `version`）。以前脚本地址是写死的
   jsDelivr 链接，想换国内镜像或自托管得改组件。现在只改配置一行：
 
-  | `cdn` | 展开成 |
-  | --- | --- |
-  | `'jsdelivr'`（默认）/ `'unpkg'` | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js` |
-  | `'npmmirror'` | `https://registry.npmmirror.com/@waline/client/3.16.1/files/dist/waline.js` |
-  | 模板字符串 | 占位符 `{name}` `{version}` `{file}` `{basename}` `{ext}`，见 README |
+  | `cdn`                           | 展开成                                                                      |
+  | ------------------------------- | --------------------------------------------------------------------------- |
+  | `'jsdelivr'`（默认）/ `'unpkg'` | `https://cdn.jsdelivr.net/npm/@waline/client@3/dist/waline.js`              |
+  | `'npmmirror'`                   | `https://registry.npmmirror.com/@waline/client/3.16.1/files/dist/waline.js` |
+  | 模板字符串                      | 占位符 `{name}` `{version}` `{file}` `{basename}` `{ext}`，见 README        |
 
   自托管就是 `cdn: '/waline/{basename}-{version}.{ext}'` + `version: '3.16.1'`，
   `waline.js` / `waline.css` / `pageview.js` 由同一个模板展开。名字写错（既不是预置值、

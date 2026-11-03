@@ -12,7 +12,9 @@
   z-index: 1030;
   font-size: 0.875rem;
   background-color: transparent;
-  transition: background-color 0.5s ease-in-out, box-shadow 0.5s ease-in-out,
+  transition:
+    background-color 0.5s ease-in-out,
+    box-shadow 0.5s ease-in-out,
     padding 0.5s ease-in-out;
   padding: 1rem 0;
 }
@@ -98,7 +100,9 @@
   font-size: 0.875rem;
   line-height: 1;
   white-space: nowrap;
-  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  transition:
+    color 0.2s ease-in-out,
+    background-color 0.2s ease-in-out;
 }
 .nav-link:hover {
   color: var(--link-hover-color);
@@ -147,7 +151,9 @@
   background: transparent;
   color: var(--navbar-text-color);
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  transition:
+    background-color 0.2s ease-in-out,
+    color 0.2s ease-in-out;
 }
 .icon-btn:hover {
   color: var(--link-hover-color);
@@ -164,10 +170,10 @@
 #theme-toggle .icon-sun {
   display: none;
 }
-html[data-user-color-scheme="dark"] #theme-toggle .icon-sun {
+html[data-user-color-scheme='dark'] #theme-toggle .icon-sun {
   display: inline-block;
 }
-html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
+html[data-user-color-scheme='dark'] #theme-toggle .icon-moon {
   display: none;
 }
 
@@ -178,10 +184,10 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 #menu-toggle .icon-close {
   display: none;
 }
-#menu-toggle[aria-expanded="true"] .icon-menu {
+#menu-toggle[aria-expanded='true'] .icon-menu {
   display: none;
 }
-#menu-toggle[aria-expanded="true"] .icon-close {
+#menu-toggle[aria-expanded='true'] .icon-close {
   display: inline-block;
 }
 
@@ -199,7 +205,9 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   opacity: 0;
   transform: translateY(-12px);
   pointer-events: none;
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
   overflow-y: auto;
 }
 .mobile-menu.is-open {
@@ -538,7 +546,7 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
 }
 /* 当前章节左侧的小竖条：默认 0.2rem 高且透明，激活时拉长到 1rem */
 .toc-link::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0.2rem;
   top: 50%;
@@ -548,14 +556,17 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   border-radius: 2px;
   background-color: var(--link-hover-color);
   opacity: 0;
-  transition: height 0.15s ease, margin-top 0.15s ease, opacity 0.15s ease;
+  transition:
+    height 0.15s ease,
+    margin-top 0.15s ease,
+    opacity 0.15s ease;
 }
 /* 三级及以下：缩进一级、字号降一档（原版 ol ol a 的 0.85rem） */
-.toc-item[data-depth="3"] .toc-link {
+.toc-item[data-depth='3'] .toc-link {
   padding-left: 1.85rem;
   font-size: 0.85rem;
 }
-.toc-item[data-depth="4"] .toc-link {
+.toc-item[data-depth='4'] .toc-link {
   padding-left: 2.85rem;
   font-size: 0.85rem;
 }
@@ -571,4 +582,3 @@ html[data-user-color-scheme="dark"] #theme-toggle .icon-moon {
   margin-top: -0.5rem;
   opacity: 1;
 }
-

@@ -80,7 +80,10 @@ export function prefixMarkdownLinks(md: string): string {
   const rewrite = (chunk: string) =>
     chunk
       .replace(/\]\((\/[^)\s]*)/g, (_, path: string) => `](${withBase(path)}`)
-      .replace(/\b(href|src)="(\/[^"]*)"/g, (_, attr: string, path: string) => `${attr}="${withBase(path)}"`);
+      .replace(
+        /\b(href|src)="(\/[^"]*)"/g,
+        (_, attr: string, path: string) => `${attr}="${withBase(path)}"`,
+      );
 
   /* split 带捕获组时，分隔符本身会留在结果里 —— 奇数下标就是那段代码块 */
   return md

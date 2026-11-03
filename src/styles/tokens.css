@@ -38,11 +38,12 @@
   --highlight-bg-color: #f6f8fa;
   --inlinecode-bg-color: rgba(175, 184, 193, 0.2);
 
-  --font-family-sans-serif: system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
-    "WenQuanYi Micro Hei", sans-serif;
-  --font-family-monospace: ui-monospace, SFMono-Regular, "SF Mono", Menlo,
-    Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-family-sans-serif:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif;
+  --font-family-monospace:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
 
   --board-radius: 0.5rem;
   --img-shadow: 0 5px 11px 0 rgba(0, 0, 0, 0.18), 0 4px 15px 0 rgba(0, 0, 0, 0.15);
@@ -51,7 +52,7 @@
 }
 
 /* 暗色令牌 */
-[data-user-color-scheme="dark"] {
+[data-user-color-scheme='dark'] {
   color-scheme: dark;
   --body-bg-color: #181c27;
   --board-bg-color: #252d38;
@@ -106,4 +107,3 @@
     --navbar-bg-color: oklch(0.29 0.035 var(--hue));
   }
 }
-

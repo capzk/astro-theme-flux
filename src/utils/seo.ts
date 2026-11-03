@@ -114,7 +114,9 @@ function personNode(origin: URL | string) {
  */
 function organizationNode(origin: URL | string) {
   const { base, publisher } = siteIds(origin);
-  const logo = RASTER_IMAGE.test(SITE.avatar) ? absoluteUrl(publicPath(SITE.avatar), origin) : undefined;
+  const logo = RASTER_IMAGE.test(SITE.avatar)
+    ? absoluteUrl(publicPath(SITE.avatar), origin)
+    : undefined;
   return {
     '@type': 'Organization',
     '@id': publisher,
@@ -172,18 +174,8 @@ interface ArticleSeo {
 
 /** 文章页结构化数据：BlogPosting */
 export function articleJsonLd(article: ArticleSeo) {
-  const {
-    title,
-    description,
-    url,
-    image,
-    origin,
-    published,
-    modified,
-    section,
-    tags,
-    words,
-  } = article;
+  const { title, description, url, image, origin, published, modified, section, tags, words } =
+    article;
   const { website } = siteIds(origin);
 
   return {
