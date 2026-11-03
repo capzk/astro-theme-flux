@@ -200,8 +200,26 @@ describe('inspect · 统计与验证', () => {
 });
 
 describe('inspect · 还是示例值', () => {
-  it('site 还是 pages.dev / example.com 要报', () => {
+  it('site 还是模板示例域名（标题/作者未改）要报', () => {
     expect(joined(inspect(config(), { site: 'https://demo.pages.dev', fileExists: () => true })))
+      .toContain('还是示例地址');
+  });
+
+  it('地址直接是示例站域名时，改了标题作者也要报', () => {
+    const mine = config({ title: '我的博客', author: '张三' });
+    expect(joined(inspect(mine, { site: 'https://astro-theme-flux.pages.dev', fileExists: () => true })))
+      .toContain('还是示例地址');
+  });
+
+  it('真部署在 pages.dev 且标题作者都改成自己的 → 不打扰', () => {
+    const mine = config({ title: '我的博客', author: '张三' });
+    expect(joined(inspect(mine, { site: 'https://my-blog.pages.dev', fileExists: () => true })))
+      .not.toContain('还是示例地址');
+  });
+
+  it('localhost 不分情境，总是报', () => {
+    const mine = config({ title: '我的博客', author: '张三' });
+    expect(joined(inspect(mine, { site: 'http://localhost:4321', fileExists: () => true })))
       .toContain('还是示例地址');
   });
 

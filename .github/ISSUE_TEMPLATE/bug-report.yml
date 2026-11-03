@@ -1,0 +1,59 @@
+name: Bug 反馈
+description: 报告一个可复现的问题
+title: '[bug] '
+labels: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。填写前先 `npm run check && npm test && npm run build` 试一次 ——
+        大部分「像是 bug」的问题其实是配置值或缓存，构建命令会直接说出来。
+  - type: input
+    id: version
+    attributes:
+      label: 主题版本
+      description: package.json 里的 version，或 git log 的 commit
+      placeholder: '5.3.0'
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 最小复现路径。改了什么配置、在哪个页面、点了什么
+      placeholder: |
+        1. 在 src/config/user/appearance.ts 里把 banner.enable 设为 false
+        2. npm run dev，打开首页
+        3. 现象：…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+  - type: dropdown
+    id: env
+    attributes:
+      label: 运行方式
+      options:
+        - npm run dev
+        - npm run build + 静态托管
+        - Cloudflare Pages
+        - Vercel / Netlify
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 终端输出（构建警告会带 [flux] 前缀）与浏览器控制台报错，会渲染为代码块
+      render: text
+  - type: textarea
+    id: base
+    attributes:
+      label: 部署前缀（base）
+      description: astro.config.mjs 顶部的 BASE 值；子路径部署问题请注明前缀
+      placeholder: '/'

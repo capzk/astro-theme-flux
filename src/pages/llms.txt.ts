@@ -31,13 +31,17 @@ export const GET: APIRoute = async ({ site }) => {
   const lines: string[] = [
     `# ${SITE.title}`,
     '',
+    /* llmstxt.org 规范的结构是「标题 + blockquote（全站性说明）+ 分段的链接列表」：
+       作者、语言、订阅地址这些属于「这个站是什么」的信息，写在 blockquote 里；
+       列表行只留「可链接的东西」，解析方按 `- [t](u): d` 模式抽取，不该在
+       首个 ## 之前夹普通 bullet。 */
     `> ${SITE.description}`,
-    '',
-    `- 作者：${SITE.author}`,
-    `- 语言：${SITE.lang}`,
-    `- 文章数：${posts.length}${latest ? `，最近更新 ${latest.toISOString().slice(0, 10)}` : ''}`,
-    `- 全文订阅：${url(withBase('/rss.xml'))} · ${url(withBase('/atom.xml'))}`,
-    `- 全站正文（一次抓完）：${url(withBase('/llms-full.txt'))}`,
+    '>',
+    `> 作者：${SITE.author}；语言：${SITE.lang}；` +
+      `文章数：${posts.length}${latest ? `，最近更新 ${latest.toISOString().slice(0, 10)}` : ''}。`,
+    '>',
+    `> 全文订阅：${url(withBase('/rss.xml'))} · ${url(withBase('/atom.xml'))}；` +
+      `全站正文（一次抓完）：${url(withBase('/llms-full.txt'))}。`,
     '',
     '## 文章',
     '',

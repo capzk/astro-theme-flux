@@ -45,9 +45,12 @@ const dateText = formatDate(date, 'card');
       <div class="index-img" style={lqipStyle(coverSrc)}>
         <a href={url} aria-hidden="true" tabindex="-1">
           {isAsset(coverSrc) ? (
-            /* 优化路径：按卡片实际显示宽度出 240/400/560 三档 webp。
+            /* 优化路径：按卡片实际显示宽度出 240/400/560/800 四档 webp。
+               800 专供窄屏：卡片封面在 ≤767px 是满宽的（sizes 给 100vw），
+               375 逻辑 px × DPR3 要 1125 物理像素，没这档浏览器只能拿 560w 放大着用，
+               手机上封面发虚。桌面端 240px 的选择逻辑不受影响。
                封面是装饰性的（标题就是旁边的链接），所以 alt 留空。 */
-            <Image src={coverSrc} alt="" widths={[240, 400, 560]} sizes="(max-width: 767px) 100vw, 240px" loading="lazy" />
+            <Image src={coverSrc} alt="" widths={[240, 400, 560, 800]} sizes="(max-width: 767px) 100vw, 240px" loading="lazy" />
           ) : (
             /* 与上面的优化分支保持一致：外层的 <a> 已经是 aria-hidden 的纯装饰，
                alt 写成标题只会在无障碍树里被忽略，却可能被搜索引擎当成重复文本 */

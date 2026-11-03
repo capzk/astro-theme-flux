@@ -1,0 +1,17 @@
+# 构建产物与生成物
+dist/
+.astro/
+node_modules/
+
+# 作者的正文内容：格式属于文章本身，工具不该动（front matter 缩进、硬换行都有意义）
+src/content/posts/
+
+# lock 文件
+package-lock.json
+
+# Astro 模板交给 IDE 处理更稳（prettier-plugin-astro 是额外的可选依赖）
+*.astro
+
+# 手写排版的数据文件
+*.webp
+public/img/

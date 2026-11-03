@@ -16,7 +16,7 @@
 import type { APIRoute } from 'astro';
 import { SITE } from '../config';
 import { excerptOf, getPosts, postUrl } from '../utils/posts';
-import { absoluteUrl } from '../utils/seo';
+import { absoluteUrl, authorPageUrl } from '../utils/seo';
 import { withBase } from '../utils/url';
 
 /** XML 里必须转义的五个字符。标题和摘要都来自用户内容，不转义就是一行坏 XML */
@@ -35,6 +35,9 @@ export const GET: APIRoute = async ({ site }) => {
   const posts = await getPosts();
   const home = url(withBase('/'));
   const self = url(withBase('/atom.xml'));
+  /* 作者实体地址：和 JSON-LD 的 Person.url 同源（关于页优先，关了退回首页），
+     两处各算一套迟早对不上 */
+  const authorUri = authorPageUrl(home);
 
   /* feed 级的 updated 取「全站最新的一次改动」：文章有 updated 就用它，
      没有就用发布时间。空站退回构建时刻 —— Atom 规定这个字段必须有。 */
@@ -63,7 +66,9 @@ export const GET: APIRoute = async ({ site }) => {
       `    <published>${date.toISOString()}</published>`,
       `    <updated>${(updated ?? date).toISOString()}</updated>`,
       `    <summary type="text">${esc(excerptOf(post, SITE.rss.excerptLength))}</summary>`,
-      `    <author><name>${esc(SITE.author)}</name></author>`,
+      /* RFC 4287：author 的 name/uri/email 至少给一个；给 uri 而不给 email，
+         免得把作者邮箱公开给一切爬虫 */
+      `    <author><name>${esc(SITE.author)}</name><uri>${esc(authorUri)}</uri></author>`,
       terms,
       '  </entry>',
     ]
@@ -80,7 +85,7 @@ export const GET: APIRoute = async ({ site }) => {
     `  <link rel="self" type="application/atom+xml" href="${esc(self)}"/>`,
     `  <id>${esc(home)}</id>`,
     `  <updated>${feedUpdated.toISOString()}</updated>`,
-    `  <author><name>${esc(SITE.author)}</name></author>`,
+    `  <author><name>${esc(SITE.author)}</name><uri>${esc(authorUri)}</uri></author>`,
     '  <generator uri="https://astro.build" version="Astro">Astro</generator>',
     ...entries,
     '</feed>',

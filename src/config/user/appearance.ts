@@ -66,6 +66,9 @@ export default defineConfig({
    * 注意：颜色只覆盖**亮色**。暗色那套写在 `src/styles/main.css` 的
    * `[data-user-color-scheme="dark"]` 里，要改得连那边一起改。
    *
+   * `accent` 全站很多地方直接当**文字色**用（不只是悬停态）：对白底低于
+   * 4.5:1（WCAG AA）会偏浅，改色前拿对比度工具验一下，详见 types.ts 的注释。
+   *
    * `navbarScrim` 不是颜色，是「顶栏透明时顶部那层渐变压暗有多深」（0~1）：
    * 首页刚打开、还没滚动时导航是压在 banner 图上的，这一步保证文字看得清。
    * 0 = 不压暗（图片原样），0.6+ = 图特别花时才需要。

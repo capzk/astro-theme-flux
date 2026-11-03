@@ -1,0 +1,39 @@
+name: 功能建议
+description: 提出一个值得进主题的新功能或改进
+title: '[feat] '
+labels: enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决的问题
+      description: 先描述「在现在的主题上做不到什么、难受在哪」，不要直接写实现方案
+      placeholder: 作为站点作者，我希望…，但目前…
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 期望的做法
+      description: 配置长什么样、开关放哪、默认值是什么
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 涉及范围
+      options:
+        - 配置系统（src/config）
+        - 评论系统
+        - SEO / Feed / llms.txt
+        - 首页 / 列表页
+        - 文章页（Markdown 渲染、代码块、目录）
+        - 性能 / 缓存
+        - 无障碍
+        - 其他
+  - type: markdown
+    attributes:
+      value: |
+        提一句主题的定位：零框架、零运行时依赖、静态站。
+        需要引入前端框架（React/Vue/Svelte）或常驻服务的建议，
+        大概率会转成「改造与扩展」文档里的教程而不是内置功能。

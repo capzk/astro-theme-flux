@@ -86,8 +86,11 @@ function siteIds(origin: URL | string) {
 /**
  * 作者主页。Google 对 author.url 的要求是「能唯一认出这个人的页面」，
  * 关于页正好是这个东西；关掉关于页时退回首页，不指向一个 404。
+ *
+ * 导出给 Atom 的 `<author><uri>` 用 —— feed 里的作者实体要和 JSON-LD 的
+ * Person.url 指向同一个页面，两处各算一套地址迟早对不上。
  */
-const authorPageUrl = (base: string) => (SITE.pages.about ? `${base}about/` : base);
+export const authorPageUrl = (base: string) => (SITE.pages.about ? `${base}about/` : base);
 
 /** 作者（Person）。sameAs 只挂人身上 —— 账号是人的，不是「站点机构」的 */
 function personNode(origin: URL | string) {

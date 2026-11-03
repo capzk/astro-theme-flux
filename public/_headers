@@ -38,6 +38,34 @@
   ! Cache-Control
   Cache-Control: public, max-age=0, s-maxage=3600, stale-while-revalidate=86400
 
+# 安全头模板（默认全部注释，确认适合自己的站再取消注释）
+# ---------------------------------------------------------------------------
+# 为什么默认不开：这几条都是「开了不好退」的策略 —— HSTS 一旦下发，浏览器
+# 在有效期内拒绝一切 http 访问（子域 preload 后更激进）；上站还挂着第三方
+# iframe / CDN 脚本时，一刀切的 CSP 会直接把它们拦白。与其默认开了让新人
+# 排查「为什么页面碎了」，不如默认关了让想要的人一行行打开。
+#
+#   Strict-Transport-Security: max-age=31536000; includeSubDomains
+#     只在**全站强制 HTTPS 已生效**后打开（Cloudflare 后台 Enable HTTPS 里
+#     开「Force HTTPS」+ Universal SSL 正常即可）。想进浏览器 preload 列表
+#     再加 `; preload`，但那是双向承诺，先想清楚。
+#
+#   X-Frame-Options: SAMEORIGIN
+#     老浏览器用的点劫持防护；新浏览器看 CSP 的 frame-ancestors（见下）。
+#     两个都给不冲突。
+#
+#   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+#     博客用不到这些设备能力，默认拒掉能收窄第三方脚本（统计、验证码 iframe）
+#     的可作恶面。注意语法：`=()` 是「谁都不许」，逗号分隔一条写多个。
+#
+#   Cross-Origin-Opener-Policy: same-origin
+#     隔离窗口引用（缓解 Spectre 类跨文档读取）。和第三方 iframe 的
+#     弹窗交互一般不受影响，但开了要回归测一遍评论区。
+#
+# CSP 完整模板（含评论 CDN、统计三家、Turnstile 的逐域名解释）在 README 的
+# 「内容安全策略」一节 —— 它比这几条长得多，也更容易因插件组合而误伤，
+# 所以只给模板不在这几行里代劳。
+
 # Astro 产出的 JS / 字体 / 优化后的图片，文件名带内容 hash，可以永久缓存
 # （样式表已内联进 HTML，不再走这个目录，见 astro.config.mjs 的 inlineStylesheets）
 /_astro/*

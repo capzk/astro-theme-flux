@@ -307,8 +307,13 @@ const claritySnippet = clarityId
 const analyticsOrigins: string[] = [];
 for (const url of [
   gaId ? 'https://www.googletagmanager.com' : '',
+  /* gtag.js 只是壳，数据实际发往 analytics.google.com（GA4 的 collect 端点）——
+     只预解析脚本域名，发送时仍要多一次 DNS 查询 */
+  gaId ? 'https://analytics.google.com' : '',
   umamiOn ? umamiSrc : '',
   clarityId ? 'https://www.clarity.ms' : '',
+  /* Clarity 的采集脚本与端点在 scripts.clarity.ms，和标签域不是同一个 */
+  clarityId ? 'https://scripts.clarity.ms' : '',
 ]) {
   if (!url) continue;
   try {

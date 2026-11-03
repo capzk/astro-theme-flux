@@ -1,0 +1,33 @@
+# 依赖自动更新
+# ---------------------------------------------------------------------------
+# 每周一开一次升级 PR，维护者只需要「看一眼、合或不合」。
+# 版本号提升（major）容易带破坏性改动，所以单独分组、限 5 条，
+# 避免一次 PR 风暴；patch/minor 默认全开，CI（check + test + build）会帮忙兜底。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: deps
+    groups:
+      production:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+      development:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+  # Action 本身也是代码：固定到 commit SHA 之外的常见做法是每周跟进大版本
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

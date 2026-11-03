@@ -18,6 +18,7 @@
  */
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import DEFAULT_CONFIG from './defaults';
 import type { SiteConfig } from './types';
 
 export interface InspectOptions {
@@ -333,7 +334,15 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
      `site` 不在 SITE 里：它是 astro.config 的顶层字段（绝对 URL 的来源），
      构建期由调用方从 `import.meta.env.SITE` 取出来传进 options.site。 */
   const EXAMPLE_SITE = /(^https?:\/\/)?(localhost|127\.0\.0\.1|example\.(com|org|net)|.*\.pages\.dev)/i;
-  if (siteUrl && EXAMPLE_SITE.test(siteUrl)) {
+  /* pages.dev 既是模板占位，也是 Cloudflare Pages 的正规免费域名 ——
+     真部署在那上的站不该每次构建都被念一句。所以对 pages.dev 多要求一步：
+     地址或身份还带着模板指纹（示例站域名、没改过的标题/作者）才报；
+     localhost 不分情境，总是报。 */
+  const TEMPLATE_FINGERPRINT =
+    /astro-theme-flux\.pages\.dev/i.test(siteUrl) ||
+    config.title === DEFAULT_CONFIG.title ||
+    config.author === DEFAULT_CONFIG.author;
+  if (siteUrl && EXAMPLE_SITE.test(siteUrl) && (!/\.pages\.dev/i.test(siteUrl) || TEMPLATE_FINGERPRINT)) {
     issues.push(
       `site 还是示例地址（${siteUrl}）—— RSS、canonical、og:url 里的绝对链接都会指向它。` +
         '在 astro.config.mjs 里换成你自己的域名，形如 https://你的域名（结尾不要带斜杠）。',

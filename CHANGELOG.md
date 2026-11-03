@@ -7,7 +7,41 @@
 
 ## [Unreleased]
 
-_（无待发布改动）_
+开源健康与细节补齐：仓库级基线文件（dependabot / CONTRIBUTING / issue 模板 /
+编辑器与格式化配置）、Feed 与 llms.txt 对齐规范、评论与 Markdown 插件补上回归网。
+来源是 2026-11-03 的增量审查，逐项落地；过程记录见 `待修复项.md` 文末。
+
+### Added
+
+- **仓库基线文件**：`.github/dependabot.yml`（npm 每周 + GitHub Actions，上限 5 分支分组）、
+  Issue 模板（bug / 功能请求）与 PR 模板、`CONTRIBUTING.md`（五分钟上手 / 目录纪律 /
+  零框架规矩 / CHANGELOG 要求）、`.editorconfig`、`.prettierrc.json` + `.prettierignore`
+  与 `format` / `format:check` 脚本（不挂 CI，理由写在 CONTRIBUTING）。
+  `package.json` 补 `packageManager`，本地环境由 corepack 对齐。
+- **`public/_headers` 安全头模板**：HSTS / X-Frame-Options / Permissions-Policy / COOP
+  与 CSP 指引，整段注释随仓库分发 —— 默认不生效，每项写清开启前提（如 HSTS 要先在
+  CF 后台开 Force HTTPS），避免新人一键粘贴把自己锁在站外。
+- **`tests/comments.test.ts`（23 用例）**：Waline 的 CDN 模板展开与语言映射、
+  giscus 的 data 属性默认值与亮暗两套主题、Artalk 的 `.mjs` 入口、注册表的
+  ready / origins / recent 分支。这层是「配置进 JSON」的纯函数翻译，坏了只有
+  评论区白屏才看得见，正适合单测兜底。
+- **`tests/markdown-plugins.test.ts`（18 用例）**：自带一个极小的 HAST 遍历桩，
+  把七个正文插件各自的输入输出锁住（哪个属性该写什么值、哪种地址不该动）。
+
+### Changed
+
+- **RSS / Atom / llms.txt 对齐规范**：RSS 条目补 `categories`（分类+标签）与 `guid`
+  （永久链接）；Atom 的 `<author>` 补 `<uri>`（与 JSON-LD Person.url 同源，取自新
+  导出的 `authorPageUrl`）；`llms.txt` 的元信息从裸列表收进规范的 blockquote 段。
+- **dns-prefetch 补域**：开了 GA4 时加 `analytics.google.com`（collect 端点，原只
+  预解析了脚本域），开了 Clarity 时加 `scripts.clarity.ms`。
+- **PostCard 封面多一档 800w**：widths `[240,400,560]` → `[240,400,560,800]`，
+  高分屏 240px 槽位不再拉伸 560 档。
+- **构建期体检不再误伤 pages.dev 真部署**：`site` 命中 `*.pages.dev` 时，还要地址或
+  标题/作者仍带模板指纹（示例站域名、默认标题作者）才提示；自建域名挂 Cloudflare
+  Pages 免费域名的站从此安静。localhost 不分情境，照旧总是报。
+- **`color.accent` 的对比度说明**（types.ts / appearance.ts 注释，默认值不变）：
+  它全站 25+ 处直接当文字色用，对白底约 2.7:1 不达 WCAG AA；改色前拿对比度工具验。
 
 ## [5.3.0] - 2026-11-02
 

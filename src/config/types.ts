@@ -916,7 +916,14 @@ export interface SiteConfig {
     bodyBg: string;
     /** 卡片 / 内容区底色 */
     board: string;
-    /** 链接悬停与强调色 */
+    /**
+     * 链接悬停与强调色。
+     *
+     * ⚠️ 它不只喂给 `--link-hover-color` 做悬停态 —— 全站 25+ 处直接拿它当**文字色**
+     * （标签页计数、页脚链接、门户卡片、评论元信息等）。当文字用时要过 WCAG AA：
+     * 对白底 #fff 对比度需 ≥ 4.5:1。默认值 #30a9de 约 2.7:1，作悬停好看、作文字偏浅；
+     * 在意无障碍就换同色系更深一档（如 #1a7fad），用 WebAIM Contrast Checker 验。
+     */
     accent: string;
     /**
      * 顶栏「透明态」顶部那层黑色渐变的深度，0~1，默认 0.35。
