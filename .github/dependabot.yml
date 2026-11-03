@@ -23,6 +23,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # @astrojs/check 的 peer 只认 typescript ^5 || ^6：major 升级 PR 会在
+      # npm install 步骤直接 ERESOLVE 失败（见 PR #4）。等它支持 TS 7 后删掉这条。
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   # Action 本身也是代码：固定到 commit SHA 之外的常见做法是每周跟进大版本
   - package-ecosystem: github-actions
