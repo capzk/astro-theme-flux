@@ -5,7 +5,7 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [5.5.0] - 2026-11-05
 
 ### Added
 
@@ -1422,7 +1422,8 @@ do through the application is available in the API」），所以它不能进浏
 首个版本。从 hexo-theme-fluid 迁移到 Astro：卡片式首页、全屏 banner、深色模式、
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
-[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.2.0...HEAD
+[Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.5.0...HEAD
+[5.5.0]: https://github.com/capzk/astro-theme-flux/compare/v5.4.0...v5.5.0
 [5.2.0]: https://github.com/capzk/astro-theme-flux/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/capzk/astro-theme-flux/compare/v4.4.0...v5.0.0
