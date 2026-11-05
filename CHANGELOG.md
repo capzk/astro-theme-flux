@@ -5,6 +5,19 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [5.5.1] - 2026-11-05
+
+### Added
+
+- **`comment.nest.version`**：把 Nest 服务端的版本号拼成 `?v=<版本>` 写进组件脚本地址。
+  组件脚本的响应头是 `Cache-Control: public, max-age=300`（Nest 自己定的），所以升级
+  服务端之后读者浏览器里的旧脚本最多还会活 5 分钟 —— 期间前端跑旧代码、接口已是新的，
+  是最难查的一类问题。升级时改这一行，URL 变一次就是新的缓存键，下次打开页面立刻是新脚本。
+
+  不填（或只有空白）就原样返回，不留空 `?v=`，行为退回「最多旧 5 分钟」，不影响功能；
+  自定义 `js` 自带查询串时用 `&` 拼接；版本号走 `encodeURIComponent`，不会把查询串拼坏。
+  `origins()` 与 `js` 用同一个函数算地址，`preconnect` 仍然只有一个域名。
+
 ## [5.5.0] - 2026-11-05
 
 ### Added
@@ -1423,7 +1436,10 @@ do through the application is available in the API」），所以它不能进浏
 站内搜索、归档 / 分类 / 标签 / 友链 / 关于 / 404、RSS 与 sitemap，运行时依赖为 0。
 
 [Unreleased]: https://github.com/capzk/astro-theme-flux/compare/v5.5.0...HEAD
+[5.5.1]: https://github.com/capzk/astro-theme-flux/compare/v5.5.0...v5.5.1
 [5.5.0]: https://github.com/capzk/astro-theme-flux/compare/v5.4.0...v5.5.0
+[5.4.0]: https://github.com/capzk/astro-theme-flux/compare/v5.3.0...v5.4.0
+[5.3.0]: https://github.com/capzk/astro-theme-flux/compare/v5.2.0...v5.3.0
 [5.2.0]: https://github.com/capzk/astro-theme-flux/compare/v5.1.0...v5.2.0
 [5.1.0]: https://github.com/capzk/astro-theme-flux/compare/v5.0.0...v5.1.0
 [5.0.0]: https://github.com/capzk/astro-theme-flux/compare/v4.4.0...v5.0.0
