@@ -125,6 +125,11 @@ const DEFAULT_CONFIG: SiteConfig = {
       site: '',
       pageSize: 20,
     },
+    nest: {
+      /* 自研服务的地址。填了它再把 type 改成 'nest' 就切过去了 */
+      server: '',
+      pageSize: 20,
+    },
     /* 文章页底部的「本站最新评论」。默认关：它要在滚到底时多发一个请求 */
     recent: {
       enable: false,

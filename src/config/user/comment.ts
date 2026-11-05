@@ -1,17 +1,19 @@
 /**
  * 评论
  * ---------------------------------------------------------------------------
- * 三套都在这里，改 `type` 一行就切换 —— 用不到的那段留着不影响构建。
+ * 四套都在这里，改 `type` 一行就切换 —— 用不到的那段留着不影响构建。
  *
  *   'waline'  自建服务端，功能最全（评论 / 反应 / 登录 / 表情包）
  *   'giscus'  存在 GitHub Discussions，零服务端，只有评论
  *   'artalk'  自建服务端，Go 单二进制、比 Waline 轻，插件少一些
+ *   'nest'    自研自托管服务（github.com/capzk/nest），单进程 + SQLite，
+ *             组件挂 Shadow DOM、CSS 与主题互不干扰；没有 recent 挂件
  *
- * 示例站默认关闭：Waline / Artalk 得先有自己的服务端，Giscus 得先开 Discussions，
- * 示例站三样都没有。所以这里 `enable: false`，页面里连骨架都不渲染。
+ * 示例站默认关闭：这四家都得先有自己的服务端（Giscus 要先开 Discussions），
+ * 示例站都没有。所以这里 `enable: false`，页面里连骨架都不渲染。
  *
- * 全量字段说明见 `src/config/types.ts` 的 WalineConfig / GiscusConfig / ArtalkConfig ——
- * 每一项都写了默认值，下面只列最常改的几个。
+ * 全量字段说明见 `src/config/types.ts` 的 WalineConfig / GiscusConfig /
+ * ArtalkConfig / NestConfig —— 每一项都写了默认值，下面只列最常改的几个。
  */
 import { defineConfig } from '../merge';
 
@@ -78,6 +80,17 @@ export default defineConfig({
        * 后端的「默认站点」，后台管理列表里看不见。
        */
       site: '',
+    },
+
+    nest: {
+      /**
+       * 你自己的 Nest 服务地址，例如 'https://comment.example.com'。
+       * 必须前端可达，且服务端的 ALLOWED_ORIGINS 里写了本站域名 ——
+       * 少这一条的表现是「网络异常，请稍后再试」。
+       */
+      server: '',
+      /* 每页几条根评论，默认 20 */
+      pageSize: 20,
     },
   },
 });

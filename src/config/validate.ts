@@ -129,6 +129,31 @@ export function inspect(config: SiteConfig, options: InspectOptions = {}): strin
     }
   }
 
+  if (comment.enable && comment.type === 'nest') {
+    const server = comment.nest?.server?.trim() ?? '';
+    if (!server) {
+      issues.push(
+        'comment.type 是 nest 且 enable 为 true，但 nest.server 是空的 —— 文章页不会出现评论区。' +
+          '填上你的 Nest 服务地址（形如 https://comment.example.com），或把 enable 改成 false。',
+      );
+    } else if (!/^https?:\/\//.test(server)) {
+      issues.push(
+        `nest.server 是 "${server}"，看起来不像地址 —— 必须以 http:// 或 https:// 开头` +
+          '（组件要从那里拉脚本，相对路径解析不到别的域名上）。',
+      );
+    } else if (/^http:\/\//.test(server) && /^https:\/\//.test(siteUrl)) {
+      /* https 页面拉 http 脚本 = 混合内容，浏览器直接拦，还只留一条 console 报错。
+         本机调试（http://127.0.0.1:8787）也走这条，所以只提示不拦构建 */
+      const local = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/)/.test(server);
+      if (!local) {
+        issues.push(
+          `nest.server 是 http://，但站点是 https:// —— 浏览器会按混合内容拦掉组件脚本，` +
+            '评论区整块加载失败。给 Nest 配上 HTTPS，或反代到 https 域名下。',
+        );
+      }
+    }
+  }
+
   /* 社交平台不吃 SVG，分享出去就是一张空白卡片。默认值里就踩过这个坑，所以拦一道 */
   if (config.ogImage && /\.svg(\?|$)/i.test(config.ogImage)) {
     issues.push(

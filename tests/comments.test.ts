@@ -12,8 +12,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { commentContext, commentOrigins, hasCommentForm, resolveComments } from '../src/comments';
 import { artalk } from '../src/comments/artalk';
 import { giscus } from '../src/comments/giscus';
+import { nest } from '../src/comments/nest';
 import { waline } from '../src/comments/waline';
-import type { ArtalkConfig, CommentConfig, GiscusConfig, WalineConfig } from '../src/config';
+import type {
+  ArtalkConfig,
+  CommentConfig,
+  GiscusConfig,
+  NestConfig,
+  WalineConfig,
+} from '../src/config';
 import type { CommentContext } from '../src/comments/types';
 
 /** 每个测试后把 console.warn 的清场做掉，避免 warnOnce 之外的噪声漏进结果 */
@@ -186,6 +193,73 @@ describe('artalk', () => {
     expect(init.pageKey).toBe('/posts/hello/');
     expect(init.pagination).toEqual({ pageSize: 20 });
     expect(init.locale).toBe('zh-CN');
+  });
+});
+
+describe('nest', () => {
+  const cfg = (over: Partial<NestConfig>): NestConfig =>
+    ({ server: 'https://n.test', ...over }) as NestConfig;
+
+  it('ready 只认 server：没填就整块不渲染，不会去拉一个必然 404 的脚本', () => {
+    expect(nest.ready({ server: '' } as NestConfig)).toBe(false);
+    expect(nest.ready({ server: '   ' } as NestConfig)).toBe(false);
+    expect(nest.ready(cfg({}))).toBe(true);
+  });
+
+  it('js 默认指向服务端自己托管的产物，且不下发 css（样式在脚本里）', () => {
+    const payload = nest.build(cfg({}), ctx);
+    expect(payload.js).toBe('https://n.test/widget/comment.min.js');
+    expect(payload.css).toBeUndefined();
+    /* 服务端不暴露评论数的 DOM 钩子，标题上那枚「N 条」不该渲染 */
+    expect(payload.countClass).toBeUndefined();
+  });
+
+  it('server 尾部斜杠会被吃掉，反代带进来的也不会拼出 //widget', () => {
+    expect(nest.build(cfg({ server: 'https://n.test///' }), ctx).js).toBe(
+      'https://n.test/widget/comment.min.js',
+    );
+    expect(nest.build(cfg({ server: 'https://n.test/' }), ctx).init.server).toBe('https://n.test');
+  });
+
+  it('pageKey 默认取页面路径，支持 href 与固定值', () => {
+    const key = (over: Partial<NestConfig>) => nest.build(cfg(over), ctx).init.pageKey;
+    expect(key({})).toBe('/posts/hello/');
+    expect(key({ pageKey: 'href' })).toBe(ctx.href);
+    expect(key({ pageKey: '/posts/stable-id/' })).toBe('/posts/stable-id/');
+  });
+
+  it('没配 theme / heading 就不下发这两个键 —— mounter 靠缺失判断「跟随博客」', () => {
+    const init = nest.build(cfg({}), ctx).init as Record<string, unknown>;
+    expect('theme' in init).toBe(false);
+    expect('heading' in init).toBe(false);
+
+    const explicit = nest.build(cfg({ theme: 'dark', heading: '留言' }), ctx).init as Record<
+      string,
+      unknown
+    >;
+    expect(explicit.theme).toBe('dark');
+    expect(explicit.heading).toBe('留言');
+  });
+
+  it('origins 只有服务端一个域名（组件不加载任何第三方资源）', () => {
+    expect(nest.origins!(cfg({}))).toEqual(['https://n.test']);
+    expect(nest.origins!(cfg({ js: 'https://cdn.example.com/w.js' }))).toEqual([
+      'https://n.test',
+      'https://cdn.example.com',
+    ]);
+  });
+
+  it('注册表能按 type 找到它，且不提供 recent 挂件', () => {
+    const ready = asComment({
+      enable: true,
+      type: 'nest',
+      lazy: 600,
+      nest: cfg({}),
+    });
+    const { section, recent } = resolveComments(ready, ctx);
+    expect(section?.type).toBe('nest');
+    expect(recent).toBeNull();
+    expect(hasCommentForm(ready)).toBe(true);
   });
 });
 

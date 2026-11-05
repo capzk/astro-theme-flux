@@ -46,6 +46,7 @@ export type {
   WalineEmojiInfo,
   GiscusConfig,
   ArtalkConfig,
+  NestConfig,
   AnalyticsConfig,
   GoogleAnalyticsConfig,
   UmamiConfig,

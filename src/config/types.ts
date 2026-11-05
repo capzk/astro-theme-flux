@@ -325,23 +325,74 @@ export interface ArtalkConfig {
 }
 
 /**
+ * Nest 评论
+ * ---------------------------------------------------------------------------
+ * 自研的自托管评论服务（<https://github.com/capzk/nest>）：单个 Node 进程同时
+ * 提供 REST API、管理面板（`/admin/`）与组件脚本（`/widget/comment.min.js`），
+ * 数据落在一个 SQLite 文件里。博客这边只放一个容器 + 一行脚本。
+ *
+ * 跟另外三家的两点不同，接的时候要心里有数：
+ *
+ *   · 组件挂 Shadow DOM：主题的 CSS 进不去、评论区的样式也出不来。要改配色，
+ *     在评论区容器上覆盖 `--nest-*` 自定义属性（能穿透 shadow 边界），不是改主题；
+ *   · 没有「公开的最新评论」读接口，所以文章页底部的 recent 挂件在它下面不出现。
+ *
+ * 它是传统脚本（IIFE），不是 ES 模块 —— 由 client/nest.js 用 <script> 标签加载，
+ * 脚本自己挂 `[data-nest]`，不走动态 import。
+ */
+export interface NestConfig {
+  /**
+   * 评论服务地址，例如 `https://comment.example.com`。必须前端可达。
+   *
+   * 服务端要把博客的来源写进 `ALLOWED_ORIGINS`（`scheme://host[:port]`，逗号分隔），
+   * 否则脚本加载得到、接口全部 CORS 拒绝 —— 页面上的表现是「网络异常，请稍后再试」。
+   */
+  server: string;
+  /**
+   * 评论归属的路径（服务端叫 page_key）。默认取当前页面路径；
+   * 填 `'href'` 用完整地址（换域名会丢评论，一般不要）。
+   *
+   * 同一篇文章有多个 URL、或者路径会变时，填一个**长年不变**的固定字符串最省心。
+   */
+  pageKey?: 'href' | string;
+  /** 每页几条根评论，1~100。默认 20（服务端默认值，主题不改它就传 20） */
+  pageSize?: number;
+  /**
+   * 配色。留空 = **跟着博客当前的深浅色走**（挂载时读 `html[data-user-color-scheme]`，
+   * 之后主题切换时同步 `data-nest-theme`，不重建组件、不重拉评论）。
+   *
+   * 填 `'auto'` 是 Nest 自己的语义：跟随操作系统的 `prefers-color-scheme`，
+   * 不看博客的切换按钮 —— 读者手动切过主题时两者会对不上，一般别用。
+   */
+  theme?: 'auto' | 'light' | 'dark';
+  /** 组件自己的标题（≤40 字）。文章页正文末尾已有「评论」标题时**不要填** */
+  heading?: string;
+  /**
+   * 组件脚本地址。默认 `<server>/widget/comment.min.js` ——
+   * 服务端自己托管产物，不用 CDN，所以只有反代改了路径时才需要填。
+   */
+  js?: string;
+}
+
+/**
  * 评论系统
  * ---------------------------------------------------------------------------
  * 换评论系统只改 `type` 一行，再把对应那一段填好 —— 用不到的段留着不影响构建，
  * 所以「先填两套、随时切」是常态。
  *
- * 内置三个实现：
+ * 内置四个实现：
  *   'waline' —— 自建服务端，功能最全（评论 / 反应 / 登录 / 表情包）
  *   'giscus' —— 寄生在 GitHub Discussions，零服务端，只有评论
  *   'artalk' —— 自建服务端，单个二进制、比 Waline 轻，插件少一些
+ *   'nest'   —— 自研自托管服务，单进程 + SQLite，组件挂 Shadow DOM
  *
- * 加第四个见 README「再加一个评论系统」：四步，其中三步是各写一个文件。
+ * 加第五个见 README「再加一个评论系统」：四步，其中三步是各写一个文件。
  */
 export interface CommentConfig {
   /** 总开关。关掉后文章页不渲染评论区，也不请求任何评论相关的资源 */
   enable: boolean;
   /** 用哪一套。改这里即可切换 */
-  type: 'waline' | 'giscus' | 'artalk';
+  type: 'waline' | 'giscus' | 'artalk' | 'nest';
   /**
    * 懒加载：浏览器滚到「距评论区还有 N 像素」时才开始拉脚本。
    * `0` 表示不懒加载、进页面就拉。默认 600 —— 大约「再滚一屏就到了」。
@@ -361,6 +412,8 @@ export interface CommentConfig {
   giscus?: GiscusConfig;
   /** Artalk 的私有配置（`type === 'artalk'` 时生效） */
   artalk?: ArtalkConfig;
+  /** Nest 的私有配置（`type === 'nest'` 时生效） */
+  nest?: NestConfig;
 }
 
 /**

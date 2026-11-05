@@ -12,7 +12,7 @@
 import type { CommentConfig } from '../config';
 
 /** 站点支持的评论系统。加一个就在 src/config 的 `type` 里加一项 */
-export type CommentType = 'waline' | 'giscus' | 'artalk';
+export type CommentType = 'waline' | 'giscus' | 'artalk' | 'nest';
 
 /** 构建期传给 provider 的上下文 */
 export interface CommentContext {

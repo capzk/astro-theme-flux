@@ -4,7 +4,7 @@
 [![Astro](https://img.shields.io/badge/Astro-7.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522.23.4-339933.svg?logo=node.js&logoColor=white)](./package.json)
 
-> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk).
+> A Material Design blog theme for **Astro** — card grid, full-screen banner, dark mode, local search, sticky TOC, pluggable comments (Waline / Giscus / Artalk / Nest).
 
 **在线预览**：[astro-theme-flux.pages.dev](https://astro-theme-flux.pages.dev)（Cloudflare Pages）
 
@@ -53,7 +53,7 @@
 | 文章 URL                               | front matter 的 `slug` 或文件路径生成，中文自动转拼音，全小写 ASCII，撞车在构建期报错                                                                                          |
 | 返回顶部、标题锚点、外链新窗口         | 零依赖脚本 / Markdown 插件                                                                                                                                                     |
 | 分享卡片与结构化数据                   | Open Graph / Twitter 全套 meta（含 `og:image:type`）+ JSON-LD 实体图：`WebSite` / `Organization` / `Person` / `BlogPosting` / `BreadcrumbList` 用 `@id` 串成一套               |
-| 评论                                   | 可插拔：Waline / Artalk（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题                                                         |
+| 评论                                   | 可插拔：Waline / Artalk / Nest（自建服务端）或 Giscus（GitHub Discussions）改一行切换；滚到评论区才加载，配色与深浅色跟随主题                                                  |
 | 访客统计                               | 三家各自开关、可并存：GA4 / Umami（访问统计）、Clarity（热图与会话回放）；`async` 加载 + `dns-prefetch`，只在生产构建里输出；另有一段站长认领（Search Console / Bing / 百度…） |
 | 最新评论                               | 文章页底部一行「本站最新评论」（Waline 的公开读接口），滚到附近才拉；只用 `textContent` 渲染，不执行访客写的 HTML                                                              |
 | RSS 与 sitemap                         | `@astrojs/rss` + `@astrojs/sitemap`；文章条目带 `lastmod`（取 front matter 的 `updated`，不是构建时间），feed 带 `atom:link rel="self"` 与可验证的 `lastBuildDate`             |
@@ -85,17 +85,17 @@ npm run format   # 可选：prettier 全量格式化（.astro 不在范围内，
 
 `src/content/posts/` 自带 18 篇示例，其中「指南」分类的 9 篇就是这份主题的使用文档，同时也充当排版样例：
 
-| 文章             | 讲什么                                                          |
-| ---------------- | --------------------------------------------------------------- |
-| 快速开始         | 环境要求、三步启动、目录结构                                    |
-| 站点配置详解     | `src/config/` 的结构、每一项的取值与效果                        |
-| 写一篇文章       | front matter、分类与标签、正文可用语法                          |
-| 门户首页         | 首页三大块、每分类版式与密度配置                                |
-| 评论系统         | Waline / Giscus / Artalk 怎么搭起来、配置填哪几行、配完怎么验证 |
-| URL 与 slug      | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救              |
-| 换成你自己的样子 | 配色、字体、版心与字号                                          |
-| 部署上线         | GitHub Pages / Vercel / nginx，以及常见坑                       |
-| 改造与扩展       | 加页面、加图标、加语言、换评论、换搜索                          |
+| 文章             | 讲什么                                                                 |
+| ---------------- | ---------------------------------------------------------------------- |
+| 快速开始         | 环境要求、三步启动、目录结构                                           |
+| 站点配置详解     | `src/config/` 的结构、每一项的取值与效果                               |
+| 写一篇文章       | front matter、分类与标签、正文可用语法                                 |
+| 门户首页         | 首页三大块、每分类版式与密度配置                                       |
+| 评论系统         | Waline / Giscus / Artalk / Nest 怎么搭起来、配置填哪几行、配完怎么验证 |
+| URL 与 slug      | 文章地址怎么生成、中文怎么转拼音、改了地址怎么补救                     |
+| 换成你自己的样子 | 配色、字体、版心与字号                                                 |
+| 部署上线         | GitHub Pages / Vercel / nginx，以及常见坑                              |
+| 改造与扩展       | 加页面、加图标、加语言、换评论、换搜索                                 |
 
 fork 之后整批删掉即可，不影响任何功能。
 
@@ -123,7 +123,7 @@ fork 之后整批删掉即可，不影响任何功能。
 | `site.ts`       | 站名、副标题、描述、作者、头像、分享封面、X 账号、导航菜单                                                                          |
 | `appearance.ts` | 首页 banner（开关 / 图 / 高度 / 蒙版 / 标语 / 打字机 / 视差）、文章页 banner、配色、暗色模式                                        |
 | `content.ts`    | 首页卡片（默认封面 / 摘要长度 / meta 开关）、文章页开关（目录 / 版权 / 上下篇 / 相关文章 / 阅读速度）、每页条数、搜索、RSS 摘要长度 |
-| `comment.ts`    | 评论系统（Waline / Giscus / Artalk）                                                                                                |
+| `comment.ts`    | 评论系统（Waline / Giscus / Artalk / Nest）                                                                                         |
 | `analytics.ts`  | 访客统计（GA4 / Umami）与站长验证（Search Console / Bing / 其他）                                                                   |
 | `footer.ts`     | 页脚：站龄、RSS / Atom / Sitemap 入口、ICP 备案（默认关）                                                                           |
 | `links.ts`      | 友链                                                                                                                                |
@@ -514,6 +514,32 @@ artalk: {
 
 深色模式由主题的挂载器处理：构建期算不出「读者此刻是不是暗色」，所以挂载时读一次 `<html data-user-color-scheme>`，之后用 `MutationObserver` 盯住这个属性跟着切 —— 比在主题的切换按钮里埋一个「通知所有第三方」的钩子便宜，评论是唯一的外部依赖，不值得为它改全局逻辑。
 
+#### Nest
+
+自研的自托管评论服务（[capzk/nest](https://github.com/capzk/nest)）：一个 Node 进程同时提供 API、管理面板（`/admin/`）与组件脚本，数据落在一个 SQLite 文件里。不加载任何第三方脚本 —— 人机验证是浏览器本地算的工作量证明，不外连任何服务。
+
+1. 按[部署文档](https://github.com/capzk/nest/blob/main/docs/DEPLOY.md)把服务跑起来（仓库里 `docker/compose.yaml` 一条命令起全套）；
+2. 服务端 `.env` 的 `ALLOWED_ORIGINS` 写上本站域名（`https://blog.example.com`；带 www 就两条都写，**不带路径**）；
+3. 填 `src/config/user/comment.ts`：
+
+```ts
+comment: {
+  enable: true,
+  type: 'nest',
+  nest: { server: 'https://comment.example.com' },
+},
+```
+
+和其它三家不一样的地方：
+
+- **组件挂 Shadow DOM**：主题的 CSS 进不去，评论区的样式也出不来。要改配色，在评论区容器上覆盖 `--nest-*` 自定义属性（能穿透 shadow 边界），不是改 `main.css`；
+- **没有「N 条评论」徽标**：服务端不暴露计数接口，标题上那枚徽标不渲染；
+- **没有最新评论挂件**：只有「按页取评论」的接口，`recent` 这一块自动不出现；
+- **不用配 CDN**：脚本由服务端自己托管、样式内联在脚本里，所以配置里没有 `js` / `css`；
+- **深浅色跟随主题**：挂载时读一次 `<html data-user-color-scheme>`，之后盯着这个属性改 `data-nest-theme`，不重建组件、不重拉评论。
+
+`ALLOWED_ORIGINS` 写错是最高频的接入故障：脚本加载得到、接口全被 CORS 拒，页面上只显示「网络异常，请稍后再试」。改完要重启服务才生效。
+
 #### Giscus
 
 评论存在 GitHub Discussions 里，不需要服务端，但读者要有 GitHub 账号才能发言。三个 id 在 [giscus.app](https://giscus.app) 填完仓库信息后生成：
@@ -546,7 +572,7 @@ Giscus 没有公开的评论读接口，所以选它时最新评论挂件自动�
 3. `src/comments/client/xxx.js` —— 导出 `mount({ el, section, attempt, loadModule })`，负责把脚本拉下来挂到 `el` 上；
 4. 两个注册表各加一行：`src/comments/index.ts` 的 `LIST`、`src/comments/client/index.js` 的 `MOUNTERS`。
 
-契约在 `src/comments/types.ts`。三个现成样板各代表一种形态：Waline（ES 模块 + 自定义样式 + 计数小插件 + 公开读接口）、Giscus（传统脚本 + iframe + postMessage 换肤）、Artalk（ES 模块 + 实例方法换肤 + 全局 `MutationObserver`），照着抄就行。
+契约在 `src/comments/types.ts`。四个现成样板各代表一种形态：Waline（ES 模块 + 自定义样式 + 计数小插件 + 公开读接口）、Giscus（传统脚本 + iframe + postMessage 换肤）、Artalk（ES 模块 + 实例方法换肤 + 全局 `MutationObserver`）、Nest（IIFE 传统脚本 + `data-*` 容器 + Shadow DOM），照着抄就行。
 
 想把评论放到关于页或留言板，在那一页里 `<Comments />` 即可（`path` 默认取当前页路径）。
 
@@ -639,16 +665,16 @@ URL 形态保持一致（`/posts/<文件名>/`、`/tags/<名称>/`、`/archives/
 
 ## 取舍：原版有哪些，这里为什么没有
 
-| 原版功能                    | Flux                                          | 原因                                                                 |
-| --------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
-| 评论（13 种第三方服务）     | 内置 3 种（Waline / Artalk / Giscus），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 三个样板，要第四种照着抄   |
-| 文章加密、数学公式、Mermaid | ✕                                             | 各需一个运行时库，属于插件而非主题核心                               |
-| 打字机副标题、视差 banner   | ✓                                             | 原生 JS，默认开；只改 `appearance.ts` 就能关，且尊重「减少动态效果」 |
-| fancybox 图片缩放           | 自写灯箱                                      | 只要「点开放大」，不需要一个 40KB 的库                               |
-| Bootstrap 栅格（CDN）       | 自己写 flex/grid                              | 只用到栅格，为它引 200KB 不划算                                      |
-| iconfont（CDN）             | 内联 SVG                                      | 零请求、随 `currentColor`                                            |
-| Stylus                      | 手写 CSS                                      | 改色只动 CSS 变量，构建不依赖预处理器                                |
-| 9 套语言包                  | 中文一份（`src/i18n.ts`）                     | 结构已就位，加语言只需扩一个对象                                     |
+| 原版功能                    | Flux                                                 | 原因                                                                 |
+| --------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| 评论（13 种第三方服务）     | 内置 4 种（Waline / Artalk / Giscus / Nest），可插拔 | 13 套适配是插件该干的活；这里给的是接口 + 四个样板，要第五种照着抄   |
+| 文章加密、数学公式、Mermaid | ✕                                                    | 各需一个运行时库，属于插件而非主题核心                               |
+| 打字机副标题、视差 banner   | ✓                                                    | 原生 JS，默认开；只改 `appearance.ts` 就能关，且尊重「减少动态效果」 |
+| fancybox 图片缩放           | 自写灯箱                                             | 只要「点开放大」，不需要一个 40KB 的库                               |
+| Bootstrap 栅格（CDN）       | 自己写 flex/grid                                     | 只用到栅格，为它引 200KB 不划算                                      |
+| iconfont（CDN）             | 内联 SVG                                             | 零请求、随 `currentColor`                                            |
+| Stylus                      | 手写 CSS                                             | 改色只动 CSS 变量，构建不依赖预处理器                                |
+| 9 套语言包                  | 中文一份（`src/i18n.ts`）                            | 结构已就位，加语言只需扩一个对象                                     |
 
 原则一句话：**读者从点开一篇文章到读完，这条路径要完整；路径之外的东西可以砍。**
 
@@ -690,6 +716,7 @@ src/
 │   ├── waline.ts        #   Waline 的构建期实现
 │   ├── giscus.ts        #   Giscus 的构建期实现
 │   ├── artalk.ts        #   Artalk 的构建期实现
+│   ├── nest.ts          #   Nest 的构建期实现
 │   └── client/          #   浏览器里怎么挂（每家一个文件）
 ├── utils/posts.ts       # 取文章（astro:content）+ 转出下面的纯函数
 ├── utils/post-list.ts   # 排序 / 分页 / 相关文章 / 系列：纯函数，零 astro:content 依赖
@@ -764,7 +791,9 @@ const BASE = '/blog'; // 换成你的前缀，不要带结尾斜杠
   `connect-src` 加 `https://*.google-analytics.com`；Umami 是你自己的域名，`connect-src`
   要加那个域名；Clarity → `https://www.clarity.ms`（脚本）与 `https://*.clarity.ms`（回传）。
 - 评论：Waline / Artalk 的 CDN 要进 `script-src` 与 `style-src`，服务端地址进
-  `connect-src`；Giscus 走 `https://giscus.app`（`frame-src` + `script-src`）。
+  `connect-src`；Giscus 走 `https://giscus.app`（`frame-src` + `script-src`）；
+  Nest 只需把服务域名同时加进 `script-src`（组件脚本）与 `connect-src`（接口），
+  样式走 `adoptedStyleSheets`，**不用**给它开 `style-src`。
 - **`frame-src` 只放评论与 Turnstile**。别图省事写 `frame-src *`。
 
 上线后打开控制台看有没有 `Refused to …` 的报错 —— CSP 报错不会让页面白屏，只会

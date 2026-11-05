@@ -7,6 +7,7 @@
  */
 import mountArtalk from './artalk.js';
 import mountGiscus from './giscus.js';
+import mountNest from './nest.js';
 import mountWaline from './waline.js';
 
 /**
@@ -20,5 +21,6 @@ import mountWaline from './waline.js';
 export const MOUNTERS = {
   artalk: mountArtalk,
   giscus: mountGiscus,
+  nest: mountNest,
   waline: mountWaline,
 };

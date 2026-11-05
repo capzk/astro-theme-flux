@@ -19,6 +19,7 @@ import type {
 } from './types';
 import { artalk } from './artalk';
 import { giscus } from './giscus';
+import { nest } from './nest';
 import { waline } from './waline';
 import { warnOnce } from './warn';
 
@@ -34,7 +35,7 @@ export const DARK_SELECTOR = 'html[data-user-color-scheme="dark"]';
  */
 type AnyProvider = CommentProvider<any>;
 
-const LIST: readonly AnyProvider[] = [waline, giscus, artalk];
+const LIST: readonly AnyProvider[] = [waline, giscus, artalk, nest];
 
 const PROVIDERS = new Map<CommentType, AnyProvider>(
   LIST.map((provider) => [provider.type, provider]),

@@ -5,6 +5,18 @@
 格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- **Nest 评论系统**（`comment.type: 'nest'`）：自研自托管服务（[capzk/nest](https://github.com/capzk/nest)），
+  单进程 + SQLite，组件挂 Shadow DOM、样式内联进脚本，不加载任何第三方资源。新增
+  `src/comments/nest.ts` 与 `src/comments/client/nest.js`、`NestConfig` 类型、构建期体检
+  （server 缺失 / 非 http(s) / https 站点配 http 服务端的混合内容）与 7 条回归测试。
+  它是传统脚本（IIFE），所以 mounter 自己造 `<script>` 并把 `data-*` 写在容器上，
+  不走动态 import。**默认不开启**：`comment.enable` 仍为 `false`、`type` 仍为 `'waline'`，
+  想用的人改两行配置即可。没有 recent 挂件与「N 条」徽标（服务端没有对应接口）。
+
 ## [5.4.0] - 2026-11-03
 
 这一版把「仓库对外可见的部分」补齐：开源基线与贡献流程、Feed 与 llms.txt 对齐规范、

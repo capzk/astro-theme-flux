@@ -109,6 +109,27 @@ describe('inspect · 评论', () => {
     const issues = inspect(config({ comment: { enable: false, type: 'waline' } }), OK);
     expect(joined(issues)).not.toContain('waline');
   });
+
+  it('nest 没填 server 要报；http 服务端配 https 站点提示混合内容', () => {
+    const missing = inspect(config({ comment: { enable: true, type: 'nest' } }), OK);
+    expect(joined(missing)).toContain('nest.server 是空的');
+
+    const mixed = inspect(
+      config({ comment: { enable: true, type: 'nest', nest: { server: 'http://1.2.3.4:8787' } } }),
+      OK,
+    );
+    expect(joined(mixed)).toContain('混合内容');
+  });
+
+  it('本机地址的 http 不报混合内容（本地调试就是这个组合）', () => {
+    const issues = inspect(
+      config({
+        comment: { enable: true, type: 'nest', nest: { server: 'http://127.0.0.1:8787' } },
+      }),
+      OK,
+    );
+    expect(joined(issues)).not.toContain('混合内容');
+  });
 });
 
 describe('inspect · Giscus', () => {
