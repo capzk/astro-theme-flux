@@ -214,6 +214,25 @@ describe('nest', () => {
     expect(payload.countClass).toBeUndefined();
   });
 
+  it('version 拼成查询串 —— 升级服务端后靠它绕开脚本那 5 分钟的缓存', () => {
+    expect(nest.build(cfg({ version: '0.1.0' }), ctx).js).toBe(
+      'https://n.test/widget/comment.min.js?v=0.1.0',
+    );
+    /* 没填（或只有空格）就原样，不留一个尾巴上空的 ?v= */
+    expect(nest.build(cfg({ version: '' }), ctx).js).toBe('https://n.test/widget/comment.min.js');
+    expect(nest.build(cfg({ version: '   ' }), ctx).js).toBe(
+      'https://n.test/widget/comment.min.js',
+    );
+    /* 自定义 js 自带查询串时用 &，别拼出两个 ? */
+    expect(nest.build(cfg({ js: 'https://cdn.test/w.js?t=1', version: '1' }), ctx).js).toBe(
+      'https://cdn.test/w.js?t=1&v=1',
+    );
+    /* 版本号里的特殊字符要转义，不能把查询串拼坏 */
+    expect(nest.build(cfg({ version: 'a b&c' }), ctx).js).toBe(
+      'https://n.test/widget/comment.min.js?v=a%20b%26c',
+    );
+  });
+
   it('server 尾部斜杠会被吃掉，反代带进来的也不会拼出 //widget', () => {
     expect(nest.build(cfg({ server: 'https://n.test///' }), ctx).js).toBe(
       'https://n.test/widget/comment.min.js',
@@ -243,6 +262,8 @@ describe('nest', () => {
 
   it('origins 只有服务端一个域名（组件不加载任何第三方资源）', () => {
     expect(nest.origins!(cfg({}))).toEqual(['https://n.test']);
+    /* 带版本串不该多出个域名来 */
+    expect(nest.origins!(cfg({ version: '0.1.0' }))).toEqual(['https://n.test']);
     expect(nest.origins!(cfg({ js: 'https://cdn.example.com/w.js' }))).toEqual([
       'https://n.test',
       'https://cdn.example.com',

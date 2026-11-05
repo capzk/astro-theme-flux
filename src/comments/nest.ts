@@ -28,6 +28,29 @@ function trim(server: string): string {
 }
 
 /**
+ * 把版本号挂到脚本地址上。
+ *
+ * 组件脚本的响应头是 `public, max-age=300`（服务端 `app.ts` 里写死的），所以升级
+ * Nest 之后，读者浏览器里那份旧脚本最多还会活 5 分钟 —— 期间新评论接口已经在跑新
+ * 代码，前端还是旧的，排查起来像见鬼。版本号进了查询串，URL 就是一个新的缓存键，
+ * 读者下次打开页面拿到的立刻是新脚本。
+ *
+ * 不填就原样返回，行为退回「最多旧 5 分钟」，不会坏。这和 Waline 那段
+ * `version: '3.16.1'` 是同一个思路：**升级时改一行配置**，而不是靠缓存自己过期。
+ */
+function withVersion(url: string, version?: string): string {
+  const v = version?.trim();
+  if (!v) return url;
+  /* 自定义的 js 可能自带查询串（CDN 的 ?t=123 之类），别拼出两个 ? */
+  return `${url}${url.includes('?') ? '&' : '?'}v=${encodeURIComponent(v)}`;
+}
+
+/** 组件脚本的最终地址：自定义 js 优先，否则服务端默认路径，两者都吃 `version` */
+function jsOf(config: NestConfig, server: string): string {
+  return withVersion(config.js || `${server}${WIDGET_PATH}`, config.version);
+}
+
+/**
  * 评论归属的 page_key。
  *
  * 和 Waline / Artalk 一个口径：构建期算好写进页面，运行期不读 `window.location` ——
@@ -54,7 +77,7 @@ export const nest: CommentProvider<NestConfig> = {
   build(config, ctx): CommentPayload {
     const server = trim(config.server.trim());
     return {
-      js: config.js || `${server}${WIDGET_PATH}`,
+      js: jsOf(config, server),
       /* 没有独立样式文件：组件把样式内联进 Shadow DOM，见文件头说明 */
       init: {
         server,
@@ -77,6 +100,6 @@ export const nest: CommentProvider<NestConfig> = {
    * （人机验证是本地算的工作量证明，不外连）。
    */
   origins(config): string[] {
-    return originsOf(config.server, config.js || `${trim(config.server)}${WIDGET_PATH}`);
+    return originsOf(config.server, jsOf(config, trim(config.server.trim())));
   },
 };

@@ -526,7 +526,11 @@ artalk: {
 comment: {
   enable: true,
   type: 'nest',
-  nest: { server: 'https://comment.example.com' },
+  nest: {
+    server: 'https://comment.example.com',
+    // 升级服务端后把这里改成新版本号，读者立刻拿到新脚本
+    // version: '0.1.0',
+  },
 },
 ```
 
@@ -535,8 +539,9 @@ comment: {
 - **组件挂 Shadow DOM**：主题的 CSS 进不去，评论区的样式也出不来。要改配色，在评论区容器上覆盖 `--nest-*` 自定义属性（能穿透 shadow 边界），不是改 `main.css`；
 - **没有「N 条评论」徽标**：服务端不暴露计数接口，标题上那枚徽标不渲染；
 - **没有最新评论挂件**：只有「按页取评论」的接口，`recent` 这一块自动不出现；
-- **不用配 CDN**：脚本由服务端自己托管、样式内联在脚本里，所以配置里没有 `js` / `css`；
-- **深浅色跟随主题**：挂载时读一次 `<html data-user-color-scheme>`，之后盯着这个属性改 `data-nest-theme`，不重建组件、不重拉评论。
+- **不用配 CDN**：脚本由服务端自己托管、样式内联在脚本里，所以只需要一个 `server` 地址；
+- **深浅色跟随主题**：挂载时读一次 `<html data-user-color-scheme>`，之后盯着这个属性改 `data-nest-theme`，不重建组件、不重拉评论；
+- **升级服务端要动一行 `version`**：组件脚本的响应头是 `Cache-Control: public, max-age=300`（Nest 自己定的），升级后读者浏览器里那份旧脚本最多还会活 5 分钟 —— 期间前端跑旧代码、接口已是新的，最难查。把 `nest.version` 改成新版本号即可（拼成 `?v=<版本>`，缓存键一变就是一次全新拉取）；不填只是回到「最多旧 5 分钟」，不影响功能。
 
 `ALLOWED_ORIGINS` 写错是最高频的接入故障：脚本加载得到、接口全被 CORS 拒，页面上只显示「网络异常，请稍后再试」。改完要重启服务才生效。
 
